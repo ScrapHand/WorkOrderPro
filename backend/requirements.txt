@@ -6,8 +6,8 @@ pydantic
 pydantic-settings
 python-jose[cryptography]
 python-jose[cryptography]
-passlib
-bcrypt==3.2.2
+passlib[argon2]
+argon2-cffi
 asyncpg
 python-multipart
 email-validator
