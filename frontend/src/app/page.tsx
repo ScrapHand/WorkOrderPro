@@ -6,16 +6,16 @@ export default function Home() {
       <h1 className="text-4xl font-bold mb-8">Work Order Pro</h1>
       <p className="mb-8 text-xl">The Multi-Tenant SaaS CMMS</p>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <Link
           href="/acme/login"
-          className="rounded-lg bg-teal-600 px-6 py-3 hover:bg-teal-500 transition"
+          className="rounded-lg bg-teal-600 px-8 py-3 hover:bg-teal-500 transition text-center min-w-[200px]"
         >
           Demo Tenant: Acme
         </Link>
         <Link
           href="/globex/login"
-          className="rounded-lg bg-blue-600 px-6 py-3 hover:bg-blue-500 transition"
+          className="rounded-lg bg-blue-600 px-8 py-3 hover:bg-blue-500 transition text-center min-w-[200px]"
         >
           Demo Tenant: Globex
         </Link>

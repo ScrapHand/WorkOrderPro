@@ -124,10 +124,10 @@ export default function AssetsPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Facility Assets</h1>
-                    <p className="text-muted font-medium mt-1">Registry of all operational equipment and machinery</p>
+                    <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase leading-none">Facility Assets</h1>
+                    <p className="text-muted font-medium mt-1 text-sm">Registry of all operational equipment and machinery</p>
                 </div>
                 <button
                     onClick={() => {
@@ -144,7 +144,7 @@ export default function AssetsPage() {
                         });
                         setIsModalOpen(true);
                     }}
-                    className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+                    className="w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 text-xs lg:text-sm"
                 >
                     <Plus className="w-5 h-5" />
                     REGISTER ASSET
@@ -267,7 +267,7 @@ export default function AssetsPage() {
                                     <p className="text-xs font-bold uppercase tracking-wide">{error}</p>
                                 </div>
                             )}
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest">Operational Designation *</label>
                                     <input
@@ -294,7 +294,7 @@ export default function AssetsPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest">Asset Category</label>
                                     <input
@@ -319,7 +319,7 @@ export default function AssetsPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest">Manufacturer</label>
                                     <input

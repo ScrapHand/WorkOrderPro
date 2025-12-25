@@ -108,12 +108,12 @@ export default function DashboardPage() {
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Operations</h1>
-                    <p className="text-muted font-medium mt-1">Real-time facility intelligence & asset health</p>
+                    <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase leading-none">Operations</h1>
+                    <p className="text-muted font-medium mt-1 text-sm">Real-time facility intelligence & asset health</p>
                 </div>
-                <Link href="work-orders/new" className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                <Link href="work-orders/new" className="w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 text-xs lg:text-sm">
                     <Plus className="w-5 h-5" />
                     CREATE WORK ORDER
                 </Link>
@@ -167,24 +167,24 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             recentJobs.map(job => (
-                                <Link key={job.id} href={`work-orders/${job.id}`} className="block px-8 py-5 hover:bg-white/5 transition-all group">
-                                    <div className="flex justify-between items-center">
+                                <Link key={job.id} href={`work-orders/${job.id}`} className="block px-6 lg:px-8 py-5 hover:bg-white/5 transition-all group">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                         <div className="space-y-1">
-                                            <div className="font-bold text-white text-lg group-hover:text-primary transition-colors">{job.title}</div>
+                                            <div className="font-bold text-white text-lg group-hover:text-primary transition-colors leading-tight">{job.title}</div>
                                             <div className="flex items-center gap-3 text-[10px] text-muted font-bold uppercase tracking-wider">
                                                 <span className="text-white/40">ID: {job.id.slice(0, 8)}</span>
                                                 <span className="w-1 h-1 rounded-full bg-white/20"></span>
                                                 <span>{new Date(job.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <span className={`px-3 py-1 text-[10px] rounded-md font-black uppercase tracking-widest
+                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                            <span className={`flex-1 sm:flex-none text-center px-3 py-1 text-[9px] rounded-md font-black uppercase tracking-widest
                                                 ${job.priority === 'critical' ? 'bg-danger/20 text-danger border border-danger/30 animate-pulse' :
                                                     job.priority === 'high' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30' :
                                                         'bg-slate-800 text-muted border border-white/5'}`}>
                                                 {job.priority}
                                             </span>
-                                            <span className={`px-3 py-1 text-[10px] rounded-md font-black uppercase tracking-widest
+                                            <span className={`flex-1 sm:flex-none text-center px-3 py-1 text-[9px] rounded-md font-black uppercase tracking-widest
                                                 ${job.status === 'completed' ? 'bg-success/20 text-success border border-success/30' :
                                                     job.status === 'in_progress' ? 'bg-secondary/20 text-secondary border border-secondary/30' :
                                                         'bg-slate-800 text-muted'}`}>
