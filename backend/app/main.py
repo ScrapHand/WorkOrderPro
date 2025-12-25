@@ -58,31 +58,44 @@ async def startup_event():
     
     async with AsyncSessionLocal() as db:
         try:
+            print("Startup: Checking for 'demo' tenant...")
             result = await db.execute(select(models.Tenant).where(models.Tenant.slug == "demo"))
             tenant = result.scalars().first()
             if not tenant:
                 # Create demo tenant
+                print("Startup: 'demo' tenant not found. Creating...")
                 tenant = models.Tenant(name="Demo Company", slug="demo", plan="enterprise")
                 db.add(tenant)
                 await db.flush() # Ensure ID is available
-                print("Seeded 'demo' tenant.")
+                print(f"Startup: Created 'demo' tenant with ID: {tenant.id}")
+            else:
+                print(f"Startup: Found existing 'demo' tenant with ID: {tenant.id}")
             
             # Ensure admin user exists
+            print("Startup: Checking for 'admin@demo.com' user...")
             user_res = await db.execute(select(models.User).where(models.User.email == "admin@demo.com"))
             user = user_res.scalars().first()
             
             if not user:
                 from app.core import security
                 hashed = security.get_password_hash("password")
+                print("Startup: 'admin@demo.com' user not found. Creating...")
                 user = models.User(email="admin@demo.com", password_hash=hashed, full_name="Admin User", tenant_id=tenant.id, role="admin", is_active=True)
                 db.add(user)
-                print("Seeded 'admin@demo.com' user.")
+                print("Startup: Created 'admin@demo.com' user.")
+            else:
+                print(f"Startup: Found existing 'admin@demo.com' user with ID: {user.id}")
                 
             await db.commit()
+            print("Startup: Seeding transaction committed successfully.")
         except Exception as e:
-            print(f"Seeding failed: {e}")
+            print(f"Startup Seeding FAILED: {e}")
+            import traceback
+            traceback.print_exc()
+            await db.rollback()
         finally:
             await db.close()
+            print("Startup: Database connection closed.")
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
