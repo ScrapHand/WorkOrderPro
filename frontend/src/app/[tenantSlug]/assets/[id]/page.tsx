@@ -284,7 +284,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
                                                     key={i}
                                                     point={p}
                                                     isEditing={isEditing}
-                                                    onUpdate={(field, val) => updateLotoPoint(group.type, i, field, val)}
+                                                    onUpdate={(field: string, val: string) => updateLotoPoint(group.type, i, field, val)}
                                                     onRemove={() => removeLotoPoint(group.type, i)}
                                                 />
                                             ))
