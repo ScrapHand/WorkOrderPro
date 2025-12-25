@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, use } from 'react';
+import { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { TenantProvider } from '@/context/TenantContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -8,13 +9,14 @@ import { Menu } from 'lucide-react';
 
 export default function TenantLayout({
     children,
-    params,
 }: {
     children: React.ReactNode;
-    params: Promise<{ tenantSlug: string }>;
 }) {
-    const { tenantSlug } = use(params);
+    const params = useParams();
+    const tenantSlug = params.tenantSlug as string;
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    console.log("TenantLayout: Slug from useParams:", tenantSlug);
 
     return (
         <TenantProvider slug={tenantSlug}>
