@@ -103,3 +103,21 @@ async def get_static_file(filename: str):
     if os.path.exists(file_path):
         return FileResponse(file_path)
     return {"error": "File not found"}, 404
+
+@app.get("/debug-db")
+async def debug_db():
+    from app.db.session import AsyncSessionLocal
+    from sqlalchemy.future import select
+    from app import models
+    try:
+        async with AsyncSessionLocal() as db:
+            tenants_res = await db.execute(select(models.Tenant))
+            users_res = await db.execute(select(models.User))
+            
+            return {
+                "status": "ok",
+                "tenants": [{"name": t.name, "slug": t.slug, "id": str(t.id)} for t in tenants_res.scalars().all()],
+                "users": [{"email": u.email, "tenant_id": str(u.tenant_id)} for u in users_res.scalars().all()]
+            }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
