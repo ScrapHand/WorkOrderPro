@@ -30,6 +30,15 @@ class Settings(BaseSettings):
             if v.startswith("postgresql://"):
                 return v.replace("postgresql://", "postgresql+asyncpg://", 1)
             return v
+        
+        # Check for DATABASE_URL (common in Render/Heroku)
+        import os
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+             if db_url.startswith("postgresql://"):
+                return db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+             return db_url
+             
         # Default to SQLite for local development reliability
         return "sqlite+aiosqlite:///./workorderpro.db"
 
