@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { TenantProvider } from '@/context/TenantContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -11,12 +11,13 @@ export default function TenantLayout({
     params,
 }: {
     children: React.ReactNode;
-    params: any; // Using any for params due to Next.js 15 client vs server component behavior
+    params: Promise<{ tenantSlug: string }>;
 }) {
+    const { tenantSlug } = use(params);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
-        <TenantProvider slug={(params as any).tenantSlug}>
+        <TenantProvider slug={tenantSlug}>
             <ThemeProvider>
                 <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row">
                     {/* Mobile Header */}
