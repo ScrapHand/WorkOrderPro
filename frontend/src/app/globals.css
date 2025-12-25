@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Industrial Palette - Premium Dark */
+  --background: #0f1115; /* Deep Charcoal/Blue */
+  --foreground: #f8fafc;
+  
+  --color-primary: #f97316;    /* Industrial Orange */
+  --color-primary-hover: #ea580c;
+  
+  --color-secondary: #3b82f6;  /* Electric Blue */
+  --color-surface: rgba(30, 41, 59, 0.7); /* Glassmorphism surface */
+  --color-surface-border: rgba(148, 163, 184, 0.1);
+  
+  --color-text: #f8fafc;
+  --color-muted: #94a3b8;
+  
+  --color-danger: #ef4444;     /* Emergency Red */
+  --color-success: #22c55e;    /* Safety Green */
+  --color-warning: #eab308;    /* Warning Yellow */
+  
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  
+  --glass-blur: blur(12px);
+  --glass-border: 1px solid var(--color-surface-border);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-surface: var(--color-surface);
+  --color-text: var(--color-text);
+  --color-muted: var(--color-muted);
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-border: var(--color-surface-border);
+  
+  --font-sans: var(--font-geist-sans), Inter, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Custom Utilities for Premium Look */
+.glass-panel {
+  background: var(--color-surface);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+.industrial-gradient {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+}
+
+.status-badge {
+  @apply px-2 py-1 rounded text-xs font-bold uppercase tracking-wider;
+}
+

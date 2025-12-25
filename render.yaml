@@ -1,0 +1,23 @@
+services:
+  # Backend service
+  - type: web
+    name: workorderpro-backend
+    env: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: free # Change to 'starter' or higher for production use
+    region: ohio # Change to your preferred region
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: workorderpro-db
+          property: connectionString
+      - key: BACKEND_CORS_ORIGINS
+        value: '["https://workorderpro.vercel.app", "http://localhost:3000"]' # Update with your Vercel URL
+      - key: PROJECT_NAME
+        value: "Work Order Pro"
+
+databases:
+  - name: workorderpro-db
+    plan: free # Change to 'starter' or higher for production use
+    region: ohio
