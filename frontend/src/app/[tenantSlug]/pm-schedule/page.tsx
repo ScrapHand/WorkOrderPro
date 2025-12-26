@@ -259,6 +259,19 @@ export default function PMSchedulePage() {
         }
     };
 
+    const handleProcessDue = async () => {
+        try {
+            const res = await api.post('/pm-schedules/process-due');
+            setMessage(res.data.message);
+            setTimeout(() => setMessage(""), 5000);
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            setMessage("Processing failed.");
+            setTimeout(() => setMessage(""), 5000);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center justify-between">
@@ -309,6 +322,13 @@ export default function PMSchedulePage() {
                     >
                         <Plus className="w-5 h-5" />
                         INITIALIZE SEQUENCE
+                    </button>
+                    <button
+                        onClick={handleProcessDue}
+                        className="px-6 py-2 bg-white/5 border border-white/10 hover:border-primary/30 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+                    >
+                        <RefreshCw className="w-5 h-5 text-primary" />
+                        PROCESS DUE
                     </button>
                 </div>
             </div>

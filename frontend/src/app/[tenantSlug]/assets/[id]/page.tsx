@@ -41,11 +41,18 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
         tech_details: []
     });
 
+    const [user, setUser] = useState<any>(null);
+
     const fetchData = async () => {
         try {
-            const res = await api.get(`/assets/${resolvedParams.id}`);
-            const data = res.data;
+            const [assetRes, userRes] = await Promise.all([
+                api.get(`/assets/${resolvedParams.id}`),
+                api.get('/users/me')
+            ]);
+
+            const data = assetRes.data;
             setAsset(data);
+            setUser(userRes.data);
 
             // Re-initialize edit state if not defined
             const specs = data.technical_specs || {};
@@ -142,9 +149,28 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
         setEditSpecs({ ...editSpecs, tech_details: newList });
     };
 
+    const canEdit = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'owner';
+    const canView = canEdit || user?.role === 'engineer';
+
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
             <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+        </div>
+    );
+
+    if (!canView) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+            <div className="p-6 bg-danger/10 border border-danger/20 rounded-full">
+                <ShieldCheck className="w-16 h-16 text-danger animate-pulse" />
+            </div>
+            <div className="space-y-2">
+                <h1 className="text-3xl font-black text-white uppercase tracking-tighter">RESTRICTED ACCESS</h1>
+                <p className="text-muted text-sm font-medium">Deep Diagnostics are limited to Engineering & Management personnel.</p>
+            </div>
+            <Link href={`/${resolvedParams.tenantSlug}/assets`} className="px-8 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
+                <ChevronLeft className="w-4 h-4" />
+                Return to Registry
+            </Link>
         </div>
     );
 
@@ -152,15 +178,14 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
             <AlertCircle className="w-16 h-16 text-danger opacity-50" />
             <h1 className="text-2xl font-black text-white uppercase tracking-tighter">DATA UNAVAILABLE</h1>
-            <Link href={`/ ${resolvedParams.tenantSlug} /assets`} className="px-6 py-2 border border-white/10 rounded - xl text - [10px] font - black uppercase tracking - widest hover: bg - white / 5 transition - all">
+            <Link href={`/${resolvedParams.tenantSlug}/assets`} className="px-6 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">
                 Return to Registry
-            </Link >
-        </div >
+            </Link>
+        </div>
     );
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-            {/* Header */}
             <div className="space-y-4">
                 <Link href={`/${resolvedParams.tenantSlug}/assets`} className="group flex items-center gap-2 text-[10px] font-black text-muted hover:text-white uppercase tracking-[0.2em] transition-all">
                     <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -197,10 +222,10 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
                                 </select>
                             ) : (
                                 <div className={`px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg ${asset.status === 'Healthy' ? 'bg-success/10 text-success border-success/20' :
-                                        asset.status === 'Breakdown' ? 'bg-danger/10 text-danger border-danger/20' : 'bg-warning/10 text-warning border-warning/20'
+                                    asset.status === 'Breakdown' ? 'bg-danger/10 text-danger border-danger/20' : 'bg-warning/10 text-warning border-warning/20'
                                     }`}>
                                     <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${asset.status === 'Healthy' ? 'bg-success' :
-                                            asset.status === 'Breakdown' ? 'bg-danger' : 'bg-warning'
+                                        asset.status === 'Breakdown' ? 'bg-danger' : 'bg-warning'
                                         }`}></div>
                                     {asset.status || 'Healthy'}
                                 </div>
@@ -250,13 +275,15 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
                                 </button>
                             </>
                         ) : (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="px-8 py-3 bg-white/5 border border-white/10 hover:border-primary/30 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all hover:scale-105"
-                            >
-                                <Pencil className="w-5 h-5 text-primary" />
-                                Edit Registry
-                            </button>
+                            canEdit && (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="px-8 py-3 bg-white/5 border border-white/10 hover:border-primary/30 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all hover:scale-105"
+                                >
+                                    <Pencil className="w-5 h-5 text-primary" />
+                                    Edit Registry
+                                </button>
+                            )
                         )}
                     </div>
                 </div>
@@ -421,7 +448,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 

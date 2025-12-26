@@ -86,6 +86,20 @@ async def startup_event():
                 user = models.User(email="admin@demo.com", password_hash=security.get_password_hash("ScrapHand"), 
                                    full_name="Demo Admin", tenant_id=demo.id, role="admin", is_active=True)
                 db.add(user)
+
+            # ACME Manager (For Role Testing)
+            res = await db.execute(select(models.User).where(models.User.email == "manager@acme.com"))
+            if not res.scalars().first():
+                user = models.User(email="manager@acme.com", password_hash=security.get_password_hash("ScrapHand"), 
+                                   full_name="Acme Manager", tenant_id=acme.id, role="manager", is_active=True)
+                db.add(user)
+            
+            # ACME Engineer (For Role Testing)
+            res = await db.execute(select(models.User).where(models.User.email == "engineer@acme.com"))
+            if not res.scalars().first():
+                user = models.User(email="engineer@acme.com", password_hash=security.get_password_hash("ScrapHand"), 
+                                   full_name="Acme Engineer", tenant_id=acme.id, role="engineer", is_active=True)
+                db.add(user)
             
             await db.commit()
         except Exception as e:
