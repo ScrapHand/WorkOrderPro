@@ -28,7 +28,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     const naming = tenant?.theme_json?.naming;
     const links = [
-        { label: 'Dashboard', href: `/${slug}/dashboard`, icon: LayoutDashboard },
+        { label: naming?.dashboardLabel || 'Dashboard', href: `/${slug}/dashboard`, icon: LayoutDashboard },
         { label: naming?.workOrdersLabel || 'Work Orders', href: `/${slug}/work-orders`, icon: ClipboardList },
         { label: naming?.pmLabel || 'PM Schedule', href: `/${slug}/pm-schedule`, icon: CalendarClock },
         { label: naming?.assetsLabel || 'Assets', href: `/${slug}/assets`, icon: Box },

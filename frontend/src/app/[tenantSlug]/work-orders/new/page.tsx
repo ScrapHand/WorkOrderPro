@@ -56,7 +56,7 @@ export default function NewWorkOrderPage({ params }: { params: Promise<{ tenantS
     return (
         <div className="max-w-2xl mx-auto">
             <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <h1 className="text-2xl lg:text-3xl font-bold">Create Work Order</h1>
+                <h1 className="text-2xl lg:text-3xl font-bold">Create {tenant?.theme_json?.naming?.workOrdersLabel?.slice(0, -1) || "Work Order"}</h1>
                 <Link
                     href={`/${resolvedParams.tenantSlug}/work-orders`}
                     className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1"
@@ -152,7 +152,7 @@ export default function NewWorkOrderPage({ params }: { params: Promise<{ tenantS
                             disabled={loading}
                             className="w-full sm:w-auto bg-[var(--color-primary)] text-white px-8 py-3 rounded-md hover:opacity-90 transition shadow-sm disabled:opacity-50 font-bold uppercase text-[10px] tracking-widest"
                         >
-                            {loading ? "Creating..." : "Create Work Order"}
+                            {loading ? "Creating..." : `Create ${tenant?.theme_json?.naming?.workOrdersLabel?.slice(0, -1) || "Work Order"}`}
                         </button>
                     </div>
                 </form>

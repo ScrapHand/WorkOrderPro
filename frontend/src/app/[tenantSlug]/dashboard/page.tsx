@@ -12,6 +12,7 @@ import {
     AlertTriangle,
     Boxes
 } from 'lucide-react';
+import { useTenant } from '@/context/TenantContext';
 
 interface DashboardStats {
     woTotal: number;
@@ -38,6 +39,7 @@ interface InventoryItem {
 }
 
 export default function DashboardPage() {
+    const { tenant } = useTenant();
     const [stats, setStats] = useState<DashboardStats>({
         woTotal: 0,
         woByStatus: {},
@@ -111,19 +113,19 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase leading-none">Operations</h1>
+                    <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase leading-none">{tenant?.theme_json?.naming?.systemTitle || "Operations"}</h1>
                     <p className="text-muted font-medium mt-1 text-sm">Real-time facility intelligence & asset health</p>
                 </div>
                 <Link href="work-orders/new" className="w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 text-xs lg:text-sm">
                     <Plus className="w-5 h-5" />
-                    CREATE WORK ORDER
+                    CREATE {tenant?.theme_json?.naming?.workOrdersLabel?.toUpperCase().slice(0, -1) || "WORK ORDER"}
                 </Link>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title="Active Jobs"
+                    title={`Active ${tenant?.theme_json?.naming?.workOrdersLabel || "Jobs"}`}
                     value={(stats.woByStatus['new'] || 0) + (stats.woByStatus['in_progress'] || 0)}
                     color="text-secondary"
                     icon={Clock}
@@ -142,7 +144,7 @@ export default function DashboardPage() {
                     icon={AlertCircle}
                 />
                 <StatCard
-                    title="Asset Health"
+                    title={`${tenant?.theme_json?.naming?.assetsLabel?.slice(0, -1) || "Asset"} Health`}
                     value={`${Math.round((stats.assetCount > 0 ? (stats.assetCount - 1) / stats.assetCount : 0) * 100)}%`}
                     color="text-warning"
                     icon={Boxes}
@@ -155,7 +157,7 @@ export default function DashboardPage() {
                     <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/5">
                         <div className="flex items-center gap-3">
                             <div className="w-2 h-6 bg-primary rounded-full"></div>
-                            <h2 className="text-lg font-black text-white uppercase tracking-tight">Active Deployments</h2>
+                            <h2 className="text-lg font-black text-white uppercase tracking-tight">Active {tenant?.theme_json?.naming?.workOrdersLabel || "Deployments"}</h2>
                         </div>
                         <Link href="work-orders" className="text-xs font-bold text-primary hover:text-primary-hover uppercase tracking-widest flex items-center gap-1 group">
                             Full Log <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -204,7 +206,7 @@ export default function DashboardPage() {
                     <div className="px-8 py-6 border-b border-danger/10 bg-danger/10 flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <AlertTriangle className="w-5 h-5 text-danger" />
-                            <h2 className="text-lg font-black text-danger uppercase tracking-tight">Supply Chain</h2>
+                            <h2 className="text-lg font-black text-danger uppercase tracking-tight">{tenant?.theme_json?.naming?.inventoryLabel || "Inventory"}</h2>
                         </div>
                         <span className="bg-danger text-white text-[10px] font-black px-2 py-1 rounded">CRITICAL</span>
                     </div>

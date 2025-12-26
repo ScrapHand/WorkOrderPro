@@ -57,9 +57,9 @@ export default function AdminPage() {
     // Builder State
     const [dashboardBlocks, setDashboardBlocks] = useState<any[]>(DEFAULT_DASHBOARD_LAYOUT);
 
-    // Naming State
     const [naming, setNaming] = useState<any>({
         systemTitle: "Industrial CMMS",
+        dashboardLabel: "Dashboard",
         workOrdersLabel: "Work Orders",
         assetsLabel: "Assets",
         inventoryLabel: "Inventory",
@@ -324,6 +324,15 @@ export default function AdminPage() {
                                     onChange={(e) => setNaming({ ...naming, systemTitle: e.target.value })}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none"
                                     placeholder="e.g. Industrial CMMS"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest">Dashboard Label</label>
+                                <input
+                                    type="text"
+                                    value={naming.dashboardLabel}
+                                    onChange={(e) => setNaming({ ...naming, dashboardLabel: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none"
                                 />
                             </div>
                             <div className="space-y-2">
