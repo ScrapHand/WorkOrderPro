@@ -22,3 +22,4 @@ class Tenant(TenantBase):
 class TenantThemeUpdate(BaseModel):
     colors: Optional[Dict[str, Any]] = None
     branding: Optional[Dict[str, Any]] = None
+    naming: Optional[Dict[str, Any]] = None

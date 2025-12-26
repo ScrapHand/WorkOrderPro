@@ -79,6 +79,8 @@ async def update_tenant_theme(
             current_data["colors"] = theme_in.colors
         if theme_in.branding:
              current_data["branding"] = theme_in.branding
+        if theme_in.naming:
+             current_data["naming"] = theme_in.naming
              
         theme_obj.theme_json = current_data
         flag_modified(theme_obj, "theme_json") # Force SQLAlchemy to track change
@@ -88,6 +90,8 @@ async def update_tenant_theme(
             new_json["colors"] = theme_in.colors
         if theme_in.branding:
             new_json["branding"] = theme_in.branding
+        if theme_in.naming:
+            new_json["naming"] = theme_in.naming
             
         theme_obj = models.TenantTheme(tenant_id=current_tenant.id, theme_json=new_json)
         db.add(theme_obj)
