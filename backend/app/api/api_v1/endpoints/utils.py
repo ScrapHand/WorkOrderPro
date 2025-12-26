@@ -58,4 +58,20 @@ async def migrate_db() -> Any:
                 }
             }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Migration Failed: {str(e)}")
+            # Fallback: Try checking exact error or force add
+            try:
+                # If using Postgres, we can try to just run the statement and ignore "duplicate column" error
+                # But we must ensure the previous transaction is cleared if it failed
+                await db.rollback()
+                await db.execute(text("ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS work_order_number VARCHAR")) # Postgres 9.6+
+                await db.commit()
+                return {"status": "Migration Attempted (IF NOT EXISTS)"}
+            except Exception as e2:
+                # Standard SQL fallback
+                try:
+                    await db.rollback()
+                    await db.execute(text("ALTER TABLE work_orders ADD COLUMN work_order_number VARCHAR"))
+                    await db.commit()
+                    return {"status": "Migration Attempted (Standard)"}
+                except Exception as e3:
+                     raise HTTPException(status_code=500, detail=f"Migration Failed completely: {str(e)} | {str(e2)} | {str(e3)}")
