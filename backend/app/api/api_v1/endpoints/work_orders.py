@@ -38,7 +38,7 @@ async def _sync_asset_status(db: AsyncSession, asset_id: Optional[uuid.UUID], te
     if asset and asset.status != new_status:
         asset.status = new_status
         db.add(asset)
-        await db.commit()
+        await db.flush()
 
 @router.get("/stats", response_model=schemas.WorkOrderStats)
 async def get_work_order_stats(
@@ -81,13 +81,19 @@ async def get_work_order_stats(
         models.WorkOrder.status.notin_(["completed", "cancelled"])
     ).group_by(models.WorkOrder.priority)
     priority_res = await db.execute(priority_query)
-    by_priority = {r.priority: r.count for r in priority_res.all()}
+    priority_stats = {r.priority: r.count for r in priority_res.all()}
 
-    return {
-        "active_total": active_total,
-        "by_status": by_status,
-        "by_priority": by_priority
-    }
+    # All time Total
+    total_query = select(func.count(models.WorkOrder.id)).where(models.WorkOrder.tenant_id == current_tenant.id)
+    total_res = await db.execute(total_query)
+    total = total_res.scalars().first() or 0
+
+    return schemas.WorkOrderStats(
+        active_total=active_total,
+        total=total,
+        by_status=by_status,
+        by_priority=priority_stats
+    )
 
 @router.get("/", response_model=List[schemas.WorkOrder])
 async def read_work_orders(
@@ -148,13 +154,13 @@ async def create_work_order(
         reported_by_user_id=current_user.id
     )
     db.add(db_obj)
-    await db.commit()
-    await db.refresh(db_obj)
     
     # Automatic Asset Status Sync
     if db_obj.asset_id:
         await _sync_asset_status(db, db_obj.asset_id, current_tenant.id)
         
+    await db.commit()
+    await db.refresh(db_obj)
     return db_obj
 
 from sqlalchemy.orm import selectinload
@@ -236,14 +242,15 @@ async def update_work_order(
     for field, value in update_data.items():
         setattr(wo, field, value)
         
+    # Merge/Update the main object
     db.add(wo)
-    await db.commit()
-    await db.refresh(wo)
     
     # Automatic Asset Status Sync
     await _sync_asset_status(db, old_asset_id, current_tenant.id)
     if wo.asset_id and wo.asset_id != old_asset_id:
         await _sync_asset_status(db, wo.asset_id, current_tenant.id)
+
+    await db.commit()
     
     # Re-fetch for relationships
     result = await db.execute(
@@ -284,11 +291,10 @@ async def delete_work_order(
         
     asset_id = wo.asset_id
     await db.delete(wo)
-    await db.commit()
     
     # Automatic Asset Status Sync
     if asset_id:
         await _sync_asset_status(db, asset_id, current_tenant.id)
         
+    await db.commit()
     return wo
-

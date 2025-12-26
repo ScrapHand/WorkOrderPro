@@ -5,7 +5,7 @@ import { CheckCircle, AlertTriangle, Clock, List } from 'lucide-react';
 
 interface StatsProps {
     stats: {
-        total: number;
+        active_total: number;
         by_status: Record<string, number>;
         by_priority: Record<string, number>;
     } | null;
@@ -34,13 +34,13 @@ const STATUS_LABELS: Record<string, string> = {
 export default function WorkOrderStats({ stats }: StatsProps) {
     if (!stats) return <div className="animate-pulse h-32 bg-gray-100 rounded-lg"></div>;
 
-    const statusData = Object.entries(stats.by_status).map(([key, value]) => ({
+    const statusData = Object.entries(stats.by_status || {}).map(([key, value]) => ({
         name: STATUS_LABELS[key] || key,
         value,
         key
     }));
 
-    const priorityData = Object.entries(stats.by_priority).map(([key, value]) => ({
+    const priorityData = Object.entries(stats.by_priority || {}).map(([key, value]) => ({
         name: key.charAt(0).toUpperCase() + key.slice(1),
         value,
         key
@@ -51,28 +51,28 @@ export default function WorkOrderStats({ stats }: StatsProps) {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <StatCard
-                    title="Total Orders"
-                    value={stats.total}
+                    title="Active Workload"
+                    value={stats.active_total}
                     icon={<List className="text-blue-500" />}
-                    trend="All time"
+                    trend="In queue"
                 />
                 <StatCard
-                    title="Open / New"
-                    value={stats.by_status['new'] || 0}
-                    icon={<Clock className="text-yellow-500" />}
-                    trend="Needs attention"
+                    title="On Hold / Parts"
+                    value={(stats.by_status['on_hold'] || 0) + (stats.by_status['waiting_parts'] || 0)}
+                    icon={<Clock className="text-gray-500" />}
+                    trend="Paused"
                 />
                 <StatCard
                     title="Critical"
                     value={stats.by_priority['critical'] || 0}
                     icon={<AlertTriangle className="text-red-500" />}
-                    trend="High priority"
+                    trend="Response required"
                 />
                 <StatCard
-                    title="Completed"
+                    title="Signed Off Today"
                     value={stats.by_status['completed'] || 0}
                     icon={<CheckCircle className="text-green-500" />}
-                    trend="Finished jobs"
+                    trend="Accomplished"
                 />
             </div>
 

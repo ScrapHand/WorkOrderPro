@@ -1,27 +1,28 @@
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
-from app.models.core import PMSchedule, Asset
+from app.models.core import PMSchedule, Asset, WorkOrder, WorkOrderStatus, PMLog
 from pydantic import BaseModel, UUID4
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+import random
+import string
 
 router = APIRouter()
 
+class PMSignOff(BaseModel):
+    notes: Optional[str] = None
+
 @router.post("/process-due")
 async def process_due_pms(
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_active_user),
 ):
     """
     Check all active PM schedules and generate work orders if next_due is reached.
     """
-    from sqlalchemy.future import select
-    from app.models.core import PMSchedule, WorkOrder, WorkOrderStatus
-    from datetime import datetime
-    import random
-    import string
-    
     now = datetime.utcnow()
     
     query = select(PMSchedule).where(
@@ -51,12 +52,12 @@ async def process_due_pms(
         )
         db.add(wo)
         
-        # Advance next due so we don't double-create (unless interval is tiny, but usually it's days)
-        # We don't mark as "performed" yet, that happens on sign-off.
-        # But we must push the next_due away.
+        # Push next due away
         interval = schedule.frequency_interval
         freq = schedule.frequency_type.lower()
-        from datetime import timedelta
+        
+        # If next_due is already in the past, keep adding interval until it's in the future
+        # to avoid infinite loops if it's very old, but for now just one jump is standard.
         if freq == "days":
             schedule.next_due += timedelta(days=interval)
         elif freq == "weeks":
@@ -97,7 +98,7 @@ class AssetSimpleOut(BaseModel):
 class PMScheduleOut(PMScheduleBase):
     id: UUID4
     tenant_id: UUID4
-    last_performed: Optional[datetime]
+    last_performed: Optional[datetime] = None
     asset: Optional[AssetSimpleOut] = None
 
     class Config:
@@ -105,16 +106,11 @@ class PMScheduleOut(PMScheduleBase):
 
 @router.get("/", response_model=List[PMScheduleOut])
 async def read_pm_schedules(
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_active_user),
     skip: int = 0,
     limit: int = 100,
 ):
-    """
-    Retrieve PM schedules for the current tenant.
-    """
-    from sqlalchemy.future import select
-    from sqlalchemy.orm import selectinload
     query = (
         select(PMSchedule)
         .options(selectinload(PMSchedule.asset))
@@ -128,14 +124,16 @@ async def read_pm_schedules(
 @router.post("/", response_model=PMScheduleOut)
 async def create_pm_schedule(
     schedule_in: PMScheduleCreate,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_active_user),
 ):
-    """
-    Create new PM schedule.
-    """
+    # Ensure next_due is set to now if missing
+    data = schedule_in.dict()
+    if not data.get('next_due'):
+        data['next_due'] = datetime.utcnow()
+        
     schedule = PMSchedule(
-        **schedule_in.dict(),
+        **data,
         tenant_id=current_user.tenant_id
     )
     db.add(schedule)
@@ -146,13 +144,9 @@ async def create_pm_schedule(
 @router.get("/{id}", response_model=PMScheduleOut)
 async def read_pm_schedule(
     id: UUID4,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_active_user),
 ):
-    """
-    Get PM schedule by ID.
-    """
-    from sqlalchemy.future import select
     query = select(PMSchedule).filter(PMSchedule.id == id, PMSchedule.tenant_id == current_user.tenant_id)
     result = await db.execute(query)
     schedule = result.scalars().first()
@@ -164,13 +158,9 @@ async def read_pm_schedule(
 async def update_pm_schedule(
     id: UUID4,
     schedule_in: PMScheduleUpdate,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_active_user),
 ):
-    """
-    Update a PM schedule.
-    """
-    from sqlalchemy.future import select
     query = select(PMSchedule).filter(PMSchedule.id == id, PMSchedule.tenant_id == current_user.tenant_id)
     result = await db.execute(query)
     schedule = result.scalars().first()
@@ -186,26 +176,13 @@ async def update_pm_schedule(
     await db.refresh(schedule)
     return schedule
 
-class PMSignOff(BaseModel):
-    notes: Optional[str] = None
-
 @router.post("/{id}/sign-off")
 async def sign_off_pm(
     id: UUID4,
     sign_off: PMSignOff,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_active_user),
 ):
-    """
-    Sign off a PM schedule directly. 
-    Increments next_due and logs the completion.
-    Also creates a Work Order record for the registry.
-    """
-    from sqlalchemy.future import select
-    from app.models.core import PMLog, WorkOrder, WorkOrderStatus
-    from datetime import timedelta
-    import random
-    import string
     query = select(PMSchedule).filter(PMSchedule.id == id, PMSchedule.tenant_id == current_user.tenant_id)
     result = await db.execute(query)
     schedule = result.scalars().first()
@@ -270,13 +247,9 @@ async def sign_off_pm(
 @router.delete("/{id}")
 async def delete_pm_schedule(
     id: UUID4,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_active_user),
 ):
-    """
-    Delete a PM schedule.
-    """
-    from sqlalchemy.future import select
     query = select(PMSchedule).filter(PMSchedule.id == id, PMSchedule.tenant_id == current_user.tenant_id)
     result = await db.execute(query)
     schedule = result.scalars().first()

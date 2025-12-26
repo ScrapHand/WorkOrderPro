@@ -42,5 +42,6 @@ class WorkOrder(WorkOrderBase):
 
 class WorkOrderStats(BaseModel):
     active_total: int
+    total: int
     by_status: dict
     by_priority: dict
