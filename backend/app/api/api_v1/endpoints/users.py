@@ -9,6 +9,15 @@ import uuid
 
 router = APIRouter()
 
+@router.get("/me", response_model=schemas.User)
+async def read_user_me(
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get current user.
+    """
+    return current_user
+
 @router.get("/", response_model=List[schemas.User])
 async def read_users(
     db: AsyncSession = Depends(deps.get_db),

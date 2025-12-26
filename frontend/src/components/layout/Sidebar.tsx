@@ -80,7 +80,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                         onClick={onClose}
                         className="lg:hidden p-2 text-muted hover:text-white transition-colors"
                     >
-                        <LayoutDashboard className="w-5 h-5" /> {/* Using LayoutDashboard as a placeholder or could use X from lucide-react if imported */}
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
@@ -105,19 +105,52 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     })}
                 </nav>
 
-                <div className="mt-auto pt-6 border-t border-slate-800/50">
-                    <div className="glass-panel p-4 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white">
-                            AD
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-white">Admin User</span>
-                            <span className="text-[10px] text-muted">admin@demo.com</span>
-                        </div>
-                    </div>
+                <div className="mt-auto pt-6 border-t border-slate-800/50 space-y-4">
+                    <UserInfo />
+
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('token');
+                            location.href = `/${slug}/login`;
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                    >
+                        <ShieldCheck className="w-5 h-5" />
+                        <span className="font-medium">Sign Out</span>
+                    </button>
                 </div>
             </aside>
         </>
     );
 }
 
+function UserInfo() {
+    const [user, setUser] = React.useState<any>(null);
+
+    React.useEffect(() => {
+        const fetchMe = async () => {
+            try {
+                const { api } = await import('@/lib/api');
+                const res = await api.get('/users/me');
+                setUser(res.data);
+            } catch (err) {
+                console.error("Failed to fetch user info", err);
+            }
+        };
+        fetchMe();
+    }, []);
+
+    if (!user) return <div className="animate-pulse h-12 bg-slate-800/50 rounded-xl"></div>;
+
+    return (
+        <div className="glass-panel p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white uppercase ring-2 ring-primary/20">
+                {user.full_name?.substring(0, 2) || user.email?.substring(0, 2)}
+            </div>
+            <div className="flex flex-col min-w-0">
+                <span className="text-sm font-semibold text-white truncate">{user.full_name}</span>
+                <span className="text-[10px] text-muted truncate">{user.email}</span>
+            </div>
+        </div>
+    );
+}
