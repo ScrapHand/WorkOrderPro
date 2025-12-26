@@ -12,6 +12,34 @@ import string
 
 router = APIRouter()
 
+async def _sync_asset_status(db: AsyncSession, asset_id: Optional[uuid.UUID], tenant_id: uuid.UUID):
+    if not asset_id:
+        return
+    
+    # Reload active work orders to be sure
+    active_query = select(models.WorkOrder).where(
+        models.WorkOrder.asset_id == asset_id,
+        models.WorkOrder.tenant_id == tenant_id,
+        models.WorkOrder.status.notin_(["completed", "cancelled"])
+    )
+    result = await db.execute(active_query)
+    active_wos = result.scalars().all()
+    
+    new_status = models.AssetStatus.healthy
+    if any(wo.priority == "critical" for wo in active_wos):
+        new_status = models.AssetStatus.breakdown
+    elif len(active_wos) > 0:
+        new_status = models.AssetStatus.running_with_issues
+        
+    asset_query = select(models.Asset).where(models.Asset.id == asset_id, models.Asset.tenant_id == tenant_id)
+    asset_res = await db.execute(asset_query)
+    asset = asset_res.scalars().first()
+    
+    if asset and asset.status != new_status:
+        asset.status = new_status
+        db.add(asset)
+        await db.commit()
+
 @router.get("/stats", response_model=schemas.WorkOrderStats)
 async def get_work_order_stats(
     db: AsyncSession = Depends(deps.get_db),
@@ -127,6 +155,11 @@ async def create_work_order(
     db.add(db_obj)
     await db.commit()
     await db.refresh(db_obj)
+    
+    # Automatic Asset Status Sync
+    if db_obj.asset_id:
+        await _sync_asset_status(db, db_obj.asset_id, current_tenant.id)
+        
     return db_obj
 
 from sqlalchemy.orm import selectinload
@@ -184,6 +217,7 @@ async def update_work_order(
     if not wo:
         raise HTTPException(status_code=404, detail="Work Order not found")
         
+    old_asset_id = wo.asset_id
     update_data = work_order_in.dict(exclude_unset=True)
     
     # Status Change Logic
@@ -210,6 +244,11 @@ async def update_work_order(
     db.add(wo)
     await db.commit()
     await db.refresh(wo)
+    
+    # Automatic Asset Status Sync
+    await _sync_asset_status(db, old_asset_id, current_tenant.id)
+    if wo.asset_id and wo.asset_id != old_asset_id:
+        await _sync_asset_status(db, wo.asset_id, current_tenant.id)
     
     # Re-fetch for relationships
     result = await db.execute(
@@ -248,7 +287,13 @@ async def delete_work_order(
     if not wo:
         raise HTTPException(status_code=404, detail="Work Order not found")
         
+    asset_id = wo.asset_id
     await db.delete(wo)
     await db.commit()
+    
+    # Automatic Asset Status Sync
+    if asset_id:
+        await _sync_asset_status(db, asset_id, current_tenant.id)
+        
     return wo
 
