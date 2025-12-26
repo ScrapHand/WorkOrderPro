@@ -50,10 +50,28 @@ app.add_middleware(
 async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Migration: Ensure work_order_number column exists
+        # This is a safe idempotent-ish check for Postgres/SQLite
+        try:
+            from sqlalchemy.exc import OperationalError, ProgrammingError
+            print("Startup: Checking for 'work_order_number' column migration...")
+            # We attempt to select the column. If it fails, we add it.
+            # This is database agnostic enough for our specific stack (SQLite/Postgres)
+            # Actually, standard SQL:
+            await conn.execute(text("SELECT work_order_number FROM work_orders LIMIT 1"))
+        except (OperationalError, ProgrammingError):
+            print("Startup: Column 'work_order_number' missing. Adding it...")
+            await conn.execute(text("ALTER TABLE work_orders ADD COLUMN work_order_number VARCHAR"))
+            print("Startup: Column added.")
+        except Exception as e:
+            # If table doesn't exist (fresh create_all handles it), fine.
+            # But create_all runs before this.
+            print(f"Startup Migration Check: {e}")
     
     # Seed default tenant if not exists
     from app.db.session import AsyncSessionLocal
     from sqlalchemy.future import select
+    from sqlalchemy import text # Import text
     from app import models
     
     async with AsyncSessionLocal() as db:
