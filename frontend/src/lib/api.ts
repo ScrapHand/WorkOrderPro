@@ -14,8 +14,12 @@ export const api = axios.create({
 export const resolveBackendUrl = (path: string | null | undefined) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
+
+    // Ensure BASE_URL doesn't have trailing slash for joining
+    const baseUrl = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    return `${BASE_URL}${cleanPath}`;
+
+    return `${baseUrl}${cleanPath}`;
 };
 
 // Interceptor to add token and tenant slug

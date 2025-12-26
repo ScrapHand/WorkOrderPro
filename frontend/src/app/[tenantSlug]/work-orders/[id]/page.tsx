@@ -27,6 +27,7 @@ import { generateWorkOrderPDF } from '@/lib/pdf-utils';
 
 interface WorkOrder {
     id: string;
+    work_order_number?: string;
     title: string;
     description: string;
     status: string;
@@ -54,7 +55,8 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
     const [completionData, setCompletionData] = useState({
         notes: '',
-        signed_by: ''
+        signed_by: '',
+        completed_at: ''
     });
 
     const fetchOrder = async () => {
@@ -95,7 +97,9 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
             await api.put(`/work-orders/${resolvedParams.id}`, {
                 status: 'completed',
                 completion_notes: completionData.notes,
-                signed_by_name: completionData.signed_by
+                signed_by_name: completionData.signed_by,
+                // Only send if set, otherwise backend defaults to now
+                ...(completionData.completed_at ? { completed_at: new Date(completionData.completed_at).toISOString() } : {})
             });
             setIsCompleteModalOpen(false);
             fetchOrder();
@@ -188,7 +192,7 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase">{workOrder.title}</h1>
                         <div className="flex items-center gap-4 text-[10px] font-bold text-muted uppercase tracking-widest">
-                            <span className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-primary" /> ID: {workOrder.id}</span>
+                            <span className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-primary" /> ID: {workOrder.work_order_number || workOrder.id}</span>
                             <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-primary" /> {new Date(workOrder.created_at).toLocaleString()}</span>
                         </div>
                     </div>
@@ -393,6 +397,17 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                                     value={completionData.notes}
                                     onChange={e => setCompletionData(prev => ({ ...prev, notes: e.target.value }))}
                                 />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest">Time Completed (Optional)</label>
+                                <input
+                                    type="datetime-local"
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-success focus:border-success outline-none transition-all text-sm"
+                                    value={completionData.completed_at}
+                                    onChange={e => setCompletionData(prev => ({ ...prev, completed_at: e.target.value }))}
+                                />
+                                <p className="text-[9px] text-muted font-medium">Leave blank to use current time.</p>
                             </div>
 
                             <div className="p-6 bg-warning/5 border border-warning/10 rounded-2xl space-y-4">

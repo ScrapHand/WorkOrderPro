@@ -20,6 +20,7 @@ import WorkOrderStats from '@/components/WorkOrderStats';
 
 interface WorkOrder {
     id: string;
+    work_order_number?: string;
     title: string;
     status: string;
     priority: string;
@@ -178,7 +179,7 @@ export default function WorkOrdersPage() {
                                     <td className="px-8 py-5">
                                         <div className="flex flex-col">
                                             <div className="text-sm font-black text-white group-hover:text-primary transition-colors uppercase tracking-tight">{wo.title}</div>
-                                            <div className="text-[10px] text-muted font-mono mt-1 opacity-50"># {wo.id.slice(0, 8)}</div>
+                                            <div className="text-[10px] text-muted font-mono mt-1 opacity-50">#{wo.work_order_number || wo.id.slice(0, 8)}</div>
                                         </div>
                                     </td>
                                     <td className="px-8 py-5">

@@ -6,6 +6,9 @@ from sqlalchemy import func
 from app import models, schemas
 from app.api import deps
 import uuid
+from datetime import datetime, timedelta
+import random
+import string
 
 router = APIRouter()
 
@@ -26,12 +29,29 @@ async def get_work_order_stats(
     total_res = await db.execute(total_query)
     total = total_res.scalar_one()
 
-    # By Status
-    status_query = select(models.WorkOrder.status, func.count(models.WorkOrder.id)).where(
-        models.WorkOrder.tenant_id == current_tenant.id
+    # By Status (Modified for Daily View)
+    # For active statuses, we want the current backlog count.
+    # For 'completed', we strictly want TODAY's completions.
+    
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Active statuses count
+    active_query = select(models.WorkOrder.status, func.count(models.WorkOrder.id)).where(
+        models.WorkOrder.tenant_id == current_tenant.id,
+        models.WorkOrder.status != "completed",
+        models.WorkOrder.status != "cancelled"
     ).group_by(models.WorkOrder.status)
-    status_res = await db.execute(status_query)
-    by_status = {r.status: r.count for r in status_res.all()} # r[0], r[1] or .status, .count depends on row style
+    active_res = await db.execute(active_query)
+    by_status = {r.status: r.count for r in active_res.all()}
+    
+    # Daily Completed count
+    completed_today_query = select(func.count(models.WorkOrder.id)).where(
+        models.WorkOrder.tenant_id == current_tenant.id,
+        models.WorkOrder.status == "completed",
+        models.WorkOrder.completed_at >= today_start
+    )
+    completed_res = await db.execute(completed_today_query)
+    by_status["completed"] = completed_res.scalar_one()
 
     # By Priority
     priority_query = select(models.WorkOrder.priority, func.count(models.WorkOrder.id)).where(
@@ -92,8 +112,15 @@ async def create_work_order(
     if not current_tenant:
         raise HTTPException(status_code=400, detail="Tenant context required")
         
+    # Generate Unique WO Number
+    # WO-{YYMMDD}-{HHMM}-{RAND}
+    now_str = datetime.utcnow().strftime("%y%m%d-%H%M")
+    rand_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    wo_number = f"WO-{now_str}-{rand_suffix}"
+
     db_obj = models.WorkOrder(
         **work_order_in.dict(),
+        work_order_number=wo_number,
         tenant_id=current_tenant.id,
         reported_by_user_id=current_user.id
     )
@@ -171,7 +198,11 @@ async def update_work_order(
             
         if new_status == "completed" and wo.status != "completed":
             wo.completed_by_user_id = current_user.id
-            wo.completed_at = datetime.utcnow()
+            # Allow manual override if provided in payload, else use now
+            if update_data.get("completed_at"):
+                wo.completed_at = update_data["completed_at"]
+            else:
+                wo.completed_at = datetime.utcnow()
             
     for field, value in update_data.items():
         setattr(wo, field, value)

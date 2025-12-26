@@ -22,6 +22,7 @@ interface DashboardStats {
 
 interface WorkOrder {
     id: string;
+    work_order_number?: string;
     title: string;
     status: string;
     priority: string;
@@ -129,7 +130,7 @@ export default function DashboardPage() {
                     trend="+12%"
                 />
                 <StatCard
-                    title="Completed"
+                    title="Completed Today"
                     value={stats.woByStatus['completed'] || 0}
                     color="text-success"
                     icon={CheckCircle2}
@@ -172,7 +173,7 @@ export default function DashboardPage() {
                                         <div className="space-y-1">
                                             <div className="font-bold text-white text-lg group-hover:text-primary transition-colors leading-tight">{job.title}</div>
                                             <div className="flex items-center gap-3 text-[10px] text-muted font-bold uppercase tracking-wider">
-                                                <span className="text-white/40">ID: {job.id.slice(0, 8)}</span>
+                                                <span className="text-white/40">ID: {job.work_order_number || job.id.slice(0, 8)}</span>
                                                 <span className="w-1 h-1 rounded-full bg-white/20"></span>
                                                 <span>{new Date(job.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                             </div>

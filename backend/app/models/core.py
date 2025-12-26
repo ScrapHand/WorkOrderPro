@@ -43,6 +43,7 @@ class WorkOrder(Base):
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
     asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=True)
     title = Column(String, nullable=False)
+    work_order_number = Column(String, unique=True, nullable=True) # Generated code
     description = Column(Text, nullable=True)
     status = Column(String, default=WorkOrderStatus.new)
     priority = Column(String, default="low")

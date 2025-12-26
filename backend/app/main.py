@@ -100,20 +100,10 @@ async def startup_event():
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Mount static files
-# Duplicate static mount removed
-# app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# CORS was moved to top
-
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 def root():
     return {"message": "Welcome to Work Order Pro API"}
-
-@app.get("/static/{filename:path}")
-async def get_static_file(filename: str):
-    file_path = os.path.join("static", filename)
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-    return {"error": "File not found"}, 404
 

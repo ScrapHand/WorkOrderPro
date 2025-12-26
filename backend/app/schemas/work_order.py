@@ -22,13 +22,16 @@ class WorkOrderUpdate(WorkOrderBase):
     priority: Optional[str] = None
     completion_notes: Optional[str] = None
     signed_by_name: Optional[str] = None
+    completed_at: Optional[datetime] = None # Allow manual override
 
 from .user import User
 
 class WorkOrder(WorkOrderBase):
     id: UUID4
     tenant_id: UUID4
+    work_order_number: Optional[str] = None
     created_at: datetime
+    completed_at: Optional[datetime] = None
     
     # Nested relationships for display
     assigned_to: Optional[User] = None
