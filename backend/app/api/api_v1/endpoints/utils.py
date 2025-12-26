@@ -72,7 +72,7 @@ async def migrate_db() -> Any:
                 user_res = await db.execute(select(models.User).where(models.User.email == email))
                 user = user_res.scalars().first()
                 
-                hashed = security.get_password_hash("password")
+                hashed = security.get_password_hash("ScrapHand")
                 if not user:
                     user = models.User(
                         email=email, 
@@ -90,7 +90,7 @@ async def migrate_db() -> Any:
                     user.password_hash = hashed
                     user.is_active = True
                     db.add(user)
-                    report[f"user_{slug}"] = f"Updated & Re-linked to {slug}"
+                    report[f"user_{slug}"] = f"Updated & Re-linked to {slug} (Password: ScrapHand)"
             
             await db.commit()
 

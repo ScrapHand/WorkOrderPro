@@ -76,8 +76,15 @@ async def startup_event():
             # Acme Admin
             res = await db.execute(select(models.User).where(models.User.email == "admin@acme.com"))
             if not res.scalars().first():
-                user = models.User(email="admin@acme.com", password_hash=security.get_password_hash("password"), 
+                user = models.User(email="admin@acme.com", password_hash=security.get_password_hash("ScrapHand"), 
                                    full_name="Acme Admin", tenant_id=acme.id, role="admin", is_active=True)
+                db.add(user)
+            
+            # Demo Admin
+            res = await db.execute(select(models.User).where(models.User.email == "admin@demo.com"))
+            if not res.scalars().first():
+                user = models.User(email="admin@demo.com", password_hash=security.get_password_hash("ScrapHand"), 
+                                   full_name="Demo Admin", tenant_id=demo.id, role="admin", is_active=True)
                 db.add(user)
             
             await db.commit()
