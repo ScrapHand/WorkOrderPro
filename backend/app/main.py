@@ -100,8 +100,12 @@ async def startup_event():
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Mount static files
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files
+# Ensure directory exists so mount doesn't fail or get skipped
+if not os.path.exists("static"):
+    os.makedirs("static")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 def root():

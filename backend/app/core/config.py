@@ -29,6 +29,9 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v:
             if v.startswith("postgresql://"):
                 return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            # Handle Render/Heroku 'postgres://' scheme
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+asyncpg://", 1)
             return v
         
         # Check for DATABASE_URL (common in Render/Heroku)
@@ -37,6 +40,8 @@ class Settings(BaseSettings):
         if db_url:
              if db_url.startswith("postgresql://"):
                 return db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+             if db_url.startswith("postgres://"):
+                return db_url.replace("postgres://", "postgresql+asyncpg://", 1)
              return db_url
              
         # Default to SQLite for local development reliability
