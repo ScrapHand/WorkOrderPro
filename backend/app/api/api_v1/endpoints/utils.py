@@ -33,7 +33,7 @@ async def upload_file(
 @router.post("/migrate-db", response_model=dict)
 async def migrate_db() -> Any:
     """
-    Force run database migrations/fixes, seed vital data, and report status.
+    ULTIMATE RECOVERY TOOL: Fixes schema, tenants, users, and association.
     """
     from app.db.session import AsyncSessionLocal
     from sqlalchemy import text
@@ -53,25 +53,27 @@ async def migrate_db() -> Any:
                 await db.commit()
                 report["work_order_number"] = "Added"
 
-            # 2. Tenant Seeding
-            required_tenants = [("demo", "Demo Company"), ("acme", "ACME Corp")]
-            for slug, name in required_tenants:
+            # 2. Global Tenant Check & User Relinking
+            slugs = ["demo", "acme"]
+            for slug in slugs:
+                # Find or Create Tenant
                 res = await db.execute(select(models.Tenant).where(models.Tenant.slug == slug))
                 tenant = res.scalars().first()
                 if not tenant:
-                    tenant = models.Tenant(name=name, slug=slug, plan="enterprise")
+                    tenant = models.Tenant(name=slug.capitalize(), slug=slug, plan="enterprise")
                     db.add(tenant)
                     await db.flush()
                     report[f"tenant_{slug}"] = "Created"
                 else:
-                    report[f"tenant_{slug}"] = "Exists"
+                    report[f"tenant_{slug}"] = f"Exists (ID: {tenant.id})"
                 
-                # 3. User Seeding for this tenant
+                # Find User by email (globally)
                 email = f"admin@{slug}.com"
                 user_res = await db.execute(select(models.User).where(models.User.email == email))
                 user = user_res.scalars().first()
+                
+                hashed = security.get_password_hash("password")
                 if not user:
-                    hashed = security.get_password_hash("password")
                     user = models.User(
                         email=email, 
                         password_hash=hashed, 
@@ -81,29 +83,26 @@ async def migrate_db() -> Any:
                         is_active=True
                     )
                     db.add(user)
-                    report[f"user_{slug}"] = "Created"
+                    report[f"user_{slug}"] = "Created & Linked"
                 else:
-                    # Force password reset to ensure it's 'password' for debugging
-                    hashed = security.get_password_hash("password")
+                    # Update User to ensure correct tenant link and password
+                    user.tenant_id = tenant.id
                     user.password_hash = hashed
+                    user.is_active = True
                     db.add(user)
-                    report[f"user_{slug}"] = "Password Reset (to 'password')"
+                    report[f"user_{slug}"] = f"Updated & Re-linked to {slug}"
             
             await db.commit()
 
-            # 4. Final Counts
+            # 3. Final Counts
             tenant_count = (await db.execute(text("SELECT count(*) FROM tenants"))).scalar()
             user_count = (await db.execute(text("SELECT count(*) FROM users"))).scalar()
             
-            db_uri = settings.SQLALCHEMY_DATABASE_URI
-            db_type = "Postgres" if "postgresql" in db_uri else "SQLite" if "sqlite" in db_uri else "Unknown"
-            
             return {
-                "status": "Success",
-                "database_type": db_type,
+                "status": "ULTIMATE SUCCESS",
                 "counts": {"tenants": tenant_count, "users": user_count},
                 "report": report
             }
         except Exception as e:
             await db.rollback()
-            raise HTTPException(status_code=500, detail=f"DR Failure: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"ULTIMATE Failure: {str(e)}")
