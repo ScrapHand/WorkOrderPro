@@ -81,7 +81,7 @@ export default function WorkOrdersPage() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Work Orders</h1>
+                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">{tenant?.theme_json?.naming?.workOrdersLabel || "Work Orders"}</h1>
                     <p className="text-muted font-medium mt-1">Manage and track facility maintenance tasks</p>
                 </div>
                 <Link

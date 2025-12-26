@@ -13,7 +13,8 @@ import {
     Upload,
     CheckCircle2,
     AlertTriangle,
-    Info
+    Info,
+    Edit3
 } from 'lucide-react';
 
 const DEFAULT_COLORS = {
@@ -42,7 +43,7 @@ const DEFAULT_DASHBOARD_LAYOUT = [
 
 export default function AdminPage() {
     const { tenant, refreshTenant } = useTenant();
-    const [activeTab, setActiveTab] = useState<'theme' | 'branding' | 'builder' | 'users'>('theme');
+    const [activeTab, setActiveTab] = useState<'theme' | 'branding' | 'naming' | 'builder' | 'users'>('theme');
     const [message, setMessage] = useState("");
     const [saving, setSaving] = useState(false);
 
@@ -56,12 +57,24 @@ export default function AdminPage() {
     // Builder State
     const [dashboardBlocks, setDashboardBlocks] = useState<any[]>(DEFAULT_DASHBOARD_LAYOUT);
 
+    // Naming State
+    const [naming, setNaming] = useState<any>({
+        systemTitle: "Industrial CMMS",
+        workOrdersLabel: "Work Orders",
+        assetsLabel: "Assets",
+        inventoryLabel: "Inventory",
+        pmLabel: "PM Schedule"
+    });
+
     useEffect(() => {
         if (tenant?.theme_json?.colors) {
             setColors({ ...DEFAULT_COLORS, ...tenant.theme_json.colors });
         }
         if (tenant?.theme_json?.branding?.logoUrl) {
             setLogoUrl(tenant.theme_json.branding.logoUrl);
+        }
+        if (tenant?.theme_json?.naming) {
+            setNaming((prev: any) => ({ ...prev, ...tenant.theme_json.naming }));
         }
     }, [tenant]);
 
@@ -109,7 +122,8 @@ export default function AdminPage() {
             // But since handleLogoUpload already sets res.data.url, it should be /static/...
             await api.put('/tenants/theme', {
                 colors,
-                branding: { logoUrl: logoUrl || tenant?.theme_json?.branding?.logoUrl }
+                branding: { logoUrl: logoUrl || tenant?.theme_json?.branding?.logoUrl },
+                naming
             });
             refreshTenant();
             setMessage("System configuration updated.");
@@ -168,6 +182,7 @@ export default function AdminPage() {
             <div className="flex gap-2 border-b border-white/5 bg-white/5 rounded-t-2xl px-2 pt-2">
                 <TabButton id="theme" icon={Palette} label="Primary Theme" />
                 <TabButton id="branding" icon={ImageIcon} label="Asset Branding" />
+                <TabButton id="naming" icon={Edit3} label="Terminology" />
                 <TabButton id="builder" icon={Layout} label="UI Architect" />
                 <TabButton id="users" icon={Users} label="Personnel" />
             </div>
@@ -287,6 +302,71 @@ export default function AdminPage() {
                         <div className="pt-8 border-t border-white/5 flex justify-end">
                             <button onClick={handleSaveTheme} className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20">
                                 PERSIST CHANGES
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* NAMING TAB */}
+                {activeTab === 'naming' && (
+                    <div className="space-y-10 animate-in fade-in duration-500">
+                        <div className="flex items-center gap-3">
+                            <Edit3 className="text-primary w-6 h-6" />
+                            <h2 className="text-2xl font-black text-white uppercase tracking-tight">System Naming</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest">Global Subtitle</label>
+                                <input
+                                    type="text"
+                                    value={naming.systemTitle}
+                                    onChange={(e) => setNaming({ ...naming, systemTitle: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none"
+                                    placeholder="e.g. Industrial CMMS"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest">Work Orders Label</label>
+                                <input
+                                    type="text"
+                                    value={naming.workOrdersLabel}
+                                    onChange={(e) => setNaming({ ...naming, workOrdersLabel: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest">Inventory Label</label>
+                                <input
+                                    type="text"
+                                    value={naming.inventoryLabel}
+                                    onChange={(e) => setNaming({ ...naming, inventoryLabel: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest">Assets Label</label>
+                                <input
+                                    type="text"
+                                    value={naming.assetsLabel}
+                                    onChange={(e) => setNaming({ ...naming, assetsLabel: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest">PM Schedule Label</label>
+                                <input
+                                    type="text"
+                                    value={naming.pmLabel}
+                                    onChange={(e) => setNaming({ ...naming, pmLabel: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-8 border-t border-white/5 flex justify-end">
+                            <button onClick={handleSaveTheme} className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20">
+                                PERSIST TERMINOLOGY
                             </button>
                         </div>
                     </div>

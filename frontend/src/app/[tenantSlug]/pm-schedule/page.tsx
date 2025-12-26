@@ -263,7 +263,7 @@ export default function PMSchedulePage() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Operations Hub</h1>
+                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">{tenant?.theme_json?.naming?.pmLabel || "PM Schedule"}</h1>
                     <div className="flex items-center gap-4 mt-1">
                         <p className="text-muted font-medium">Preventative maintenance sequences and standalone deployment registry</p>
                         {message && (

@@ -14,6 +14,7 @@ import {
     ShieldCheck,
     X
 } from 'lucide-react';
+import { BrandingLogo } from './BrandingLogo';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -25,12 +26,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
     const slug = tenant?.slug || 'demo';
 
+    const naming = tenant?.theme_json?.naming;
     const links = [
         { label: 'Dashboard', href: `/${slug}/dashboard`, icon: LayoutDashboard },
-        { label: 'Work Orders', href: `/${slug}/work-orders`, icon: ClipboardList },
-        { label: 'PM Schedule', href: `/${slug}/pm-schedule`, icon: CalendarClock },
-        { label: 'Assets', href: `/${slug}/assets`, icon: Box },
-        { label: 'Inventory', href: `/${slug}/inventory`, icon: Package },
+        { label: naming?.workOrdersLabel || 'Work Orders', href: `/${slug}/work-orders`, icon: ClipboardList },
+        { label: naming?.pmLabel || 'PM Schedule', href: `/${slug}/pm-schedule`, icon: CalendarClock },
+        { label: naming?.assetsLabel || 'Assets', href: `/${slug}/assets`, icon: Box },
+        { label: naming?.inventoryLabel || 'Inventory', href: `/${slug}/inventory`, icon: Package },
         { label: 'Admin', href: `/${slug}/admin`, icon: Settings },
     ];
 
@@ -52,29 +54,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 <div className="mb-10 px-2 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        {logoUrl ? (
-                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center bg-white/5">
-                                <img src={resolveBackendUrl(logoUrl) || ""} alt="Logo" className="w-full h-full object-contain" />
-                            </div>
-                        ) : (
-                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                                <ShieldCheck className="text-primary w-6 h-6" />
-                            </div>
-                        )}
-                        {isLoading ? (
-                            <div className="animate-pulse h-6 w-32 bg-slate-800 rounded"></div>
-                        ) : (
-                            <div className="flex flex-col">
-                                <span className="font-bold text-lg tracking-tight text-white leading-none">
-                                    {tenant?.name || "WorkOrderPro"}
-                                </span>
-                                <span className="text-[10px] uppercase tracking-[0.2em] text-muted font-semibold mt-1">
-                                    Industrial CMMS
-                                </span>
-                            </div>
-                        )}
-                    </div>
+                    <BrandingLogo />
                     {/* Mobile Close Button */}
                     <button
                         onClick={onClose}

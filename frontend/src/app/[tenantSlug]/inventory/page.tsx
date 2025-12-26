@@ -18,8 +18,10 @@ import {
     ArrowUpWideNarrow,
     RotateCcw
 } from 'lucide-react';
+import { useTenant } from '@/context/TenantContext';
 
 export default function InventoryPage() {
+    const { tenant } = useTenant();
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -114,7 +116,7 @@ export default function InventoryPage() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Supply Chain</h1>
+                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">{tenant?.theme_json?.naming?.inventoryLabel || "Inventory"}</h1>
                     <p className="text-muted font-medium mt-1">Global inventory and material logistics registry</p>
                 </div>
                 <button
@@ -135,7 +137,7 @@ export default function InventoryPage() {
                     className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
                 >
                     <Plus className="w-5 h-5" />
-                    ADD MATERIAL
+                    ADD {tenant?.theme_json?.naming?.inventoryLabel?.slice(0, -1) || "ITEM"}
                 </button>
             </div>
 
@@ -148,7 +150,7 @@ export default function InventoryPage() {
                     <div className="p-6 bg-white/5 border-b border-white/5 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Layers className="text-primary w-5 h-5" />
-                            <h2 className="text-lg font-black text-white uppercase tracking-tight">Active Inventory Units</h2>
+                            <h2 className="text-lg font-black text-white uppercase tracking-tight">Active {tenant?.theme_json?.naming?.inventoryLabel || "Inventory"} Units</h2>
                         </div>
                         <div className="flex gap-2">
                             <button onClick={fetchItems} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-muted hover:text-white border border-transparent hover:border-white/5">

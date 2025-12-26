@@ -22,8 +22,10 @@ import {
     Activity
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTenant } from '@/context/TenantContext';
 
 export default function AssetsPage() {
+    const { tenant } = useTenant();
     const params = useParams();
     const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -129,7 +131,9 @@ export default function AssetsPage() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase leading-none">Facility Assets</h1>
+                    <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase leading-none">
+                        {tenant?.theme_json?.naming?.assetsLabel || "Facility Assets"}
+                    </h1>
                     <p className="text-muted font-medium mt-1 text-sm">Registry of all operational equipment and machinery</p>
                 </div>
                 <button
@@ -151,7 +155,7 @@ export default function AssetsPage() {
                     className="w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 text-xs lg:text-sm"
                 >
                     <Plus className="w-5 h-5" />
-                    REGISTER ASSET
+                    REGISTER {tenant?.theme_json?.naming?.assetsLabel?.slice(0, -1) || "ASSET"}
                 </button>
             </div>
 
