@@ -13,11 +13,11 @@ UPLOAD_DIR = "static"
 async def upload_file(
     file: UploadFile = File(...),
 ) -> Any:
-    # Ensure directory exists (it should, but safety first)
+    # Ensure directory exists
     if not os.path.exists(UPLOAD_DIR):
         os.makedirs(UPLOAD_DIR)
         
-    # Generate unique filename to avoid collisions
+    # Generate unique filename
     file_ext = os.path.splitext(file.filename)[1]
     unique_filename = f"{uuid.uuid4()}{file_ext}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
@@ -33,24 +33,65 @@ async def upload_file(
 @router.post("/migrate-db", response_model=dict)
 async def migrate_db() -> Any:
     """
-    Force run database migrations/fixes and report status.
+    Force run database migrations/fixes, seed vital data, and report status.
     """
     from app.db.session import AsyncSessionLocal
     from sqlalchemy import text
+    from sqlalchemy.future import select
+    from app import models
+    from app.core import security
     
-    status_wo = "Unknown"
+    report = {}
     async with AsyncSessionLocal() as db:
         try:
-            # 1. Check/Add work_order_number
+            # 1. Schema Migration: work_order_number
             try:
                 await db.execute(text("SELECT work_order_number FROM work_orders LIMIT 1"))
-                status_wo = "Column 'work_order_number' exists."
+                report["work_order_number"] = "Exists"
             except Exception:
                 await db.execute(text("ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS work_order_number VARCHAR"))
                 await db.commit()
-                status_wo = "Column 'work_order_number' ADDED."
+                report["work_order_number"] = "Added"
 
-            # Diagnostic info
+            # 2. Tenant Seeding
+            required_tenants = [("demo", "Demo Company"), ("acme", "ACME Corp")]
+            for slug, name in required_tenants:
+                res = await db.execute(select(models.Tenant).where(models.Tenant.slug == slug))
+                tenant = res.scalars().first()
+                if not tenant:
+                    tenant = models.Tenant(name=name, slug=slug, plan="enterprise")
+                    db.add(tenant)
+                    await db.flush()
+                    report[f"tenant_{slug}"] = "Created"
+                else:
+                    report[f"tenant_{slug}"] = "Exists"
+                
+                # 3. User Seeding for this tenant
+                email = f"admin@{slug}.com"
+                user_res = await db.execute(select(models.User).where(models.User.email == email))
+                user = user_res.scalars().first()
+                if not user:
+                    hashed = security.get_password_hash("password")
+                    user = models.User(
+                        email=email, 
+                        password_hash=hashed, 
+                        full_name=f"{slug.capitalize()} Admin", 
+                        tenant_id=tenant.id, 
+                        role="admin", 
+                        is_active=True
+                    )
+                    db.add(user)
+                    report[f"user_{slug}"] = "Created"
+                else:
+                    # Force password reset to ensure it's 'password' for debugging
+                    hashed = security.get_password_hash("password")
+                    user.password_hash = hashed
+                    db.add(user)
+                    report[f"user_{slug}"] = "Password Reset (to 'password')"
+            
+            await db.commit()
+
+            # 4. Final Counts
             tenant_count = (await db.execute(text("SELECT count(*) FROM tenants"))).scalar()
             user_count = (await db.execute(text("SELECT count(*) FROM users"))).scalar()
             
@@ -58,14 +99,11 @@ async def migrate_db() -> Any:
             db_type = "Postgres" if "postgresql" in db_uri else "SQLite" if "sqlite" in db_uri else "Unknown"
             
             return {
-                "status": "Migration/Report Complete",
+                "status": "Success",
                 "database_type": db_type,
-                "tenants": tenant_count,
-                "users": user_count,
-                "details": {
-                    "work_order_number": status_wo,
-                }
+                "counts": {"tenants": tenant_count, "users": user_count},
+                "report": report
             }
         except Exception as e:
             await db.rollback()
-            raise HTTPException(status_code=500, detail=f"Migration/Diagnostic Failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"DR Failure: {str(e)}")
