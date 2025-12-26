@@ -8,9 +8,9 @@ import enum
 from datetime import datetime
 
 class AssetStatus(str, enum.Enum):
-    active = "active"
-    inactive = "inactive"
-    decommissioned = "decommissioned"
+    healthy = "Healthy"
+    running_with_issues = "Running with issues"
+    breakdown = "Breakdown"
 
 class Asset(Base):
     __tablename__ = "assets"

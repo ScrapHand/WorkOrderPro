@@ -33,6 +33,7 @@ export default function AssetsPage() {
         code: '',
         location: '',
         category: '',
+        status: 'Healthy',
         manufacturer: '',
         model: '',
         serial_number: '',
@@ -83,6 +84,7 @@ export default function AssetsPage() {
                 code: '',
                 location: '',
                 category: '',
+                status: 'Healthy',
                 manufacturer: '',
                 model: '',
                 serial_number: '',
@@ -103,6 +105,7 @@ export default function AssetsPage() {
             code: asset.code,
             location: asset.location || '',
             category: asset.category || '',
+            status: asset.status || 'Healthy',
             manufacturer: asset.manufacturer || '',
             model: asset.model || '',
             serial_number: asset.serial_number || '',
@@ -137,6 +140,7 @@ export default function AssetsPage() {
                             code: '',
                             location: '',
                             category: '',
+                            status: 'Healthy',
                             manufacturer: '',
                             model: '',
                             serial_number: '',
@@ -183,28 +187,18 @@ export default function AssetsPage() {
                                         </span>
                                         <p className="text-xs font-bold text-white uppercase tracking-wider">{asset.location || 'UNSPECIFIED'}</p>
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 col-span-2">
                                         <span className="text-[9px] font-black text-muted uppercase tracking-[0.2em] flex items-center gap-1.5">
-                                            <Activity className="w-3 h-3 text-primary" /> Status
+                                            <Activity className="w-3 h-3 text-primary" /> Current Status
                                         </span>
                                         <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></div>
-                                            <p className="text-[10px] font-black text-success uppercase tracking-widest">Nominal</p>
+                                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${asset.status === 'Healthy' ? 'bg-success' :
+                                                asset.status === 'Breakdown' ? 'bg-danger' : 'bg-warning'
+                                                }`}></div>
+                                            <p className={`text-[10px] font-black uppercase tracking-widest ${asset.status === 'Healthy' ? 'text-success' :
+                                                asset.status === 'Breakdown' ? 'text-danger' : 'text-warning'
+                                                }`}>{asset.status || 'Healthy'}</p>
                                         </div>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 pt-2">
-                                    <div className="flex flex-col gap-1 p-2 bg-white/[0.03] rounded-lg border border-white/5">
-                                        <span className="text-[8px] font-black text-muted uppercase tracking-widest flex items-center gap-1">
-                                            <Thermometer className="w-2.5 h-2.5 text-primary" /> Temp
-                                        </span>
-                                        <p className="text-xs font-black text-white">42.4°C</p>
-                                    </div>
-                                    <div className="flex flex-col gap-1 p-2 bg-white/[0.03] rounded-lg border border-white/5">
-                                        <span className="text-[8px] font-black text-muted uppercase tracking-widest flex items-center gap-1">
-                                            <Zap className="w-2.5 h-2.5 text-success" /> Load
-                                        </span>
-                                        <p className="text-xs font-black text-white">92%</p>
                                     </div>
                                 </div>
                             </div>
@@ -296,6 +290,33 @@ export default function AssetsPage() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                                 <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-muted uppercase tracking-widest">Deployment Location</label>
+                                    <input
+                                        type="text"
+                                        name="location"
+                                        value={formData.location}
+                                        onChange={handleChange}
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all font-bold uppercase tracking-wide text-xs"
+                                        placeholder="Sector G-14"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-muted uppercase tracking-widest">Operational Status</label>
+                                    <select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all font-bold uppercase tracking-wide text-xs"
+                                    >
+                                        <option value="Healthy">Healthy</option>
+                                        <option value="Running with issues">Running with issues</option>
+                                        <option value="Breakdown">Breakdown</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+                                <div className="space-y-2">
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest">Asset Category</label>
                                     <input
                                         type="text"
@@ -306,20 +327,6 @@ export default function AssetsPage() {
                                         placeholder="Mechanical, Electrical, etc."
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-muted uppercase tracking-widest">Deployment Location</label>
-                                    <input
-                                        type="text"
-                                        name="location"
-                                        value={formData.location}
-                                        onChange={handleChange}
-                                        className="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-2 text-white/80 focus:ring-1 focus:ring-primary outline-none text-xs"
-                                        placeholder="Sector G-14"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest">Manufacturer</label>
                                     <input

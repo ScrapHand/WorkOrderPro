@@ -174,11 +174,36 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
                                 {isEditing ? <Settings className="w-3.5 h-3.5 animate-spin-slow" /> : <Layout className="w-3.5 h-3.5" />}
                                 {isEditing ? 'Management Mode' : 'Technical Profile'}
                             </span>
-                            {!isEditing && (
-                                <span className="text-[10px] font-black text-muted uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <Tag className="w-4 h-4 text-primary" />
-                                    {asset.code}
-                                </span>
+                            <span className="text-[10px] font-black text-muted uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Tag className="w-4 h-4 text-primary" />
+                                {isEditing ? (
+                                    <input
+                                        className="bg-transparent border-b border-white/10 focus:border-primary outline-none w-24"
+                                        value={asset.code}
+                                        onChange={(e) => setAsset({ ...asset, code: e.target.value })}
+                                    />
+                                ) : asset.code}
+                            </span>
+
+                            {isEditing ? (
+                                <select
+                                    value={asset.status || 'Healthy'}
+                                    onChange={(e) => setAsset({ ...asset, status: e.target.value })}
+                                    className="bg-white/5 border border-white/10 rounded-full px-3 py-1 text-[9px] font-black text-white uppercase outline-none focus:border-primary"
+                                >
+                                    <option value="Healthy">Healthy</option>
+                                    <option value="Running with issues">Running with issues</option>
+                                    <option value="Breakdown">Breakdown</option>
+                                </select>
+                            ) : (
+                                <div className={`px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg ${asset.status === 'Healthy' ? 'bg-success/10 text-success border-success/20' :
+                                        asset.status === 'Breakdown' ? 'bg-danger/10 text-danger border-danger/20' : 'bg-warning/10 text-warning border-warning/20'
+                                    }`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${asset.status === 'Healthy' ? 'bg-success' :
+                                            asset.status === 'Breakdown' ? 'bg-danger' : 'bg-warning'
+                                        }`}></div>
+                                    {asset.status || 'Healthy'}
+                                </div>
                             )}
                         </div>
                         {isEditing ? (

@@ -12,7 +12,7 @@ class AssetBase(BaseModel):
     code: str
     location: Optional[str] = None
     category: Optional[str] = None
-    status: Optional[str] = AssetStatus.active
+    status: Optional[str] = "Healthy"
     manufacturer: Optional[str] = None
     model: Optional[str] = None
     serial_number: Optional[str] = None
