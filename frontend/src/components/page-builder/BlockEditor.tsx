@@ -81,10 +81,10 @@ export default function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {block.type === 'hero' && (
                                 <>
-                                    <EditField label="Title" value={block.props.title} onChange={(v) => updateProp(index, 'title', v)} />
-                                    <EditField label="Subtitle" value={block.props.subtitle} onChange={(v) => updateProp(index, 'subtitle', v)} />
-                                    <EditField label="Button Text" value={block.props.ctaText} onChange={(v) => updateProp(index, 'ctaText', v)} />
-                                    <EditField label="Button Link" value={block.props.ctaLink} onChange={(v) => updateProp(index, 'ctaLink', v)} />
+                                    <EditField label="Title" value={block.props.title} onChange={(v: string) => updateProp(index, 'title', v)} />
+                                    <EditField label="Subtitle" value={block.props.subtitle} onChange={(v: string) => updateProp(index, 'subtitle', v)} />
+                                    <EditField label="Button Text" value={block.props.ctaText} onChange={(v: string) => updateProp(index, 'ctaText', v)} />
+                                    <EditField label="Button Link" value={block.props.ctaLink} onChange={(v: string) => updateProp(index, 'ctaLink', v)} />
                                 </>
                             )}
                             {block.type === 'text' && (
@@ -99,12 +99,12 @@ export default function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                             )}
                             {block.type === 'stats' && (
                                 <div className="col-span-full space-y-4">
-                                    <EditField label="Monitor Title" value={block.props.title} onChange={(v) => updateProp(index, 'title', v)} />
+                                    <EditField label="Monitor Title" value={block.props.title} onChange={(v: string) => updateProp(index, 'title', v)} />
                                     <p className="text-[9px] text-muted italic font-bold">Statistic values are currently linked to live telemetry.</p>
                                 </div>
                             )}
                             {block.type === 'actions' && (
-                                <EditField label="Section Header" value={block.props.title} onChange={(v) => updateProp(index, 'title', v)} />
+                                <EditField label="Section Header" value={block.props.title} onChange={(v: string) => updateProp(index, 'title', v)} />
                             )}
                         </div>
                     </div>
