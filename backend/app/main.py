@@ -70,6 +70,19 @@ async def startup_event():
                 print(f"Startup: Created 'demo' tenant with ID: {tenant.id}")
             else:
                 print(f"Startup: Found existing 'demo' tenant with ID: {tenant.id}")
+
+            # Also check for 'acme' tenant as it seems to be requested
+            print("Startup: Checking for 'acme' tenant...")
+            acme_res = await db.execute(select(models.Tenant).where(models.Tenant.slug == "acme"))
+            acme_tenant = acme_res.scalars().first()
+            if not acme_tenant:
+                print("Startup: 'acme' tenant not found. Creating...")
+                acme_tenant = models.Tenant(name="ACME Corp", slug="acme", plan="enterprise")
+                db.add(acme_tenant)
+                await db.flush()
+                print(f"Startup: Created 'acme' tenant with ID: {acme_tenant.id}")
+            else:
+                print(f"Startup: Found existing 'acme' tenant with ID: {acme_tenant.id}")
             
             # Ensure admin user exists
             print("Startup: Checking for 'admin@demo.com' user...")
