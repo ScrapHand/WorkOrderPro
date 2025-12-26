@@ -221,3 +221,34 @@ async def update_work_order(
         )
     )
     return result.scalars().first()
+
+@router.delete("/{work_order_id}", response_model=schemas.WorkOrder)
+async def delete_work_order(
+    *,
+    db: AsyncSession = Depends(deps.get_db),
+    work_order_id: uuid.UUID,
+    current_user: models.User = Depends(deps.get_current_active_user),
+    current_tenant: models.Tenant = Depends(deps.get_current_tenant),
+) -> Any:
+    """
+    Delete a work order. Admin only.
+    """
+    if not current_tenant:
+        raise HTTPException(status_code=400, detail="Tenant context required")
+        
+    # Check if admin
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    result = await db.execute(select(models.WorkOrder).where(
+        models.WorkOrder.id == work_order_id,
+        models.WorkOrder.tenant_id == current_tenant.id
+    ))
+    wo = result.scalars().first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    await db.delete(wo)
+    await db.commit()
+    return wo
+

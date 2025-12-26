@@ -21,7 +21,8 @@ import {
     Tag,
     Info,
     History,
-    Download
+    Download,
+    Trash2
 } from 'lucide-react';
 import { generateWorkOrderPDF } from '@/lib/pdf-utils';
 
@@ -58,6 +59,7 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
         signed_by: '',
         completed_at: ''
     });
+    const router = useRouter();
 
     const fetchOrder = async () => {
         try {
@@ -105,6 +107,18 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
             fetchOrder();
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm("Are you sure you want to PERMANENTLY DELETE this job from the registry? This action cannot be undone.")) return;
+
+        try {
+            await api.delete(`/work-orders/${resolvedParams.id}`);
+            router.push(`/${resolvedParams.tenantSlug}/work-orders`);
+        } catch (err: any) {
+            console.error("Delete failed", err);
+            alert("Delete failed: " + (err.response?.data?.detail || "Authorized role required"));
         }
     };
 
@@ -236,6 +250,14 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                                 Resume Ops
                             </button>
                         )}
+
+                        <button
+                            onClick={handleDelete}
+                            className="px-6 py-3 bg-danger/10 border border-danger/20 text-danger hover:bg-danger hover:text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                            Delete Job
+                        </button>
                     </div>
                 </div>
             </div>
