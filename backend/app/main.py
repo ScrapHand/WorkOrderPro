@@ -27,16 +27,14 @@ async def log_requests(request: Request, call_next):
     return response
 
 # Set all CORS enabled origins
-# Must be added BEFORE routes/mounts to ensure it wraps them
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000", 
         "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://localhost:8000",
-        "*"
+        "https://workorderpro.vercel.app",
+        "https://work-order-pro.vercel.app", # User's specific URL
+        "https://workorderpro-frontend.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
