@@ -116,6 +116,21 @@ async def startup_event():
                 print("Startup: Created 'admin@demo.com' user.")
             else:
                 print(f"Startup: Found existing 'admin@demo.com' user with ID: {user.id}")
+
+            # Ensure admin user for ACME exists (admin@acme.com)
+            print("Startup: Checking for 'admin@acme.com' user...")
+            acme_user_res = await db.execute(select(models.User).where(models.User.email == "admin@acme.com"))
+            acme_user = acme_user_res.scalars().first()
+            
+            if not acme_user and acme_tenant:
+                from app.core import security
+                hashed = security.get_password_hash("password")
+                print("Startup: 'admin@acme.com' user not found. Creating...")
+                acme_user = models.User(email="admin@acme.com", password_hash=hashed, full_name="Acme Admin", tenant_id=acme_tenant.id, role="admin", is_active=True)
+                db.add(acme_user)
+                print("Startup: Created 'admin@acme.com' user.")
+            elif acme_user:
+                print(f"Startup: Found existing 'admin@acme.com' user with ID: {acme_user.id}")
                 
             await db.commit()
             print("Startup: Seeding transaction committed successfully.")
