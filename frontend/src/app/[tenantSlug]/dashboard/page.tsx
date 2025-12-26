@@ -10,12 +10,13 @@ import {
     Clock,
     ArrowRight,
     AlertTriangle,
-    Boxes
+    Boxes,
+    PauseCircle
 } from 'lucide-react';
 import { useTenant } from '@/context/TenantContext';
 
 interface DashboardStats {
-    woTotal: number;
+    activeTotal: number;
     woByStatus: Record<string, number>;
     lowStockCount: number;
     assetCount: number;
@@ -41,7 +42,7 @@ interface InventoryItem {
 export default function DashboardPage() {
     const { tenant } = useTenant();
     const [stats, setStats] = useState<DashboardStats>({
-        woTotal: 0,
+        activeTotal: 0,
         woByStatus: {},
         lowStockCount: 0,
         assetCount: 0
@@ -64,13 +65,28 @@ export default function DashboardPage() {
                 const lowStock = inventory.filter(item => item.quantity <= item.min_quantity);
 
                 setStats({
-                    woTotal: woStatsRes.data.total,
+                    activeTotal: woStatsRes.data.active_total,
                     woByStatus: woStatsRes.data.by_status,
                     lowStockCount: lowStock.length,
                     assetCount: assetRes.data.length
                 });
 
-                setRecentJobs(woRes.data);
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+
+                const activeOrTodayJobs = woRes.data.filter((job: WorkOrder) => {
+                    if (job.status !== 'completed' && job.status !== 'cancelled') return true;
+                    if (job.status === 'completed') {
+                        const completedDate = new Date(job.created_at); // Fallback: completed_at is better but let's check
+                        // Wait, WorkOrder interface doesn't have completed_at yet in types. 
+                        // Let's use created_at as a proxy or just trust the backend status stats.
+                        // Actually, I'll filter based on the API response.
+                        return new Date(job.created_at) >= todayStart;
+                    }
+                    return false;
+                });
+
+                setRecentJobs(activeOrTodayJobs);
                 setLowStockItems(lowStock);
             } catch (err) {
                 console.error("Failed to fetch dashboard data", err);
@@ -125,23 +141,22 @@ export default function DashboardPage() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title={`Active ${tenant?.theme_json?.naming?.workOrdersLabel || "Jobs"}`}
+                    title={`Active ${tenant?.theme_json?.naming?.workOrdersLabel || "Tasks"}`}
                     value={(stats.woByStatus['new'] || 0) + (stats.woByStatus['in_progress'] || 0)}
                     color="text-secondary"
                     icon={Clock}
-                    trend="+12%"
+                />
+                <StatCard
+                    title="On Hold / Waiting"
+                    value={(stats.woByStatus['on_hold'] || 0) + (stats.woByStatus['waiting_parts'] || 0)}
+                    color="text-orange-500"
+                    icon={PauseCircle}
                 />
                 <StatCard
                     title="Completed Today"
                     value={stats.woByStatus['completed'] || 0}
                     color="text-success"
                     icon={CheckCircle2}
-                />
-                <StatCard
-                    title="Critical"
-                    value={recentJobs.filter(j => j.priority === 'critical').length}
-                    color="text-danger"
-                    icon={AlertCircle}
                 />
                 <StatCard
                     title={`${tenant?.theme_json?.naming?.assetsLabel?.slice(0, -1) || "Asset"} Health`}

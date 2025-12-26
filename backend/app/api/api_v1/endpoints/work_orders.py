@@ -52,18 +52,9 @@ async def get_work_order_stats(
     if not current_tenant:
         raise HTTPException(status_code=400, detail="Tenant context required")
 
-    # Total
-    total_query = select(func.count(models.WorkOrder.id)).where(models.WorkOrder.tenant_id == current_tenant.id)
-    total_res = await db.execute(total_query)
-    total = total_res.scalar_one()
-
-    # By Status (Modified for Daily View)
-    # For active statuses, we want the current backlog count.
-    # For 'completed', we strictly want TODAY's completions.
-    
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # Active statuses count
+    # Active statuses count (excludes completed/cancelled)
     active_query = select(models.WorkOrder.status, func.count(models.WorkOrder.id)).where(
         models.WorkOrder.tenant_id == current_tenant.id,
         models.WorkOrder.status != "completed",
@@ -72,7 +63,10 @@ async def get_work_order_stats(
     active_res = await db.execute(active_query)
     by_status = {r.status: r.count for r in active_res.all()}
     
-    # Daily Completed count
+    # Calculate active total (sum of all statuses that are not completed or cancelled)
+    active_total = sum(by_status.values())
+    
+    # Daily Completed count (Sign-offs TODAY only)
     completed_today_query = select(func.count(models.WorkOrder.id)).where(
         models.WorkOrder.tenant_id == current_tenant.id,
         models.WorkOrder.status == "completed",
@@ -81,15 +75,16 @@ async def get_work_order_stats(
     completed_res = await db.execute(completed_today_query)
     by_status["completed"] = completed_res.scalar_one()
 
-    # By Priority
+    # Priority Stats (Active jobs only)
     priority_query = select(models.WorkOrder.priority, func.count(models.WorkOrder.id)).where(
-        models.WorkOrder.tenant_id == current_tenant.id
+        models.WorkOrder.tenant_id == current_tenant.id,
+        models.WorkOrder.status.notin_(["completed", "cancelled"])
     ).group_by(models.WorkOrder.priority)
     priority_res = await db.execute(priority_query)
     by_priority = {r.priority: r.count for r in priority_res.all()}
 
     return {
-        "total": total,
+        "active_total": active_total,
         "by_status": by_status,
         "by_priority": by_priority
     }

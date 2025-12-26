@@ -41,6 +41,6 @@ class WorkOrder(WorkOrderBase):
         from_attributes = True
 
 class WorkOrderStats(BaseModel):
-    total: int
+    active_total: int
     by_status: dict
     by_priority: dict
