@@ -21,7 +21,7 @@ class Asset(Base):
     code = Column(String, nullable=False) # Should be unique per tenant
     location = Column(String, nullable=True)
     category = Column(String, nullable=True)
-    status = Column(String, default=AssetStatus.active)
+    status = Column(String, default=AssetStatus.healthy)
     manufacturer = Column(String, nullable=True)
     model = Column(String, nullable=True)
     serial_number = Column(String, nullable=True)
