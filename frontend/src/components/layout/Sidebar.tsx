@@ -3,6 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTenant } from '@/context/TenantContext';
+import { resolveBackendUrl } from '@/lib/api';
 import {
     LayoutDashboard,
     ClipboardList,
@@ -10,7 +11,8 @@ import {
     Box,
     Package,
     Settings,
-    ShieldCheck
+    ShieldCheck,
+    X
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -53,7 +55,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <div className="flex items-center gap-3">
                         {logoUrl ? (
                             <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center bg-white/5">
-                                <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                <img src={resolveBackendUrl(logoUrl) || ""} alt="Logo" className="w-full h-full object-contain" />
                             </div>
                         ) : (
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">

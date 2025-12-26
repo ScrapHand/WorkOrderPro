@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTenant } from '@/context/TenantContext';
-import { api, setAuthToken } from '@/lib/api';
+import { api, setAuthToken, resolveBackendUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -37,7 +37,7 @@ export default function LoginPage() {
             <div className="w-full max-w-md rounded-lg border bg-surface p-8 shadow-sm text-center">
                 <div className="mb-6 flex justify-center">
                     {logoUrl ? (
-                        <img src={logoUrl} alt={tenant?.name} className="h-12 object-contain" />
+                        <img src={resolveBackendUrl(logoUrl) || ""} alt={tenant?.name} className="h-12 object-contain" />
                     ) : (
                         <h1 className="text-2xl font-bold">{tenant?.name || "Login"}</h1>
                     )}

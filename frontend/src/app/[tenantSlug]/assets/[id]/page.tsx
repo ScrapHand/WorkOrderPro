@@ -1,7 +1,7 @@
 "use client";
 import React, { use, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { api } from '@/lib/api';
+import { api, resolveBackendUrl } from '@/lib/api';
 import { useTenant } from '@/context/TenantContext';
 import {
     ChevronLeft,
@@ -152,10 +152,10 @@ export default function AssetDetailPage({ params }: { params: Promise<{ tenantSl
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
             <AlertCircle className="w-16 h-16 text-danger opacity-50" />
             <h1 className="text-2xl font-black text-white uppercase tracking-tighter">DATA UNAVAILABLE</h1>
-            <Link href={`/${resolvedParams.tenantSlug}/assets`} className="px-6 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">
+            <Link href={`/ ${resolvedParams.tenantSlug} /assets`} className="px-6 py-2 border border-white/10 rounded - xl text - [10px] font - black uppercase tracking - widest hover: bg - white / 5 transition - all">
                 Return to Registry
-            </Link>
-        </div>
+            </Link >
+        </div >
     );
 
     return (
@@ -464,7 +464,7 @@ const LOTOCard = ({ point, isEditing, onUpdate, onRemove }: any) => {
                 onClick={() => isEditing && fileInputRef.current?.click()}>
                 {point.imageUrl ? (
                     <>
-                        <img src={point.imageUrl} alt={point.location} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700" />
+                        <img src={resolveBackendUrl(point.imageUrl) || ""} alt={point.location} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700" />
                         {isEditing && (
                             <div className="absolute inset-0 bg-primary/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
                                 <Upload className="w-8 h-8 text-white animate-bounce" />

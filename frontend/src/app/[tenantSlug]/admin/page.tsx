@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '@/context/TenantContext';
-import { api } from '@/lib/api';
+import { api, resolveBackendUrl } from '@/lib/api';
 import BlockEditor from '@/components/page-builder/BlockEditor';
 import UserList from '@/components/admin/UserList';
 import {
@@ -81,7 +81,7 @@ export default function AdminPage() {
             formData.append('file', e.target.files[0]);
 
             const res = await api.post('/utils/upload', formData);
-            const backendUrl = `http://localhost:8000${res.data.url}`;
+            const backendUrl = res.data.url;
 
             setLogoUrl(backendUrl);
 
@@ -104,6 +104,9 @@ export default function AdminPage() {
     const handleSaveTheme = async () => {
         setSaving(true);
         try {
+            // Ensure we only save the relative path to the DB
+            // If logoUrl is a full blob/http URL from an old upload, we should try to extract the relative part
+            // But since handleLogoUpload already sets res.data.url, it should be /static/...
             await api.put('/tenants/theme', {
                 colors,
                 branding: { logoUrl: logoUrl || tenant?.theme_json?.branding?.logoUrl }
@@ -227,7 +230,7 @@ export default function AdminPage() {
                                 <label className="text-xs font-black text-muted uppercase tracking-widest">Main Company Logo</label>
                                 <div className="h-64 industrial-gradient rounded-3xl border border-white/5 flex items-center justify-center overflow-hidden shadow-inner group relative">
                                     {logoUrl ? (
-                                        <img src={logoUrl} alt="Logo" className="max-w-[80%] max-h-[80%] object-contain" />
+                                        <img src={resolveBackendUrl(logoUrl) || ""} alt="Logo" className="max-w-[80%] max-h-[80%] object-contain" />
                                     ) : (
                                         <div className="text-center group-hover:scale-110 transition-transform duration-500">
                                             <ImageIcon className="w-12 h-12 text-white/10 mx-auto mb-2" />

@@ -1,11 +1,22 @@
 import axios from 'axios';
 
-const rawBaseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const baseURL = rawBaseURL.includes('/api/v1') ? rawBaseURL : `${rawBaseURL}/api/v1`;
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL = BASE_URL.includes('/api/v1') ? BASE_URL : `${BASE_URL}/api/v1`;
 
 export const api = axios.create({
-    baseURL,
+    baseURL: API_URL,
 });
+
+/**
+ * Resolves a potentially relative backend path (e.g. /static/...) 
+ * to a full absolute URL using the backend origin.
+ */
+export const resolveBackendUrl = (path: string | null | undefined) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `${BASE_URL}${cleanPath}`;
+};
 
 // Interceptor to add token and tenant slug
 api.interceptors.request.use((config) => {
