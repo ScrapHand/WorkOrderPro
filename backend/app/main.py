@@ -48,7 +48,42 @@ app.add_middleware(
 async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("Startup: Table creation complete.")
+    
+    # Urgent Seed
+    from app.db.session import AsyncSessionLocal
+    from sqlalchemy.future import select
+    from app import models
+    from app.core import security
+    
+    async with AsyncSessionLocal() as db:
+        try:
+            # Demo
+            res = await db.execute(select(models.Tenant).where(models.Tenant.slug == "demo"))
+            demo = res.scalars().first()
+            if not demo:
+                demo = models.Tenant(name="Demo", slug="demo")
+                db.add(demo)
+                await db.flush()
+            
+            # Acme
+            res = await db.execute(select(models.Tenant).where(models.Tenant.slug == "acme"))
+            acme = res.scalars().first()
+            if not acme:
+                acme = models.Tenant(name="ACME", slug="acme")
+                db.add(acme)
+                await db.flush()
+            
+            # Acme Admin
+            res = await db.execute(select(models.User).where(models.User.email == "admin@acme.com"))
+            if not res.scalars().first():
+                user = models.User(email="admin@acme.com", password_hash=security.get_password_hash("password"), 
+                                   full_name="Acme Admin", tenant_id=acme.id, role="admin", is_active=True)
+                db.add(user)
+            
+            await db.commit()
+        except Exception as e:
+            print(f"Seed failed: {e}")
+            await db.rollback()
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
