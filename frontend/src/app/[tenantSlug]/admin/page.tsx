@@ -48,7 +48,7 @@ export default function AdminPage() {
     const [saving, setSaving] = useState(false);
 
     // Theme State
-    const [colors, setColors] = useState<any>(DEFAULT_COLORS);
+    const [colors, setColors] = useState<Record<string, string>>(DEFAULT_COLORS);
 
     // Branding State
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export default function AdminPage() {
     // Builder State
     const [dashboardBlocks, setDashboardBlocks] = useState<any[]>(DEFAULT_DASHBOARD_LAYOUT);
 
-    const [naming, setNaming] = useState<any>({
+    const [naming, setNaming] = useState<Record<string, string>>({
         systemTitle: "Industrial CMMS",
         dashboardLabel: "Dashboard",
         workOrdersLabel: "Work Orders",

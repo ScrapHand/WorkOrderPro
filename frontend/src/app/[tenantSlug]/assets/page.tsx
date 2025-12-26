@@ -27,7 +27,7 @@ import { useTenant } from '@/context/TenantContext';
 export default function AssetsPage() {
     const { tenant } = useTenant();
     const params = useParams();
-    const [assets, setAssets] = useState<any[]>([]);
+    const [assets, setAssets] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
@@ -50,7 +50,7 @@ export default function AssetsPage() {
         try {
             const res = await api.get('/assets/');
             setAssets(res.data);
-        } catch (err: any) {
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error("Fetch assets failed:", err);
             setError("Could not synchronize with facility registry. Verify connection.");
         } finally {

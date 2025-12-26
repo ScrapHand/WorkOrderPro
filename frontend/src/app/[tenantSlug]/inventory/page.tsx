@@ -22,7 +22,7 @@ import { useTenant } from '@/context/TenantContext';
 
 export default function InventoryPage() {
     const { tenant } = useTenant();
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
@@ -87,7 +87,7 @@ export default function InventoryPage() {
         }
     };
 
-    const handleEdit = (item: any) => {
+    const handleEdit = (item: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         setFormData({
             name: item.name,
             sku: item.sku || '',

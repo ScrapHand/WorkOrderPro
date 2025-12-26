@@ -91,7 +91,7 @@ export default function DashboardPage() {
         );
     }
 
-    const StatCard = ({ title, value, color, icon: Icon, trend }: { title: string, value: number | string, color: string, icon: any, trend?: string }) => (
+    const StatCard = ({ title, value, color, icon: Icon, trend }: { title: string, value: number | string, color: string, icon: React.ElementType, trend?: string }) => (
         <div className="glass-panel p-6 industrial-gradient group hover:border-primary/30 transition-all duration-300">
             <div className="flex justify-between items-start mb-4">
                 <div className={`p-3 rounded-xl bg-opacity-10 ${color.replace('text-', 'bg-')} border border-white/5`}>
