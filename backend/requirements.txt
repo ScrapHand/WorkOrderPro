@@ -8,6 +8,7 @@ python-jose[cryptography]
 python-jose[cryptography]
 passlib[argon2]
 argon2-cffi
+bcrypt
 asyncpg
 python-multipart
 email-validator
