@@ -310,7 +310,7 @@ export default function PMSchedulePage() {
                             setFormData({
                                 title: '',
                                 description: '',
-                                frequency_type: 'days',
+                                frequency_type: 'daily',
                                 frequency_interval: 1,
                                 asset_id: '',
                                 next_due: new Date().toISOString().split('T')[0],
@@ -322,13 +322,6 @@ export default function PMSchedulePage() {
                     >
                         <Plus className="w-5 h-5" />
                         INITIALIZE SEQUENCE
-                    </button>
-                    <button
-                        onClick={handleProcessDue}
-                        className="px-6 py-2 bg-white/5 border border-white/10 hover:border-primary/30 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
-                    >
-                        <RefreshCw className="w-5 h-5 text-primary" />
-                        PROCESS DUE
                     </button>
                 </div>
             </div>
@@ -479,12 +472,15 @@ export default function PMSchedulePage() {
                                             name="frequency_type"
                                             value={formData.frequency_type}
                                             onChange={handleChange}
-                                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-primary outline-none font-bold uppercase tracking-widest text-xs appearance-none cursor-pointer"
+                                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-primary outline-none font-bold uppercase text-xs"
                                         >
-                                            <option value="days">Days</option>
-                                            <option value="weeks">Weeks</option>
-                                            <option value="months">Months</option>
-                                            <option value="years">Years</option>
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="fortnightly">Fortnightly</option>
+                                            <option value="monthly">Monthly</option>
+                                            <option value="quarterly">Quarterly</option>
+                                            <option value="6 monthly">6 Monthly</option>
+                                            <option value="yearly">Yearly</option>
                                         </select>
                                     </div>
                                 </div>

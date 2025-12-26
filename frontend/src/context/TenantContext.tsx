@@ -11,19 +11,46 @@ interface Tenant {
     // add other fields
 }
 
+interface User {
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+}
+
 interface TenantContextType {
     tenant: Tenant | null;
+    user: User | null;
     isLoading: boolean;
     error: any;
     refreshTenant: () => void;
+    refreshUser: () => void;
 }
 
-const TenantContext = createContext<TenantContextType>({ tenant: null, isLoading: true, error: null, refreshTenant: () => { } });
+const TenantContext = createContext<TenantContextType>({
+    tenant: null,
+    user: null,
+    isLoading: true,
+    error: null,
+    refreshTenant: () => { },
+    refreshUser: () => { }
+});
 
 export const TenantProvider = ({ children, slug }: { children: React.ReactNode, slug: string }) => {
     const [tenant, setTenant] = useState<Tenant | null>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const fetchUser = async () => {
+        try {
+            const res = await api.get('/users/me');
+            setUser(res.data);
+        } catch (err) {
+            console.error("TenantContext: Failed to fetch user", err);
+            setUser(null);
+        }
+    }
 
     const fetchTenant = async () => {
         console.log("TenantContext: Fetching tenant for slug:", slug);
@@ -33,9 +60,7 @@ export const TenantProvider = ({ children, slug }: { children: React.ReactNode, 
         }
         try {
             setTenantSlugHeader(slug);
-            console.log("TenantContext: Making API call...");
             const res = await api.get('/tenants/me');
-            console.log("TenantContext: API Success", res.data);
             setTenant(res.data);
             setIsLoading(false);
         } catch (err: any) {
@@ -55,9 +80,11 @@ export const TenantProvider = ({ children, slug }: { children: React.ReactNode, 
     };
 
     useEffect(() => {
-        console.log("TenantContext: useEffect trigger, slug=", slug);
         if (!slug) return;
-        fetchTenant();
+        setIsLoading(true);
+        Promise.all([fetchTenant(), fetchUser()]).finally(() => {
+            setIsLoading(false);
+        });
     }, [slug]);
 
     // Dynamic CSS Variable Injection
@@ -72,12 +99,18 @@ export const TenantProvider = ({ children, slug }: { children: React.ReactNode, 
                     root.style.setProperty(`--color-${key}`, value as string);
                 }
             });
-            console.log("TenantContext: Injected dynamic theme variables");
         }
     }, [tenant]);
 
     return (
-        <TenantContext.Provider value={{ tenant, isLoading, error, refreshTenant: fetchTenant }}>
+        <TenantContext.Provider value={{
+            tenant,
+            user,
+            isLoading,
+            error,
+            refreshTenant: fetchTenant,
+            refreshUser: fetchUser
+        }}>
             {children}
         </TenantContext.Provider>
     );

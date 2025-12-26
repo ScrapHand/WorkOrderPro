@@ -58,6 +58,7 @@ export default function AdminPage() {
     const [dashboardBlocks, setDashboardBlocks] = useState<any[]>(DEFAULT_DASHBOARD_LAYOUT);
 
     const [naming, setNaming] = useState<Record<string, string>>({
+        tenantName: "ACME Corp",
         systemTitle: "Industrial CMMS",
         dashboardLabel: "Dashboard",
         workOrdersLabel: "Work Orders",
@@ -316,6 +317,16 @@ export default function AdminPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest">Facility Name (Primary Branding)</label>
+                                <input
+                                    type="text"
+                                    value={naming.tenantName}
+                                    onChange={(e) => setNaming({ ...naming, tenantName: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none"
+                                    placeholder="e.g. ACME Corp"
+                                />
+                            </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-muted uppercase tracking-widest">Global Subtitle</label>
                                 <input

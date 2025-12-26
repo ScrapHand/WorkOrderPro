@@ -71,22 +71,11 @@ export default function DashboardPage() {
                     assetCount: assetRes.data.length
                 });
 
-                const todayStart = new Date();
-                todayStart.setHours(0, 0, 0, 0);
-
-                const activeOrTodayJobs = woRes.data.filter((job: WorkOrder) => {
-                    if (job.status !== 'completed' && job.status !== 'cancelled') return true;
-                    if (job.status === 'completed') {
-                        const completedDate = new Date(job.created_at); // Fallback: completed_at is better but let's check
-                        // Wait, WorkOrder interface doesn't have completed_at yet in types. 
-                        // Let's use created_at as a proxy or just trust the backend status stats.
-                        // Actually, I'll filter based on the API response.
-                        return new Date(job.created_at) >= todayStart;
-                    }
-                    return false;
+                const activeJobs = woRes.data.filter((job: WorkOrder) => {
+                    return job.status !== 'completed' && job.status !== 'cancelled';
                 });
 
-                setRecentJobs(activeOrTodayJobs);
+                setRecentJobs(activeJobs);
                 setLowStockItems(lowStock);
             } catch (err) {
                 console.error("Failed to fetch dashboard data", err);

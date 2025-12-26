@@ -277,8 +277,8 @@ async def delete_work_order(
     if not current_tenant:
         raise HTTPException(status_code=400, detail="Tenant context required")
         
-    # Check if admin
-    if current_user.role != "admin":
+    # Check if admin or manager
+    if current_user.role not in ["admin", "manager", "owner"]:
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
     result = await db.execute(select(models.WorkOrder).where(

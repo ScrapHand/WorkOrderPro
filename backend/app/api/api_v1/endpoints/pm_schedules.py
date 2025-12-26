@@ -2,81 +2,21 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
-from app.models.core import PMSchedule, Asset, WorkOrder, WorkOrderStatus, PMLog
+from app.models.core import PMSchedule, Asset, PMLog
 from pydantic import BaseModel, UUID4
 from datetime import datetime, timedelta
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-import random
-import string
 
 router = APIRouter()
 
 class PMSignOff(BaseModel):
     notes: Optional[str] = None
 
-@router.post("/process-due")
-async def process_due_pms(
-    db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_active_user),
-):
-    """
-    Check all active PM schedules and generate work orders if next_due is reached.
-    """
-    now = datetime.utcnow()
-    
-    query = select(PMSchedule).where(
-        PMSchedule.tenant_id == current_user.tenant_id,
-        PMSchedule.is_active == True,
-        PMSchedule.next_due <= now
-    )
-    result = await db.execute(query)
-    due_schedules = result.scalars().all()
-    
-    created_count = 0
-    for schedule in due_schedules:
-        # Generate Unique WO Number
-        wo_now_str = now.strftime("%y%m%d-%H%M")
-        wo_rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
-        wo_number = f"PM-AUTO-{wo_now_str}-{wo_rand}"
-
-        wo = WorkOrder(
-            tenant_id=current_user.tenant_id,
-            title=f"SCHEDULED PM: {schedule.title}",
-            description=f"Auto-generated from PM Schedule. Frequency: {schedule.frequency_interval} {schedule.frequency_type}",
-            status=WorkOrderStatus.new,
-            priority="low",
-            asset_id=schedule.asset_id,
-            work_order_number=wo_number,
-            reported_by_user_id=current_user.id
-        )
-        db.add(wo)
-        
-        # Push next due away
-        interval = schedule.frequency_interval
-        freq = schedule.frequency_type.lower()
-        
-        # If next_due is already in the past, keep adding interval until it's in the future
-        # to avoid infinite loops if it's very old, but for now just one jump is standard.
-        if freq == "days":
-            schedule.next_due += timedelta(days=interval)
-        elif freq == "weeks":
-            schedule.next_due += timedelta(weeks=interval)
-        elif freq == "months":
-            schedule.next_due += timedelta(days=30 * interval)
-        elif freq == "years":
-            schedule.next_due += timedelta(days=365 * interval)
-            
-        db.add(schedule)
-        created_count += 1
-        
-    await db.commit()
-    return {"message": f"Processed {created_count} schedules", "created": created_count}
-
 class PMScheduleBase(BaseModel):
     title: str
     description: Optional[str] = None
-    frequency_type: str = "days"
+    frequency_type: str = "days" # daily, weekly, fortnightly, monthly, quarterly, 6 monthly, yearly
     frequency_interval: int = 1
     asset_id: Optional[UUID4] = None
     next_due: Optional[datetime] = None
@@ -127,7 +67,6 @@ async def create_pm_schedule(
     db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_active_user),
 ):
-    # Ensure next_due is set to now if missing
     data = schedule_in.dict()
     if not data.get('next_due'):
         data['next_due'] = datetime.utcnow()
@@ -176,6 +115,33 @@ async def update_pm_schedule(
     await db.refresh(schedule)
     return schedule
 
+def calculate_next_due(current_due: datetime, freq: str, interval: int = 1) -> datetime:
+    f = freq.lower()
+    if f == "daily":
+        return current_due + timedelta(days=1)
+    elif f == "weekly":
+        return current_due + timedelta(weeks=1)
+    elif f == "fortnightly":
+        return current_due + timedelta(weeks=2)
+    elif f == "monthly":
+        return current_due + timedelta(days=30)
+    elif f == "quarterly":
+        return current_due + timedelta(days=91)
+    elif f == "6 monthly":
+        return current_due + timedelta(days=182)
+    elif f == "yearly":
+        return current_due + timedelta(days=365)
+    # Fallback to old dynamic interval if none of the above match
+    if f == "days":
+        return current_due + timedelta(days=interval)
+    elif f == "weeks":
+        return current_due + timedelta(weeks=interval)
+    elif f == "months":
+        return current_due + timedelta(days=30 * interval)
+    elif f == "years":
+        return current_due + timedelta(days=365 * interval)
+    return current_due + timedelta(days=interval)
+
 @router.post("/{id}/sign-off")
 async def sign_off_pm(
     id: UUID4,
@@ -202,40 +168,9 @@ async def sign_off_pm(
     )
     db.add(log)
     
-    # 2. Create actual Work Order for the registry
-    wo_now_str = now.strftime("%y%m%d-%H%M")
-    wo_rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
-    wo_number = f"PM-WO-{wo_now_str}-{wo_rand}"
-    
-    wo = WorkOrder(
-        tenant_id=current_user.tenant_id,
-        title=f"PM: {schedule.title}",
-        description=f"Automated PM completion log. Notes: {sign_off.notes or 'None'}",
-        status=WorkOrderStatus.completed,
-        priority="low",
-        asset_id=schedule.asset_id,
-        work_order_number=wo_number,
-        reported_by_user_id=current_user.id,
-        completed_by_user_id=current_user.id,
-        completed_at=now,
-        completion_notes=sign_off.notes
-    )
-    db.add(wo)
-    
-    # 3. Update Schedule
+    # 2. Update Schedule
     current_due = schedule.next_due or now
-    interval = schedule.frequency_interval
-    freq = schedule.frequency_type.lower()
-    
-    if freq == "days":
-        schedule.next_due = current_due + timedelta(days=interval)
-    elif freq == "weeks":
-        schedule.next_due = current_due + timedelta(weeks=interval)
-    elif freq == "months":
-        schedule.next_due = current_due + timedelta(days=30 * interval)
-    elif freq == "years":
-        schedule.next_due = current_due + timedelta(days=365 * interval)
-        
+    schedule.next_due = calculate_next_due(current_due, schedule.frequency_type, schedule.frequency_interval)
     schedule.last_performed = now
     db.add(schedule)
     

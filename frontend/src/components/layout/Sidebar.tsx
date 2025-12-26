@@ -12,6 +12,7 @@ import {
     Package,
     Settings,
     ShieldCheck,
+    Archive,
     X
 } from 'lucide-react';
 import { BrandingLogo } from './BrandingLogo';
@@ -24,12 +25,12 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const { tenant, isLoading } = useTenant();
     const pathname = usePathname();
-    const slug = tenant?.slug || 'demo';
-
     const naming = tenant?.theme_json?.naming;
+    const slug = tenant?.slug || 'demo';
     const links = [
         { label: naming?.dashboardLabel || 'Dashboard', href: `/${slug}/dashboard`, icon: LayoutDashboard },
         { label: naming?.workOrdersLabel || 'Work Orders', href: `/${slug}/work-orders`, icon: ClipboardList },
+        { label: 'Archives', href: `/${slug}/archives`, icon: Archive },
         { label: naming?.pmLabel || 'PM Schedule', href: `/${slug}/pm-schedule`, icon: CalendarClock },
         { label: naming?.assetsLabel || 'Assets', href: `/${slug}/assets`, icon: Box },
         { label: naming?.inventoryLabel || 'Inventory', href: `/${slug}/inventory`, icon: Package },

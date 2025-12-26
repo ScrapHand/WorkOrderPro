@@ -14,7 +14,7 @@ export function BrandingLogo({ className = "", size = 'md', showText = true }: B
     const { tenant, isLoading } = useTenant();
 
     const logoUrl = tenant?.theme_json?.branding?.logoUrl;
-    const tenantName = tenant?.name || "WorkOrderPro";
+    const tenantName = tenant?.theme_json?.naming?.tenantName || tenant?.name || "WorkOrderPro";
     const customTitle = tenant?.theme_json?.naming?.systemTitle || "Industrial CMMS";
 
     const dimensions = {

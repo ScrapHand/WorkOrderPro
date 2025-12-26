@@ -48,7 +48,7 @@ interface WorkOrder {
 
 export default function WorkOrderDetailPage({ params }: { params: Promise<{ tenantSlug: string, id: string }> }) {
     const resolvedParams = use(params);
-    const { tenant } = useTenant();
+    const { tenant, user } = useTenant();
     const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -251,13 +251,15 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                             </button>
                         )}
 
-                        <button
-                            onClick={handleDelete}
-                            className="px-6 py-3 bg-danger/10 border border-danger/20 text-danger hover:bg-danger hover:text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all"
-                        >
-                            <Trash2 className="w-5 h-5" />
-                            Delete Job
-                        </button>
+                        {tenant && (user?.role === 'admin' || user?.role === 'manager' || user?.role === 'owner') && (
+                            <button
+                                onClick={handleDelete}
+                                className="px-6 py-3 bg-danger/10 border border-danger/20 text-danger hover:bg-danger hover:text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                                Delete Job
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
