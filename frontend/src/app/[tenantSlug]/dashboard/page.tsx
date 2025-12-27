@@ -20,6 +20,7 @@ interface DashboardStats {
     woByStatus: Record<string, number>;
     lowStockCount: number;
     assetCount: number;
+    healthyAssetCount: number;
 }
 
 interface WorkOrder {
@@ -45,7 +46,8 @@ export default function DashboardPage() {
         activeTotal: 0,
         woByStatus: {},
         lowStockCount: 0,
-        assetCount: 0
+        assetCount: 0,
+        healthyAssetCount: 0
     });
     const [recentJobs, setRecentJobs] = useState<WorkOrder[]>([]);
     const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
@@ -64,11 +66,14 @@ export default function DashboardPage() {
                 const inventory: InventoryItem[] = invRes.data;
                 const lowStock = inventory.filter(item => item.quantity <= item.min_quantity);
 
+                const healthyAssets = assetRes.data.filter((a: any) => a.status === 'Healthy');
+
                 setStats({
                     activeTotal: woStatsRes.data.active_total,
                     woByStatus: woStatsRes.data.by_status,
                     lowStockCount: lowStock.length,
-                    assetCount: assetRes.data.length
+                    assetCount: assetRes.data.length,
+                    healthyAssetCount: healthyAssets.length
                 });
 
                 const activeJobs = woRes.data.filter((job: WorkOrder) => {
@@ -149,7 +154,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                     title={`${tenant?.theme_json?.naming?.assetsLabel?.slice(0, -1) || "Asset"} Health`}
-                    value={`${Math.round((stats.assetCount > 0 ? (stats.assetCount - 1) / stats.assetCount : 0) * 100)}%`}
+                    value={`${stats.assetCount > 0 ? Math.round((stats.healthyAssetCount / stats.assetCount) * 100) : 0}%`}
                     color="text-warning"
                     icon={Boxes}
                 />

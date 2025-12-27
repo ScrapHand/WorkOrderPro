@@ -36,7 +36,7 @@ export default function PMSchedulePage() {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        frequency_type: 'days',
+        frequency_type: 'daily',
         frequency_interval: 1,
         asset_id: '',
         next_due: new Date().toISOString().split('T')[0], // Default to today
@@ -88,8 +88,11 @@ export default function PMSchedulePage() {
         setFormData(prev => ({ ...prev, [name]: checked }));
     };
 
+    const [submitting, setSubmitting] = useState(false);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSubmitting(true);
         try {
             const payload = {
                 ...formData,
@@ -100,9 +103,12 @@ export default function PMSchedulePage() {
 
             if (editingId) {
                 await api.put(`/pm-schedules/${editingId}`, payload);
+                setMessage("Sequence recalibrated successfully.");
             } else {
                 await api.post('/pm-schedules/', payload);
+                setMessage("Maintenance sequence initialized.");
             }
+            setTimeout(() => setMessage(""), 5000);
             setIsModalOpen(false);
             setEditingId(null);
             fetchData();
@@ -110,14 +116,18 @@ export default function PMSchedulePage() {
             setFormData({
                 title: '',
                 description: '',
-                frequency_type: 'days',
+                frequency_type: 'daily',
                 frequency_interval: 1,
                 asset_id: '',
                 next_due: new Date().toISOString().split('T')[0],
                 is_active: true
             });
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            setMessage(err.response?.data?.detail || "Deployment failed.");
+            setTimeout(() => setMessage(""), 5000);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -259,18 +269,7 @@ export default function PMSchedulePage() {
         }
     };
 
-    const handleProcessDue = async () => {
-        try {
-            const res = await api.post('/pm-schedules/process-due');
-            setMessage(res.data.message);
-            setTimeout(() => setMessage(""), 5000);
-            fetchData();
-        } catch (err) {
-            console.error(err);
-            setMessage("Processing failed.");
-            setTimeout(() => setMessage(""), 5000);
-        }
-    };
+    // Unified error/success messaging handled by setMessage
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -551,10 +550,11 @@ export default function PMSchedulePage() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-8 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
+                                    disabled={submitting}
+                                    className={`px-8 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-primary/20 transition-all flex items-center gap-2 ${submitting ? 'opacity-50' : ''}`}
                                 >
                                     <Save className="w-3.5 h-3.5" />
-                                    {editingId ? 'COMMIT CHANGES' : 'DEPLOY SEQUENCE'}
+                                    {submitting ? 'SYNCING...' : (editingId ? 'COMMIT CHANGES' : 'DEPLOY SEQUENCE')}
                                 </button>
                             </div>
                         </form>
