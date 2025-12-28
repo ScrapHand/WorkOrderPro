@@ -32,13 +32,15 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000", 
         "http://localhost:3001",
+        "http://127.0.0.1:3000",
         "https://workorderpro.vercel.app",
-        "https://work-order-pro.vercel.app", # User's specific URL
+        "https://work-order-pro.vercel.app", 
         "https://workorderpro-frontend.vercel.app",
+        "*", # Temporary Debug: Allow ALL to confirm fix, then restrict.
     ],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*", "X-Tenant-Slug", "Authorization"],
 )
 
 # Mount static files

@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr, UUID4
 class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
-    role: str = "viewer"
+    role: str = "TECHNICIAN"
     is_active: Optional[bool] = True
 
 class UserCreate(UserBase):
