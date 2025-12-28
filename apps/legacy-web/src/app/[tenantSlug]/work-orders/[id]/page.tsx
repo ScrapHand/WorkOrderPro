@@ -111,14 +111,17 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
     };
 
     const handleDelete = async () => {
+        // DEBUG: Temporary alerts to diagnose production issue
         if (!confirm("Are you sure you want to PERMANENTLY DELETE this job from the registry? This action cannot be undone.")) return;
 
         try {
+            alert(`Debug: Attempting delete for ${resolvedParams.id}`);
             await api.delete(`/work-orders/${resolvedParams.id}`);
+            alert("Debug: Delete successful, redirecting...");
             router.push(`/${resolvedParams.tenantSlug}/work-orders`);
         } catch (err: any) {
             console.error("Delete failed", err);
-            alert("Delete failed: " + (err.response?.data?.detail || "Authorized role required"));
+            alert("Delete failed: " + (err.response?.data?.detail || err.message || "Authorized role required"));
         }
     };
 
