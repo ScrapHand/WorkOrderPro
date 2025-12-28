@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.models.core import PMSchedule, Asset, PMLog
 from pydantic import BaseModel, UUID4
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
@@ -72,7 +72,7 @@ async def create_pm_schedule(
         data['next_due'] = datetime.utcnow()
     elif data['next_due'].tzinfo:
         # Normalize to naive UTC
-        data['next_due'] = data['next_due'].astimezone(timedelta(0)).replace(tzinfo=None)
+        data['next_due'] = data['next_due'].astimezone(timezone.utc).replace(tzinfo=None)
         
     schedule = PMSchedule(
         **data,
@@ -117,7 +117,7 @@ async def update_pm_schedule(
     update_data = schedule_in.dict(exclude_unset=True)
     if update_data.get('next_due') and update_data['next_due'].tzinfo:
          # Normalize to naive UTC
-        update_data['next_due'] = update_data['next_due'].astimezone(timedelta(0)).replace(tzinfo=None)
+        update_data['next_due'] = update_data['next_due'].astimezone(timezone.utc).replace(tzinfo=None)
         
     for field, value in update_data.items():
         setattr(schedule, field, value)
