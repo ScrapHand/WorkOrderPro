@@ -102,7 +102,7 @@ export default function NewWorkOrderPage({ params }: { params: Promise<{ tenantS
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1 font-bold uppercase tracking-widest text-[10px]">Asset (Optional)</label>
                             <select
-                                className="w-full px-4 py-3 border rounded-md text-sm bg-white focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none"
+                                className="w-full px-4 py-3 border rounded-md text-sm bg-white text-black focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none"
                                 value={formData.asset_id}
                                 onChange={(e) => setFormData({ ...formData, asset_id: e.target.value })}
                             >
@@ -119,7 +119,7 @@ export default function NewWorkOrderPage({ params }: { params: Promise<{ tenantS
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1 font-bold uppercase tracking-widest text-[10px]">Priority</label>
                             <select
-                                className="w-full px-4 py-3 border rounded-md text-sm bg-white focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none"
+                                className="w-full px-4 py-3 border rounded-md text-sm bg-white text-black focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none"
                                 value={formData.priority}
                                 onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                             >
@@ -134,7 +134,7 @@ export default function NewWorkOrderPage({ params }: { params: Promise<{ tenantS
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1 font-bold uppercase tracking-widest text-[10px]">Initial Status</label>
                             <select
-                                className="w-full px-4 py-3 border rounded-md text-sm bg-white focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none"
+                                className="w-full px-4 py-3 border rounded-md text-sm bg-white text-black focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none"
                                 value={formData.status}
                                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                             >
