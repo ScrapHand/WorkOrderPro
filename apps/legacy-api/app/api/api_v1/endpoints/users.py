@@ -35,9 +35,6 @@ async def read_users(
     query = select(models.User).where(models.User.tenant_id == current_tenant.id).offset(skip).limit(limit)
     result = await db.execute(query)
     users = result.scalars().all()
-    # Debug: Print users to find corruption
-    for u in users:
-        print(f"DEBUG USER: {u.id} {u.email} {u.role} (Type: {type(u.role)})")
     return users
 
 @router.post("/", response_model=schemas.User)
