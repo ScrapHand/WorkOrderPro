@@ -111,15 +111,10 @@ export default function UserManagementPage() {
                                                     `}
                                                     disabled={u.id === currentUser?.id || savingId === u.id}
                                                 >
-                                                    <option value="ADMIN">ADMIN</option>
-                                                    <option value="MANAGER">MANAGER</option>
-                                                    <option value="TECHNICIAN">TECHNICIAN</option>
-                                                    <option value="bot">BOT</option>
-                                                    {/* Legacy Roles */}
-                                                    <option value="admin">admin (legacy)</option>
-                                                    <option value="manager">manager (legacy)</option>
-                                                    <option value="engineer">engineer (legacy)</option>
-                                                    <option value="viewer">viewer (legacy)</option>
+                                                    <option value="admin">ADMIN</option>
+                                                    <option value="manager">MANAGER</option>
+                                                    <option value="technician">TECHNICIAN</option>
+                                                    <option value="viewer">VIEWER</option>
                                                 </select>
                                                 {savingId === u.id && <div className="animate-spin w-3 h-3 border-2 border-primary border-t-transparent rounded-full" />}
                                             </div>

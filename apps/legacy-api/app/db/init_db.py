@@ -23,13 +23,14 @@ async def init_db(db: Session) -> None:
         tenants.append(tenant)
     
     # 2. Define Default Users
+    from app.models.user import UserRole
     # We will create these users for EACH tenant so login works on both URLs
     users_to_create = [
-        {"email_prefix": "admin", "full_name": "System Admin", "role": "admin"},
-        {"email_prefix": "manager", "full_name": "Site Manager", "role": "manager"},
-        {"email_prefix": "leader", "full_name": "Team Leader", "role": "team_leader"},
-        {"email_prefix": "engineer", "full_name": "Field Engineer", "role": "engineer"},
-        {"email_prefix": "view", "full_name": "Guest Viewer", "role": "viewer"},
+        {"email_prefix": "admin", "full_name": "System Admin", "role": UserRole.ADMIN},
+        {"email_prefix": "manager", "full_name": "Site Manager", "role": UserRole.MANAGER},
+        {"email_prefix": "leader", "full_name": "Team Leader", "role": UserRole.TECHNICIAN}, # Simplify for now
+        {"email_prefix": "engineer", "full_name": "Field Engineer", "role": UserRole.TECHNICIAN},
+        {"email_prefix": "view", "full_name": "Guest Viewer", "role": UserRole.VIEWER},
     ]
 
     for tenant in tenants:

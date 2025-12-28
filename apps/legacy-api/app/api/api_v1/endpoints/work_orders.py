@@ -162,8 +162,19 @@ async def create_work_order(
         await _sync_asset_status(db, db_obj.asset_id, current_tenant.id)
         
     await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
+    
+    # Re-fetch for relationships to avoid MissingGreenlet
+    result = await db.execute(
+        select(models.WorkOrder)
+        .where(models.WorkOrder.id == db_obj.id)
+        .options(
+            selectinload(models.WorkOrder.assigned_to),
+            selectinload(models.WorkOrder.completed_by),
+            selectinload(models.WorkOrder.asset),
+            selectinload(models.WorkOrder.active_sessions).selectinload(models.WorkOrderSession.user)
+        )
+    )
+    return result.scalars().first()
 
 from sqlalchemy.orm import selectinload
 from datetime import datetime
@@ -262,7 +273,9 @@ async def update_work_order(
         .where(models.WorkOrder.id == work_order_id)
         .options(
             selectinload(models.WorkOrder.assigned_to),
-            selectinload(models.WorkOrder.completed_by)
+            selectinload(models.WorkOrder.completed_by),
+            selectinload(models.WorkOrder.asset),
+            selectinload(models.WorkOrder.active_sessions).selectinload(models.WorkOrderSession.user)
         )
     )
     return result.scalars().first()

@@ -21,7 +21,7 @@ class Asset(Base):
     code = Column(String, nullable=False) # Should be unique per tenant
     location = Column(String, nullable=True)
     category = Column(String, nullable=True)
-    status = Column(String, default=AssetStatus.healthy)
+    status = Column(String, default=AssetStatus.healthy.value)
     manufacturer = Column(String, nullable=True)
     model = Column(String, nullable=True)
     serial_number = Column(String, nullable=True)
@@ -45,7 +45,7 @@ class WorkOrder(Base):
     title = Column(String, nullable=False)
     work_order_number = Column(String, unique=True, nullable=True) # Generated code
     description = Column(Text, nullable=True)
-    status = Column(String, default=WorkOrderStatus.new)
+    status = Column(String, default=WorkOrderStatus.new.value)
     priority = Column(String, default="low")
     
     reported_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)

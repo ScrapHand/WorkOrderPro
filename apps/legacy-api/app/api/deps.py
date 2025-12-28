@@ -89,21 +89,25 @@ async def get_current_active_user(
          
     return current_user
 
-async def get_current_admin(
-    current_user: models.User = Depends(get_current_active_user),
-) -> models.User:
-    if current_user.role != "ADMIN" and current_user.role != "admin": # Support legacy lowercase for now too
-        raise HTTPException(
-            status_code=403, detail="The user does not have enough privileges (ADMIN required)"
-        )
     return current_user
 
-async def get_current_manager(
-    current_user: models.User = Depends(get_current_active_user),
-) -> models.User:
-    allowed = ["ADMIN", "MANAGER", "admin", "manager"]
-    if current_user.role not in allowed:
-        raise HTTPException(
-            status_code=403, detail="The user does not have enough privileges (MANAGER required)"
-        )
-    return current_user
+class RoleChecker:
+    def __init__(self, allowed_roles: list[models.UserRole]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, user: models.User = Depends(get_current_active_user)):
+        # Debug Role
+        import sys
+        print(f"DEBUG ROLE CHECK: {user.email} Role: {user.role} (Type: {type(user.role)})", file=sys.stderr)
+        sys.stderr.flush()
+        if user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="Operation not permitted"
+            )
+        return user
+
+# PRE-MADE CHECKERS
+require_admin = RoleChecker([models.UserRole.ADMIN])
+require_manager = RoleChecker([models.UserRole.ADMIN, models.UserRole.MANAGER])
+# Legacy catch-all for Technician+ if needed, but not strictly asked for yet.

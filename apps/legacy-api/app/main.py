@@ -57,7 +57,8 @@ async def startup_event():
     
     async with AsyncSessionLocal() as db:
         try:
-            await init_db(db)
+            pass
+            # await init_db(db)
         except Exception as e:
             print(f"Seed failed: {e}")
 
@@ -70,6 +71,19 @@ if not os.path.exists("static"):
     os.makedirs("static")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+from fastapi.responses import JSONResponse
+@app.exception_handler(Exception)
+async def debug_exception_handler(request: Request, exc: Exception):
+    import traceback
+    import sys
+    print(f"DEBUG EXCEPTION CAUGHT: {exc}", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    sys.stderr.flush()
+    return JSONResponse(
+        status_code=500,
+        content={"message": f"Debug Error: {exc}"},
+    )
 
 @app.get("/")
 def root():

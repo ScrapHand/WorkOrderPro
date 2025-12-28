@@ -1,15 +1,16 @@
 import { useTenant } from '@/context/TenantContext';
+import { UserRole } from '@/types';
 
 export const useAuth = () => {
-    const { user, refreshUser } = useTenant();
+    const { user, refreshUser, isLoading } = useTenant();
 
-    const role = user?.role?.toUpperCase() || "VIEWER";
+    const role = (user?.role as UserRole) || UserRole.VIEWER;
 
-    const isAdmin = role === "ADMIN";
-    const isManager = role === "ADMIN" || role === "MANAGER";
+    const isAdmin = role === UserRole.ADMIN;
+    const isManager = role === UserRole.ADMIN || role === UserRole.MANAGER;
 
-    // Legacy support mapping
-    const isTechnician = role === "TECHNICIAN" || role === "ENGINEER" || role === "ADMIN" || role === "MANAGER";
+    // Legacy/Technician logic
+    const isTechnician = [UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.MANAGER].includes(role);
 
     return {
         user,
@@ -17,6 +18,7 @@ export const useAuth = () => {
         isAdmin,
         isManager,
         isTechnician,
+        isLoading,
         refreshUser
     };
 };

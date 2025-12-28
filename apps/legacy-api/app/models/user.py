@@ -1,8 +1,15 @@
+import enum
 import uuid
-from sqlalchemy import Column, String, Boolean, ForeignKey
+from sqlalchemy import Column, String, Boolean, ForeignKey, Enum as SQLAEnum
 from sqlalchemy import Uuid as UUID # Generic UUID
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    MANAGER = "manager"
+    TECHNICIAN = "technician"
+    VIEWER = "viewer"
 
 class User(Base):
     __tablename__ = "users"
@@ -12,7 +19,7 @@ class User(Base):
     email = Column(String, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
-    role = Column(String, default="TECHNICIAN") # ADMIN, MANAGER, TECHNICIAN
+    role = Column(SQLAEnum(UserRole, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), default=UserRole.TECHNICIAN, nullable=False)
     is_active = Column(Boolean, default=True)
 
     # Relationships

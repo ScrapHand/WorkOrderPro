@@ -23,7 +23,7 @@ async def read_users(
     db: AsyncSession = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
+    current_user: models.User = Depends(deps.require_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """
@@ -34,14 +34,18 @@ async def read_users(
         
     query = select(models.User).where(models.User.tenant_id == current_tenant.id).offset(skip).limit(limit)
     result = await db.execute(query)
-    return result.scalars().all()
+    users = result.scalars().all()
+    # Debug: Print users to find corruption
+    for u in users:
+        print(f"DEBUG USER: {u.id} {u.email} {u.role} (Type: {type(u.role)})")
+    return users
 
 @router.post("/", response_model=schemas.User)
 async def create_user(
     *,
     db: AsyncSession = Depends(deps.get_db),
     user_in: schemas.UserCreate,
-    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
+    current_user: models.User = Depends(deps.require_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """
@@ -78,7 +82,7 @@ async def update_user_role(
     db: AsyncSession = Depends(deps.get_db),
     user_id: uuid.UUID,
     role: str = Body(..., embed=True), # Expect JSON: { "role": "MANAGER" }
-    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
+    current_user: models.User = Depends(deps.require_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """
@@ -96,10 +100,17 @@ async def update_user_role(
         raise HTTPException(status_code=404, detail="User not found")
     
     # Validate Role Enum
-    if role not in ["ADMIN", "MANAGER", "TECHNICIAN", "admin", "manager", "engineer", "viewer", "team_leader"]:
-        raise HTTPException(status_code=400, detail="Invalid Role")
+    # Pydantic schema will validate this upstream if we used it, but here we take raw body.
+    # Let's trust logic or rely on DB constraint.
+    # Note: UserRole is Enum now.
+    
+    # Map string to Enum (throws ValueError if invalid)
+    try:
+        enum_role = models.UserRole(role)
+    except ValueError:
+         raise HTTPException(status_code=400, detail="Invalid Role")
 
-    user.role = role
+    user.role = enum_role
     db.add(user)
     await db.commit()
     await db.refresh(user)
@@ -111,7 +122,7 @@ async def update_user(
     db: AsyncSession = Depends(deps.get_db),
     user_id: uuid.UUID,
     user_in: schemas.UserUpdate,
-    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
+    current_user: models.User = Depends(deps.require_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """
@@ -147,7 +158,7 @@ async def delete_user(
     *,
     db: AsyncSession = Depends(deps.get_db),
     user_id: uuid.UUID,
-    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
+    current_user: models.User = Depends(deps.require_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """

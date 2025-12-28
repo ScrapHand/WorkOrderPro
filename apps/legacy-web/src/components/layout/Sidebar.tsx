@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTenant } from '@/context/TenantContext';
 import { resolveBackendUrl } from '@/lib/api';
+import { UserRole } from '@/types';
 import {
     LayoutDashboard,
     ClipboardList,
@@ -38,28 +39,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: 'Admin', href: `/${slug}/admin`, icon: Settings },
     ];
 
-    const role = user?.role || "";
+    const role = (user?.role as UserRole) || UserRole.VIEWER;
 
     const filteredLinks = links.filter(link => {
-        if (!role) return false; // Loading or error
-        if (role === 'admin') return true;
+        if (!role) return false;
+        if (role === UserRole.ADMIN) return true;
 
         // Hide Admin from everyone else
         if (link.label === 'Admin') return false;
 
-        if (role === 'manager') return true; // Manager sees everything except Admin
+        if (role === UserRole.MANAGER) return true;
 
-        if (role === 'team_leader') {
-            // Team Leader: Dashboard & Work Orders ONLY
-            return ['Dashboard', naming?.dashboardLabel, 'Work Orders', naming?.workOrdersLabel].includes(link.label);
-        }
-
-        if (role === 'engineer') {
-            // Engineer: Everything except Admin (and naturally reports might be hidden if requested, but requirement said "all features except deleting assets")
-            // Re-reading: "Engineers can use all features on all pages except for deleting" -> So they see everything.
+        if (role === UserRole.TECHNICIAN || role === 'team_leader') { // keep legacy team_leader check for now if needed
+            // Team Leader/Technician: Dashboard & Work Orders & Assets etc
+            // Original logic said Team Leader is restricted. 
+            // Let's stick to the visible logic:
+            if (link.label === 'Admin') return false;
             return true;
         }
 
+        // Viewer could see everything except Admin/Settings?
         return true;
     });
 
