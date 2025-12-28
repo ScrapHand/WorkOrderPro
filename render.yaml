@@ -33,7 +33,7 @@ services:
   - type: web
     name: workorderpro-frontend
     env: node
-    root: apps/legacy-web
+    rootDir: apps/legacy-web
     buildCommand: npm install && npm run build
     startCommand: npm start
     plan: free
