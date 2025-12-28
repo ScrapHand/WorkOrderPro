@@ -45,6 +45,17 @@ class WorkOrderSession(BaseModel):
     class Config:
         from_attributes = True
 
+
+class WorkOrderAsset(BaseModel):
+    id: UUID4
+    name: str
+    code: str
+    location: Optional[str] = None
+    status: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 class WorkOrder(WorkOrderBase):
     id: UUID4
     tenant_id: UUID4
@@ -55,8 +66,7 @@ class WorkOrder(WorkOrderBase):
     # Nested relationships for display
     assigned_to: Optional[User] = None
     completed_by: Optional[User] = None
-    # We need a basic asset schema here to avoid circular imports, or just use dict/Any for now
-    asset: Optional[Any] = None 
+    asset: Optional[WorkOrderAsset] = None 
     # active_sessions: List[WorkOrderSession] = []
 
     class Config:
