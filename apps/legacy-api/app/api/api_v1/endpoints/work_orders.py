@@ -55,13 +55,14 @@ async def get_work_order_stats(
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
     # Active statuses count (excludes completed/cancelled)
-    active_query = select(models.WorkOrder.status, func.count(models.WorkOrder.id)).where(
+    # Use func.lower to normalize keys for frontend
+    active_query = select(func.lower(models.WorkOrder.status), func.count(models.WorkOrder.id)).where(
         models.WorkOrder.tenant_id == current_tenant.id,
-        models.WorkOrder.status != "completed",
-        models.WorkOrder.status != "cancelled"
-    ).group_by(models.WorkOrder.status)
+        func.lower(models.WorkOrder.status) != "completed",
+        func.lower(models.WorkOrder.status) != "cancelled"
+    ).group_by(func.lower(models.WorkOrder.status))
     active_res = await db.execute(active_query)
-    by_status = {r.status: r.count for r in active_res.all()}
+    by_status = {r[0]: r[1] for r in active_res.all()}
     
     # Calculate active total (sum of all statuses that are not completed or cancelled)
     active_total = sum(by_status.values())
@@ -69,19 +70,19 @@ async def get_work_order_stats(
     # Daily Completed count (Sign-offs TODAY only)
     completed_today_query = select(func.count(models.WorkOrder.id)).where(
         models.WorkOrder.tenant_id == current_tenant.id,
-        models.WorkOrder.status == "completed",
+        func.lower(models.WorkOrder.status) == "completed",
         models.WorkOrder.completed_at >= today_start
     )
     completed_res = await db.execute(completed_today_query)
     by_status["completed"] = completed_res.scalar_one()
 
     # Priority Stats (Active jobs only)
-    priority_query = select(models.WorkOrder.priority, func.count(models.WorkOrder.id)).where(
+    priority_query = select(func.lower(models.WorkOrder.priority), func.count(models.WorkOrder.id)).where(
         models.WorkOrder.tenant_id == current_tenant.id,
-        models.WorkOrder.status.notin_(["completed", "cancelled"])
-    ).group_by(models.WorkOrder.priority)
+        func.lower(models.WorkOrder.status).notin_(["completed", "cancelled"])
+    ).group_by(func.lower(models.WorkOrder.priority))
     priority_res = await db.execute(priority_query)
-    priority_stats = {r.priority: r.count for r in priority_res.all()}
+    priority_stats = {r[0]: r[1] for r in priority_res.all()}
 
     # All time Total
     total_query = select(func.count(models.WorkOrder.id)).where(models.WorkOrder.tenant_id == current_tenant.id)
