@@ -63,6 +63,15 @@ class WorkOrder(WorkOrderBase):
         from_attributes = True
         use_enum_values = True
 
+    from pydantic import field_validator
+
+    @field_validator('status', 'priority', mode='before', check_fields=False)
+    @classmethod
+    def normalize_fields(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
+
 class WorkOrderStats(BaseModel):
     active_total: int
     total: int
