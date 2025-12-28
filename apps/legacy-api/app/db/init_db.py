@@ -34,9 +34,14 @@ async def init_db(db: Session) -> None:
 
     for tenant in tenants:
         for u in users_to_create:
-            email = f"{u['email_prefix']}@test.com"
-            # distinct email for each tenant? No, usually email is unique constraint?
-            # Wait, User model usually has (email, tenant_id) unique constraint?
+            # Use tenant-specific email to avoid unique constraint violations
+            # e.g. admin@demo.test and admin@acme.test
+            email = f"{u['email_prefix']}@{tenant.slug}.test"
+            
+            result = await db.execute(select(models.User).where(
+                models.User.email == email,
+                models.User.tenant_id == tenant.id
+            ))
             # Let's verify User model constraints. 
             # If email is globally unique, we can't share "admin@test.com" across tenants.
             # Only if unique constraint is (email, tenant_id).
