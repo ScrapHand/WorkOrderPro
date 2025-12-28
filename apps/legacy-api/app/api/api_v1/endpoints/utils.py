@@ -13,13 +13,46 @@ UPLOAD_DIR = "static"
 async def upload_file(
     file: UploadFile = File(...),
 ) -> Any:
+    # Validated File Extensions
+    ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.pdf'}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    
+    if file_ext not in ALLOWED_EXTENSIONS:
+         raise HTTPException(status_code=400, detail="Invalid file type")
+
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+
+    # S3 Upload
+    if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY and settings.AWS_BUCKET_NAME:
+        try:
+            import boto3
+            s3 = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_REGION
+            )
+            
+            s3.upload_fileobj(
+                file.file,
+                settings.AWS_BUCKET_NAME,
+                unique_filename,
+                ExtraArgs={'ContentType': file.content_type}
+            )
+            
+            # Construct S3 URL
+            url = f"https://{settings.AWS_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{unique_filename}"
+            return {"url": url}
+            
+        except Exception as e:
+            print(f"S3 Upload Error: {e}")
+            raise HTTPException(status_code=500, detail="S3 Upload Failed")
+
+    # Local Fallback (or if keys are missing)
     # Ensure directory exists
     if not os.path.exists(UPLOAD_DIR):
         os.makedirs(UPLOAD_DIR)
         
-    # Generate unique filename
-    file_ext = os.path.splitext(file.filename)[1]
-    unique_filename = f"{uuid.uuid4()}{file_ext}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
     try:

@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "password"
     POSTGRES_DB: str = "workorderpro"
+
+    # AWS S3
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: str | None = None
+    AWS_REGION: str = "eu-north-1"
+    AWS_BUCKET_NAME: str | None = None
+
     SQLALCHEMY_DATABASE_URI: str | None = None
 
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
