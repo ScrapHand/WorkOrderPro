@@ -57,7 +57,7 @@ class WorkOrder(WorkOrderBase):
     completed_by: Optional[User] = None
     # We need a basic asset schema here to avoid circular imports, or just use dict/Any for now
     asset: Optional[Any] = None 
-    active_sessions: List[WorkOrderSession] = []
+    # active_sessions: List[WorkOrderSession] = []
 
     class Config:
         from_attributes = True
