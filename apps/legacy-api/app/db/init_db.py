@@ -35,25 +35,29 @@ async def init_db(db: Session) -> None:
     for tenant in tenants:
         for u in users_to_create:
             # Use tenant-specific email to avoid unique constraint violations
-            # e.g. admin@demo.test and admin@acme.test
             email = f"{u['email_prefix']}@{tenant.slug}.test"
             
             result = await db.execute(select(models.User).where(
                 models.User.email == email,
                 models.User.tenant_id == tenant.id
             ))
-            # Let's verify User model constraints. 
-            # If email is globally unique, we can't share "admin@test.com" across tenants.
-            # Only if unique constraint is (email, tenant_id).
-            # Let's check models/user.py first. Assuming composite unique for multi-tenancy.
-            # If not, we must use admin@demo.com and admin@acme.com.
-            # Safest bet is to use tenant-specific emails if we aren't sure, 
-            # OR check the model now. 
-            # Let's assume we want "admin@test.com" to work for the user. 
-            # If I can't check, I'll make unique emails like "admin@demo.test" and "admin@acme.test"?
-            # User asked for "admin@test.com".
-            # Let's check the model first to be sure.
-            pass
+            user = result.scalars().first()
             
-    # CHECKING MODEL FIRST
-
+            if not user:
+                user = models.User(
+                    email=email,
+                    full_name=u["full_name"],
+                    password_hash=get_password_hash("password"), 
+                    role=u["role"],
+                    is_active=True,
+                    tenant_id=tenant.id
+                )
+                db.add(user)
+                logger.info(f"Created user: {user.email} (Role: {user.role}) in Tenant: {tenant.name}")
+            else:
+                if user.role != u["role"]:
+                    user.role = u["role"]
+                    db.add(user)
+                    logger.info(f"Updated user role: {user.email} -> {user.role} in Tenant: {tenant.name}")
+    
+    await db.commit()
