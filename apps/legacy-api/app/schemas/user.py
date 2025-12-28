@@ -25,3 +25,12 @@ class User(UserBase):
     class Config:
         from_attributes = True
         use_enum_values = True # Allow strings to satisfy Enum fields
+
+    from pydantic import field_validator
+    
+    @field_validator('role', mode='before')
+    @classmethod
+    def normalize_role(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v

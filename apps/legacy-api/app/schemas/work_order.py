@@ -16,6 +16,15 @@ class WorkOrderBase(BaseModel):
 class WorkOrderCreate(WorkOrderBase):
     pass
 
+    from pydantic import field_validator
+
+    @field_validator('status', 'priority', mode='before', check_fields=False)
+    @classmethod
+    def normalize_fields(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
+
 class WorkOrderUpdate(WorkOrderBase):
     title: Optional[str] = None
     status: Optional[str] = None
