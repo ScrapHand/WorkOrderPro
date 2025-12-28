@@ -121,12 +121,14 @@ async def read_work_orders(
         selectinload(models.WorkOrder.active_sessions).selectinload(models.WorkOrderSession.user)
     )
     
+    from sqlalchemy import func
+    
     if status:
-        query = query.where(models.WorkOrder.status == status)
+        query = query.where(func.lower(models.WorkOrder.status) == status.lower())
     if priority:
-        query = query.where(models.WorkOrder.priority == priority)
+        query = query.where(func.lower(models.WorkOrder.priority) == priority.lower())
     if search:
-        query = query.where(models.WorkOrder.title.like(f"%{search}%"))
+        query = query.where(models.WorkOrder.title.ilike(f"%{search}%"))
         
     query = query.order_by(models.WorkOrder.created_at.desc()).offset(skip).limit(limit)
     result = await db.execute(query)
