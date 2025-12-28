@@ -19,7 +19,12 @@ import {
     ChevronRight,
     Thermometer,
     Zap,
-    Activity
+    Activity,
+    Search,
+    Filter,
+    ArrowUpDown,
+    LayoutGrid,
+    List as ListIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTenant } from '@/context/TenantContext';
@@ -43,6 +48,44 @@ export default function AssetsPage() {
     });
     const [editingId, setEditingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    // Filtering & Sorting State
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+    const [locationFilter, setLocationFilter] = useState("all");
+    const [sortBy, setSortBy] = useState("recent"); // name, status, recent
+
+    // Derived State for Filtering
+    const uniqueCategories = Array.from(new Set(assets.map(a => a.category).filter(Boolean)));
+    const uniqueLocations = Array.from(new Set(assets.map(a => a.location).filter(Boolean)));
+
+    const filteredAssets = assets.filter(asset => {
+        const matchesSearch =
+            asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            asset.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            asset.model?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesStatus = statusFilter === 'all' || asset.status === statusFilter;
+        const matchesCategory = categoryFilter === 'all' || asset.category === categoryFilter;
+        const matchesLocation = locationFilter === 'all' || asset.location === locationFilter;
+
+        return matchesSearch && matchesStatus && matchesCategory && matchesLocation;
+    }).sort((a, b) => {
+        if (sortBy === 'name') return a.name.localeCompare(b.name);
+        if (sortBy === 'status') return a.status.localeCompare(b.status);
+        // Default to recent (assuming higher ID or insert order is recent, but actually backend sort is better. 
+        // For now, reverse ID roughly proxies recent if monotonic, or just keep default order)
+        return 0;
+    });
+
+    // Health Metrics
+    const totalAssets = assets.length;
+    const healthyCount = assets.filter(a => a.status === 'Healthy').length;
+    const warningCount = assets.filter(a => a.status === 'Running with issues').length;
+    const breakdownCount = assets.filter(a => a.status === 'Breakdown').length;
+    const healthPercentage = totalAssets > 0 ? Math.round((healthyCount / totalAssets) * 100) : 0;
+
 
     const fetchAssets = async () => {
         setLoading(true);
@@ -158,6 +201,103 @@ export default function AssetsPage() {
                     REGISTER {tenant?.theme_json?.naming?.assetsLabel?.slice(0, -1) || "ASSET"}
                 </button>
             </div>
+            {/* Health Dashboard & Filters */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Health Overview Card */}
+                <div className="lg:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Activity className="w-16 h-16 text-primary" />
+                        </div>
+                        <span className="text-[10px] font-black text-muted uppercase tracking-widest">Fleet Health</span>
+                        <div className="mt-2 flex items-baseline gap-2">
+                            <span className="text-3xl font-black text-white">{healthPercentage}%</span>
+                            <span className="text-xs font-bold text-success uppercase">Operational</span>
+                        </div>
+                        <div className="w-full h-1 bg-white/10 mt-3 rounded-full overflow-hidden">
+                            <div className="h-full bg-success transition-all duration-1000" style={{ width: `${healthPercentage}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+                        <span className="text-[10px] font-black text-muted uppercase tracking-widest">Total Assets</span>
+                        <span className="text-3xl font-black text-white">{totalAssets}</span>
+                        <span className="text-[10px] text-muted uppercase">Units Registered</span>
+                    </div>
+
+                    <div className="bg-danger/10 border border-danger/20 rounded-2xl p-4 flex flex-col justify-between">
+                        <span className="text-[10px] font-black text-danger/70 uppercase tracking-widest">Critical Attention</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-3xl font-black text-white">{breakdownCount}</span>
+                            <AlertTriangle className="w-5 h-5 text-danger animate-pulse" />
+                        </div>
+                        <span className="text-[10px] text-danger/70 uppercase">Offline / Breakdown</span>
+                    </div>
+
+                    <div className="bg-warning/10 border border-warning/20 rounded-2xl p-4 flex flex-col justify-between">
+                        <span className="text-[10px] font-black text-warning/70 uppercase tracking-widest">Warnings</span>
+                        <span className="text-3xl font-black text-white">{warningCount}</span>
+                        <span className="text-[10px] text-warning/70 uppercase">Requires Inspection</span>
+                    </div>
+                </div>
+
+                {/* Filter Toolbar */}
+                <div className="lg:col-span-4 bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                            <input
+                                type="text"
+                                placeholder="Search by name, code, model..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-primary outline-none transition-all placeholder:text-white/20"
+                            />
+                        </div>
+                        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none focus:border-primary"
+                            >
+                                <option value="all">ALL STATUS</option>
+                                <option value="Healthy">HEALTHY</option>
+                                <option value="Running with issues">WARNING</option>
+                                <option value="Breakdown">BREAKDOWN</option>
+                            </select>
+
+                            <select
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none focus:border-primary"
+                            >
+                                <option value="all">ALL CATEGORIES</option>
+                                {uniqueCategories.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+                            </select>
+
+                            <select
+                                value={locationFilter}
+                                onChange={(e) => setLocationFilter(e.target.value)}
+                                className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none focus:border-primary"
+                            >
+                                <option value="all">ALL LOCATIONS</option>
+                                {uniqueLocations.map(l => <option key={l} value={l}>{l.toUpperCase()}</option>)}
+                            </select>
+
+                            <div className="h-full w-px bg-white/10 mx-2"></div>
+
+                            <button
+                                onClick={() => setSortBy(prev => prev === 'name' ? 'status' : prev === 'status' ? 'name' : 'name')}
+                                className="px-4 py-2 bg-black/20 border border-white/10 rounded-xl text-white hover:bg-white/5 transition-colors flex items-center gap-2"
+                            >
+                                <ArrowUpDown className="w-4 h-4" />
+                                <span className="text-xs font-bold uppercase hidden sm:inline">Sort: {sortBy}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             {loading ? (
                 <div className="flex items-center justify-center h-64">
@@ -165,7 +305,7 @@ export default function AssetsPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {assets.map(asset => (
+                    {filteredAssets.map(asset => (
                         <div key={asset.id} className="glass-panel p-0 group flex flex-col overflow-hidden border-white/5 hover:border-primary/20 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
                             <div className="p-6 bg-white/5 border-b border-white/5 flex justify-between items-start">
                                 <div className="space-y-1">

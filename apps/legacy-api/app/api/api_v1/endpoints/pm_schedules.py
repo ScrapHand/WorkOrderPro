@@ -77,7 +77,12 @@ async def create_pm_schedule(
     )
     db.add(schedule)
     await db.commit()
-    await db.refresh(schedule)
+    
+    # Re-fetch with eager loaded relationships for Pydantic response
+    query = select(PMSchedule).options(selectinload(PMSchedule.asset)).filter(PMSchedule.id == schedule.id)
+    result = await db.execute(query)
+    schedule = result.scalars().first()
+    
     return schedule
 
 @router.get("/{id}", response_model=PMScheduleOut)
@@ -112,7 +117,12 @@ async def update_pm_schedule(
         
     db.add(schedule)
     await db.commit()
-    await db.refresh(schedule)
+    
+    # Re-fetch with eager loaded relationships
+    query = select(PMSchedule).options(selectinload(PMSchedule.asset)).filter(PMSchedule.id == schedule.id)
+    result = await db.execute(query)
+    schedule = result.scalars().first()
+    
     return schedule
 
 def calculate_next_due(current_due: datetime, freq: str, interval: int = 1) -> datetime:
