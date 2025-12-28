@@ -30,12 +30,53 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const links = [
         { label: naming?.dashboardLabel || 'Dashboard', href: `/${slug}/dashboard`, icon: LayoutDashboard },
         { label: naming?.workOrdersLabel || 'Work Orders', href: `/${slug}/work-orders`, icon: ClipboardList },
+        { label: 'Reports', href: `/${slug}/reports`, icon: LayoutDashboard }, // Re-using icon for now
         { label: 'Archives', href: `/${slug}/archives`, icon: Archive },
         { label: naming?.pmLabel || 'PM Schedule', href: `/${slug}/pm-schedule`, icon: CalendarClock },
         { label: naming?.assetsLabel || 'Assets', href: `/${slug}/assets`, icon: Box },
         { label: naming?.inventoryLabel || 'Inventory', href: `/${slug}/inventory`, icon: Package },
         { label: 'Admin', href: `/${slug}/admin`, icon: Settings },
     ];
+
+    const [user, setUser] = React.useState<any>(null);
+    const [role, setRole] = React.useState<string>("");
+
+    React.useEffect(() => {
+        const fetchMe = async () => {
+            try {
+                const { api } = await import('@/lib/api');
+                const res = await api.get('/users/me');
+                setUser(res.data);
+                setRole(res.data.role || "");
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchMe();
+    }, []);
+
+    const filteredLinks = links.filter(link => {
+        if (!role) return false; // Loading or error
+        if (role === 'admin') return true;
+
+        // Hide Admin from everyone else
+        if (link.label === 'Admin') return false;
+
+        if (role === 'manager') return true; // Manager sees everything except Admin
+
+        if (role === 'team_leader') {
+            // Team Leader: Dashboard & Work Orders ONLY
+            return ['Dashboard', naming?.dashboardLabel, 'Work Orders', naming?.workOrdersLabel].includes(link.label);
+        }
+
+        if (role === 'engineer') {
+            // Engineer: Everything except Admin (and naturally reports might be hidden if requested, but requirement said "all features except deleting assets")
+            // Re-reading: "Engineers can use all features on all pages except for deleting" -> So they see everything.
+            return true;
+        }
+
+        return true;
+    });
 
     const logoUrl = tenant?.theme_json?.branding?.logoUrl;
 
@@ -66,7 +107,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
 
                 <nav className="space-y-2 flex-1">
-                    {links.map(link => {
+                    {filteredLinks.map(link => {
                         const isActive = pathname?.startsWith(link.href);
                         const Icon = link.icon;
                         return (
@@ -87,7 +128,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </nav>
 
                 <div className="mt-auto pt-6 border-t border-slate-800/50 space-y-4">
-                    <UserInfo />
+                    {user && (
+                        <div className="glass-panel p-4 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white uppercase ring-2 ring-primary/20">
+                                {user.full_name?.substring(0, 2) || user.email?.substring(0, 2)}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-semibold text-white truncate">{user.full_name}</span>
+                                <span className="text-[10px] text-muted truncate capitalize">{user.role?.replace('_', ' ')}</span>
+                            </div>
+                        </div>
+                    )}
 
                     <button
                         onClick={() => {

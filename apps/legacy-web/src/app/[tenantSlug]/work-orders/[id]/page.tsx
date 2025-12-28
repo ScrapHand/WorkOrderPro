@@ -22,7 +22,8 @@ import {
     Info,
     History,
     Download,
-    Trash2
+    Trash2,
+    Activity
 } from 'lucide-react';
 import { generateWorkOrderPDF } from '@/lib/pdf-utils';
 
@@ -44,6 +45,16 @@ interface WorkOrder {
         full_name: string;
         email: string;
     };
+    active_sessions: Array<{
+        id: string;
+        user: {
+            id: string;
+            full_name: string;
+            email: string;
+        };
+        start_time: string;
+        end_time?: string;
+    }>;
 }
 
 export default function WorkOrderDetailPage({ params }: { params: Promise<{ tenantSlug: string, id: string }> }) {
@@ -121,6 +132,25 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
             alert("Delete failed: " + (err.response?.data?.detail || err.message || "Authorized role required"));
         }
     };
+
+    const handleJoin = async () => {
+        try {
+            const res = await api.post(`/work-orders/${resolvedParams.id}/join`);
+            setWorkOrder(res.data);
+        } catch (err) {
+            console.error("Failed to join", err);
+        }
+    };
+
+    const handleLeave = async () => {
+        try {
+            const res = await api.post(`/work-orders/${resolvedParams.id}/leave`);
+            setWorkOrder(res.data);
+        } catch (err) {
+            console.error("Failed to leave", err);
+        }
+    };
+
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -252,6 +282,7 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                         )}
 
                         {tenant && (user?.role === 'admin' || user?.role === 'manager' || user?.role === 'owner') && (
+
                             <button
                                 onClick={() => setIsDeleteModalOpen(true)}
                                 className="px-6 py-3 bg-danger/10 border border-danger/20 text-danger hover:bg-danger hover:text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all"
@@ -328,9 +359,68 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                 </div>
 
                 <div className="space-y-8">
+                    {/* Active Team Section */}
+                    <div className="glass-panel overflow-hidden border-primary/20 shadow-[0_0_30px_rgba(var(--primary-rgb),0.1)]">
+                        <div className="p-6 bg-primary/10 border-b border-primary/20 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Activity className="text-primary w-5 h-5 animate-pulse" />
+                                <h2 className="text-sm font-black text-white uppercase tracking-widest">Live Operations</h2>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-primary animate-ping"></div>
+                                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{workOrder.active_sessions?.filter(s => !s.end_time).length || 0} Active</span>
+                            </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            {workOrder.active_sessions?.filter(s => !s.end_time).length === 0 ? (
+                                <div className="text-center py-4 text-xs font-medium text-muted uppercase tracking-widest">
+                                    No personnel currently engaged
+                                </div>
+                            ) : (
+                                workOrder.active_sessions?.filter(s => !s.end_time).map(session => (
+                                    <div key={session.id} className="flex items-center gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
+                                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white uppercase ring-2 ring-primary/20">
+                                            {session.user.full_name?.substring(0, 2)}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-white uppercase">{session.user.full_name}</span>
+                                            <span className="text-[9px] text-primary/80 font-mono">
+                                                Since {new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+
+                            {/* Join/Leave Action */}
+                            {workOrder.status === 'in_progress' && (
+                                <div className="pt-2">
+                                    {workOrder.active_sessions?.some(s => s.user.id === user?.id && !s.end_time) ? (
+                                        <button
+                                            onClick={handleLeave}
+                                            className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] text-white transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <PauseCircle className="w-4 h-4" />
+                                            Disengage
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleJoin}
+                                            className="w-full py-3 bg-primary hover:bg-primary-hover rounded-xl font-black text-[10px] uppercase tracking-[0.2em] text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                                        >
+                                            <PlayCircle className="w-4 h-4" />
+                                            Join Active Duty
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Personnel Registry */}
                     <div className="glass-panel overflow-hidden border-white/5">
                         <div className="p-6 bg-white/5 border-b border-white/5 flex items-center gap-3">
+
                             <User className="text-primary w-5 h-5" />
                             <h2 className="text-sm font-black text-white uppercase tracking-widest">Registry Data</h2>
                         </div>
@@ -513,44 +603,7 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
-                    <div className="glass-panel p-0 w-full max-w-md border-danger/30 shadow-2xl overflow-hidden">
-                        <div className="p-6 bg-danger/10 border-b border-danger/20 flex justify-between items-center">
-                            <div className="flex items-center gap-3 text-danger">
-                                <Trash2 className="w-6 h-6 animate-pulse" />
-                                <h2 className="text-xl font-black uppercase tracking-tight">Confirm Deletion</h2>
-                            </div>
-                            <button onClick={() => setIsDeleteModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                                <X className="w-6 h-6 text-muted" />
-                            </button>
-                        </div>
-                        <div className="p-8 space-y-6">
-                            <p className="text-sm font-medium text-white/80 leading-relaxed">
-                                Are you sure you want to <span className="text-danger font-black">PERMANENTLY DELETE</span> this work order?
-                                <br /><br />
-                                This action creates a permanent gap in the registry and cannot be reversed.
-                            </p>
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button
-                                    onClick={() => setIsDeleteModalOpen(false)}
-                                    className="px-6 py-2 border border-white/10 text-muted rounded-xl hover:bg-white/5 transition-colors uppercase text-[10px] font-black tracking-widest"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="px-8 py-2 bg-danger hover:bg-danger/90 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-danger/20 transition-all flex items-center gap-2"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    Execute Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 }

@@ -30,7 +30,7 @@ import Link from 'next/link';
 import { useTenant } from '@/context/TenantContext';
 
 export default function AssetsPage() {
-    const { tenant } = useTenant();
+    const { tenant, user } = useTenant();
     const params = useParams();
     const [assets, setAssets] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [loading, setLoading] = useState(true);
@@ -370,13 +370,15 @@ export default function AssetsPage() {
                                     >
                                         <Settings className="w-4 h-4" />
                                     </button>
-                                    <button
-                                        onClick={() => handleDelete(asset.id)}
-                                        className="p-2 hover:bg-danger/10 text-muted hover:text-danger border border-transparent hover:border-danger/20 rounded-lg transition-all"
-                                        title="Decommission"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    {user?.role !== 'engineer' && (
+                                        <button
+                                            onClick={() => handleDelete(asset.id)}
+                                            className="p-2 hover:bg-danger/10 text-muted hover:text-danger border border-transparent hover:border-danger/20 rounded-lg transition-all"
+                                            title="Decommission"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

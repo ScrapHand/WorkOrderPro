@@ -116,7 +116,9 @@ async def read_work_orders(
     
     query = select(models.WorkOrder).where(models.WorkOrder.tenant_id == current_tenant.id).options(
         selectinload(models.WorkOrder.assigned_to),
-        selectinload(models.WorkOrder.completed_by)
+        selectinload(models.WorkOrder.completed_by),
+        selectinload(models.WorkOrder.asset),
+        selectinload(models.WorkOrder.active_sessions).selectinload(models.WorkOrderSession.user)
     )
     
     if status:
@@ -187,7 +189,9 @@ async def read_work_order(
         .where(models.WorkOrder.id == work_order_id, models.WorkOrder.tenant_id == current_tenant.id)
         .options(
             selectinload(models.WorkOrder.assigned_to),
-            selectinload(models.WorkOrder.completed_by)
+            selectinload(models.WorkOrder.completed_by),
+            selectinload(models.WorkOrder.asset),
+            selectinload(models.WorkOrder.active_sessions).selectinload(models.WorkOrderSession.user)
         )
     )
     wo = result.scalars().first()
@@ -263,6 +267,84 @@ async def update_work_order(
     )
     return result.scalars().first()
 
+@router.post("/{work_order_id}/join", response_model=schemas.WorkOrder)
+async def join_work_order(
+    *,
+    db: AsyncSession = Depends(deps.get_db),
+    work_order_id: uuid.UUID,
+    current_user: models.User = Depends(deps.get_current_active_user),
+    current_tenant: models.Tenant = Depends(deps.get_current_tenant),
+) -> Any:
+    """
+    Join an active work order session.
+    """
+    if not current_tenant:
+        raise HTTPException(status_code=400, detail="Tenant context required")
+        
+    # Check if WO exists
+    result = await db.execute(select(models.WorkOrder).where(
+        models.WorkOrder.id == work_order_id,
+        models.WorkOrder.tenant_id == current_tenant.id
+    ))
+    wo = result.scalars().first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+
+    # Check if already active
+    active_session_query = select(models.WorkOrderSession).where(
+        models.WorkOrderSession.work_order_id == work_order_id,
+        models.WorkOrderSession.user_id == current_user.id,
+        models.WorkOrderSession.end_time.is_(None)
+    )
+    res = await db.execute(active_session_query)
+    if res.scalars().first():
+        # Already joined, just return WO
+        pass
+    else:
+        # Create new session
+        session = models.WorkOrderSession(
+            tenant_id=current_tenant.id,
+            work_order_id=work_order_id,
+            user_id=current_user.id
+        )
+        db.add(session)
+        await db.commit()
+    
+    # Return fresh WO with sessions
+    return await read_work_order(db=db, work_order_id=work_order_id, current_user=current_user, current_tenant=current_tenant)
+
+
+@router.post("/{work_order_id}/leave", response_model=schemas.WorkOrder)
+async def leave_work_order(
+    *,
+    db: AsyncSession = Depends(deps.get_db),
+    work_order_id: uuid.UUID,
+    current_user: models.User = Depends(deps.get_current_active_user),
+    current_tenant: models.Tenant = Depends(deps.get_current_tenant),
+) -> Any:
+    """
+    Leave an active work order session.
+    """
+    if not current_tenant:
+        raise HTTPException(status_code=400, detail="Tenant context required")
+
+    # Close active sessions
+    active_session_query = select(models.WorkOrderSession).where(
+        models.WorkOrderSession.work_order_id == work_order_id,
+        models.WorkOrderSession.user_id == current_user.id,
+        models.WorkOrderSession.end_time.is_(None)
+    )
+    res = await db.execute(active_session_query)
+    sessions = res.scalars().all()
+    
+    for session in sessions:
+        session.end_time = datetime.utcnow()
+        db.add(session)
+    
+    await db.commit()
+    
+    return await read_work_order(db=db, work_order_id=work_order_id, current_user=current_user, current_tenant=current_tenant)
+
 @router.delete("/{work_order_id}", response_model=schemas.WorkOrder)
 async def delete_work_order(
     *,
@@ -278,6 +360,7 @@ async def delete_work_order(
         raise HTTPException(status_code=400, detail="Tenant context required")
         
     # Check if admin or manager
+    # Check if admin or manager (Team Leader cannot delete)
     if current_user.role not in ["admin", "manager", "owner"]:
         raise HTTPException(status_code=403, detail="Not enough permissions")
 

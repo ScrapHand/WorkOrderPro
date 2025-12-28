@@ -36,9 +36,26 @@ class WorkOrder(WorkOrderBase):
     # Nested relationships for display
     assigned_to: Optional[User] = None
     completed_by: Optional[User] = None
+    # We need a basic asset schema here to avoid circular imports, or just use dict/Any for now
+    asset: Optional[Any] = None 
+    active_sessions: List["WorkOrderSession"] = []
 
     class Config:
         from_attributes = True
+
+class WorkOrderSession(BaseModel):
+    id: UUID4
+    user_id: UUID4
+    user: Optional[User] = None
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Resolve forward references
+from typing import Any, List
+# WorkOrder.update_forward_refs() # Pydantic v1 style, but v2 handles it usually if carefully ordered
 
 class WorkOrderStats(BaseModel):
     active_total: int

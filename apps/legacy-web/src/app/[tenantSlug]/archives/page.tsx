@@ -27,15 +27,22 @@ interface WorkOrder {
 export default function ArchivesPage() {
     const { tenant } = useTenant();
     const [orders, setOrders] = useState<WorkOrder[]>([]);
+    const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [filterAsset, setFilterAsset] = useState("");
+    const [filterLine, setFilterLine] = useState("");
 
     const fetchArchives = async () => {
         if (!tenant) return;
         setLoading(true);
         try {
-            const res = await api.get('/work-orders/?status=completed&limit=1000');
-            setOrders(res.data);
+            const [woRes, assetRes] = await Promise.all([
+                api.get('/work-orders/?status=completed&limit=1000'),
+                api.get('/assets/')
+            ]);
+            setOrders(woRes.data);
+            setAssets(assetRes.data);
         } catch (err) {
             console.error("Failed to fetch archives", err);
         } finally {
@@ -47,12 +54,39 @@ export default function ArchivesPage() {
         if (tenant) fetchArchives();
     }, [tenant]);
 
+    const locations = useMemo(() => {
+        const locs = new Set(assets.map(a => a.location).filter(Boolean));
+        return Array.from(locs);
+    }, [assets]);
+
     const filteredOrders = useMemo(() => {
-        return orders.filter(o =>
-            o.title.toLowerCase().includes(search.toLowerCase()) ||
-            o.work_order_number?.toLowerCase().includes(search.toLowerCase())
-        );
-    }, [orders, search]);
+        return orders.filter(o => {
+            const matchesSearch = o.title.toLowerCase().includes(search.toLowerCase()) ||
+                o.work_order_number?.toLowerCase().includes(search.toLowerCase());
+
+            // For now, the API doesn't return asset_id on the list view unless we updated the schema (which we did!)
+            // But we need to make sure the WO actually has asset_id in the response. I updated schema, so it should be there.
+            // Wait, I updated WorkOrder schema to include `asset`.
+            // So we can filter by `o.asset?.id` or `o.asset?.location`.
+
+            let matchesAsset = true;
+            if (filterAsset) {
+                matchesAsset = (o as any).asset_id === filterAsset;
+            }
+
+            let matchesLine = true;
+            if (filterLine) {
+                // We need the asset object attached to check location
+                // If the list endpoint returns `asset` object, we can use `o.asset.location`.
+                // If not, we might need to map asset_id to asset map.
+                // The schema update included `asset: Optional[Any]`. And the endpoint uses eager load.
+                // So `o.asset` should be available.
+                matchesLine = (o as any).asset?.location === filterLine;
+            }
+
+            return matchesSearch && matchesAsset && matchesLine;
+        });
+    }, [orders, search, filterAsset, filterLine, assets]);
 
     // Grouping by Month
     const groupedOrders = useMemo(() => {
@@ -68,7 +102,6 @@ export default function ArchivesPage() {
             groups[monthYear].push(order);
         });
 
-        // Sort months descending?
         return Object.entries(groups).sort((a, b) => {
             const dateA = new Date(a[0]);
             const dateB = new Date(b[0]);
@@ -87,15 +120,47 @@ export default function ArchivesPage() {
                     <p className="text-muted font-medium mt-1">Historical breakdown logs separated by deployment cycle</p>
                 </div>
 
-                <div className="relative w-full md:w-96 group">
-                    <Search className="absolute left-4 top-3.5 h-4 w-4 text-muted group-focus-within:text-primary transition-colors" />
-                    <input
-                        type="text"
-                        placeholder="Search historical records..."
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-inner"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                    {/* Line Filter */}
+                    <div className="relative group">
+                        <select
+                            value={filterLine}
+                            onChange={(e) => setFilterLine(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-xl pl-4 pr-10 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none cursor-pointer uppercase font-bold min-w-[150px]"
+                        >
+                            <option value="">All Lines</option>
+                            {locations.map(loc => (
+                                <option key={loc} value={loc as string}>{loc}</option>
+                            ))}
+                        </select>
+                        <Filter className="absolute right-3 top-3.5 h-4 w-4 text-muted pointer-events-none" />
+                    </div>
+
+                    {/* Asset Filter */}
+                    <div className="relative group">
+                        <select
+                            value={filterAsset}
+                            onChange={(e) => setFilterAsset(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-xl pl-4 pr-10 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none cursor-pointer uppercase font-bold min-w-[200px]"
+                        >
+                            <option value="">All Machines</option>
+                            {assets.map(a => (
+                                <option key={a.id} value={a.id}>{a.name}</option>
+                            ))}
+                        </select>
+                        <Filter className="absolute right-3 top-3.5 h-4 w-4 text-muted pointer-events-none" />
+                    </div>
+
+                    <div className="relative w-full md:w-64 group">
+                        <Search className="absolute left-4 top-3.5 h-4 w-4 text-muted group-focus-within:text-primary transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search records..."
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-inner"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
 

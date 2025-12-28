@@ -64,6 +64,24 @@ class WorkOrder(Base):
     reported_by = relationship("User", foreign_keys=[reported_by_user_id])
     assigned_to = relationship("User", foreign_keys=[assigned_to_user_id])
     completed_by = relationship("User", foreign_keys=[completed_by_user_id])
+    
+    # Active Sessions
+    active_sessions = relationship("WorkOrderSession", back_populates="work_order", cascade="all, delete-orphan")
+
+class WorkOrderSession(Base):
+    __tablename__ = "work_order_sessions"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
+    work_order_id = Column(UUID(as_uuid=True), ForeignKey("work_orders.id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    start_time = Column(DateTime, default=datetime.utcnow)
+    end_time = Column(DateTime, nullable=True) # If null, currently active
+    
+    # Relationships
+    work_order = relationship("WorkOrder", back_populates="active_sessions")
+    user = relationship("User")
 
 class TenantTheme(Base):
     __tablename__ = "tenant_themes"

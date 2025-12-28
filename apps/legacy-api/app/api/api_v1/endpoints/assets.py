@@ -118,6 +118,9 @@ async def delete_asset(
     """
     Delete an asset.
     """
+    if current_user.role == "engineer":
+        raise HTTPException(status_code=403, detail="Engineers cannot decommission assets")
+
     from sqlalchemy.future import select
     query = select(Asset).filter(Asset.id == id, Asset.tenant_id == current_user.tenant_id)
     result = await db.execute(query)
