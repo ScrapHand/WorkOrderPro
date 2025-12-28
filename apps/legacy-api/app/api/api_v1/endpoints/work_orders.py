@@ -119,7 +119,7 @@ async def read_work_orders(
         selectinload(models.WorkOrder.assigned_to),
         selectinload(models.WorkOrder.completed_by),
         selectinload(models.WorkOrder.asset),
-        selectinload(models.WorkOrder.active_sessions).selectinload(models.WorkOrderSession.user)
+        # selectinload(models.WorkOrder.active_sessions).selectinload(models.WorkOrderSession.user)
     )
     
     from sqlalchemy import func
