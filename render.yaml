@@ -29,6 +29,22 @@ services:
       - key: BACKEND_CORS_ORIGINS
         value: '["https://workorderpro.vercel.app", "http://localhost:3000"]'
 
+  # Legacy Frontend (Next.js)
+  - type: web
+    name: workorderpro-frontend
+    env: node
+    rootDir: apps/legacy-web
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    plan: free
+    region: ohio
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: workorderpro-backend
+          property: url
+
 databases:
   - name: workorderpro-db
     plan: free # Change to 'starter' or higher for production use
