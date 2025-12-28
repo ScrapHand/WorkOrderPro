@@ -70,6 +70,9 @@ async def create_pm_schedule(
     data = schedule_in.dict()
     if not data.get('next_due'):
         data['next_due'] = datetime.utcnow()
+    elif data['next_due'].tzinfo:
+        # Normalize to naive UTC
+        data['next_due'] = data['next_due'].astimezone(timedelta(0)).replace(tzinfo=None)
         
     schedule = PMSchedule(
         **data,
@@ -112,6 +115,10 @@ async def update_pm_schedule(
         raise HTTPException(status_code=404, detail="Schedule not found")
     
     update_data = schedule_in.dict(exclude_unset=True)
+    if update_data.get('next_due') and update_data['next_due'].tzinfo:
+         # Normalize to naive UTC
+        update_data['next_due'] = update_data['next_due'].astimezone(timedelta(0)).replace(tzinfo=None)
+        
     for field, value in update_data.items():
         setattr(schedule, field, value)
         
