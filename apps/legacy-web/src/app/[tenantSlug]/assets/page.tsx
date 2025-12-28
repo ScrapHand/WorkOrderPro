@@ -47,6 +47,7 @@ export default function AssetsPage() {
         notes: ''
     });
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     // Filtering & Sorting State
@@ -160,13 +161,20 @@ export default function AssetsPage() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Confirm asset decommissioning?")) return;
+    const handleDelete = (id: string) => {
+        setDeletingId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingId) return;
         try {
-            await api.delete(`/assets/${id}`);
+            await api.delete(`/assets/${deletingId}`);
+            setDeletingId(null);
             fetchAssets();
         } catch (err) {
-            console.error(err);
+            console.error("Delete failed", err);
+            setError("Decommissioning failed. Ensure no active work orders depend on this asset.");
+            setDeletingId(null);
         }
     };
 
@@ -532,6 +540,45 @@ export default function AssetsPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Asset Delete Modal */}
+            {deletingId && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+                    <div className="glass-panel p-0 w-full max-w-md border-danger/30 shadow-2xl overflow-hidden">
+                        <div className="p-6 bg-danger/10 border-b border-danger/20 flex justify-between items-center">
+                            <div className="flex items-center gap-3 text-danger">
+                                <Trash2 className="w-6 h-6 animate-pulse" />
+                                <h2 className="text-xl font-black uppercase tracking-tight">Confirm Decommission</h2>
+                            </div>
+                            <button onClick={() => setDeletingId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <X className="w-6 h-6 text-muted" />
+                            </button>
+                        </div>
+                        <div className="p-8 space-y-6">
+                            <p className="text-sm font-medium text-white/80 leading-relaxed">
+                                Are you sure you want to <span className="text-danger font-black">DECOMMISSION</span> this asset from the registry?
+                                <br /> <br />
+                                This may affect historical maintenance records tied to this unit ID.
+                            </p>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setDeletingId(null)}
+                                    className="px-6 py-2 border border-white/10 text-muted rounded-xl hover:bg-white/5 transition-colors uppercase text-[10px] font-black tracking-widest"
+                                >
+                                    Abort
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-8 py-2 bg-danger hover:bg-danger/90 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-danger/20 transition-all flex items-center gap-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Confirm Decommission
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

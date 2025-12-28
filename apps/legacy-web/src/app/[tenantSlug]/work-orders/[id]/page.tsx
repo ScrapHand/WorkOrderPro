@@ -59,6 +59,8 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
         signed_by: '',
         completed_at: ''
     });
+    // Delete Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const router = useRouter();
 
     const fetchOrder = async () => {
@@ -111,13 +113,8 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
     };
 
     const handleDelete = async () => {
-        // DEBUG: Temporary alerts to diagnose production issue
-        if (!confirm("Are you sure you want to PERMANENTLY DELETE this job from the registry? This action cannot be undone.")) return;
-
         try {
-            alert(`Debug: Attempting delete for ${resolvedParams.id}`);
             await api.delete(`/work-orders/${resolvedParams.id}`);
-            alert("Debug: Delete successful, redirecting...");
             router.push(`/${resolvedParams.tenantSlug}/work-orders`);
         } catch (err: any) {
             console.error("Delete failed", err);
@@ -256,7 +253,7 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
 
                         {tenant && (user?.role === 'admin' || user?.role === 'manager' || user?.role === 'owner') && (
                             <button
-                                onClick={handleDelete}
+                                onClick={() => setIsDeleteModalOpen(true)}
                                 className="px-6 py-3 bg-danger/10 border border-danger/20 text-danger hover:bg-danger hover:text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all"
                             >
                                 <Trash2 className="w-5 h-5" />
@@ -472,6 +469,85 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+                    <div className="glass-panel p-0 w-full max-w-md border-danger/30 shadow-2xl overflow-hidden">
+                        <div className="p-6 bg-danger/10 border-b border-danger/20 flex justify-between items-center">
+                            <div className="flex items-center gap-3 text-danger">
+                                <Trash2 className="w-6 h-6 animate-pulse" />
+                                <h2 className="text-xl font-black uppercase tracking-tight">Confirm Deletion</h2>
+                            </div>
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <X className="w-6 h-6 text-muted" />
+                            </button>
+                        </div>
+                        <div className="p-8 space-y-6">
+                            <p className="text-sm font-medium text-white/80 leading-relaxed">
+                                Are you sure you want to <span className="text-danger font-black">PERMANENTLY DELETE</span> this work order?
+                                <br /><br />
+                                This action creates a permanent gap in the registry and cannot be reversed.
+                            </p>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="px-6 py-2 border border-white/10 text-muted rounded-xl hover:bg-white/5 transition-colors uppercase text-[10px] font-black tracking-widest"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="px-8 py-2 bg-danger hover:bg-danger/90 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-danger/20 transition-all flex items-center gap-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Execute Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+                    <div className="glass-panel p-0 w-full max-w-md border-danger/30 shadow-2xl overflow-hidden">
+                        <div className="p-6 bg-danger/10 border-b border-danger/20 flex justify-between items-center">
+                            <div className="flex items-center gap-3 text-danger">
+                                <Trash2 className="w-6 h-6 animate-pulse" />
+                                <h2 className="text-xl font-black uppercase tracking-tight">Confirm Deletion</h2>
+                            </div>
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <X className="w-6 h-6 text-muted" />
+                            </button>
+                        </div>
+                        <div className="p-8 space-y-6">
+                            <p className="text-sm font-medium text-white/80 leading-relaxed">
+                                Are you sure you want to <span className="text-danger font-black">PERMANENTLY DELETE</span> this work order?
+                                <br /><br />
+                                This action creates a permanent gap in the registry and cannot be reversed.
+                            </p>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="px-6 py-2 border border-white/10 text-muted rounded-xl hover:bg-white/5 transition-colors uppercase text-[10px] font-black tracking-widest"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="px-8 py-2 bg-danger hover:bg-danger/90 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-danger/20 transition-all flex items-center gap-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Execute Delete
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

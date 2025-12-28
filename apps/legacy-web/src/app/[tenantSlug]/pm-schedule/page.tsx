@@ -44,6 +44,7 @@ export default function PMSchedulePage() {
     });
     const [assets, setAssets] = useState<any[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const fetchData = async () => {
         if (!tenant) return;
@@ -145,13 +146,20 @@ export default function PMSchedulePage() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Confirm schedule termination?")) return;
+    const handleDelete = (id: string) => {
+        setDeletingId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingId) return;
         try {
-            await api.delete(`/pm-schedules/${id}`);
+            await api.delete(`/pm-schedules/${deletingId}`);
+            setDeletingId(null);
             fetchData();
         } catch (err) {
-            console.error(err);
+            console.error("Delete failed", err);
+            setMessage("Deletion failed.");
+            setDeletingId(null);
         }
     };
 
@@ -611,6 +619,45 @@ export default function PMSchedulePage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* PM Schedule Delete Modal */}
+            {deletingId && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 z-[70] animate-in fade-in duration-300">
+                    <div className="glass-panel p-0 w-full max-w-md border-danger/30 shadow-2xl overflow-hidden">
+                        <div className="p-6 bg-danger/10 border-b border-danger/20 flex justify-between items-center">
+                            <div className="flex items-center gap-3 text-danger">
+                                <Trash2 className="w-6 h-6 animate-pulse" />
+                                <h2 className="text-xl font-black uppercase tracking-tight">Confirm Termination</h2>
+                            </div>
+                            <button onClick={() => setDeletingId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <X className="w-6 h-6 text-muted" />
+                            </button>
+                        </div>
+                        <div className="p-8 space-y-6">
+                            <p className="text-sm font-medium text-white/80 leading-relaxed">
+                                Are you sure you want to <span className="text-danger font-black">TERMINATE</span> this maintenance sequence?
+                                <br /> <br />
+                                This will stop all future recurrence schedules for this task.
+                            </p>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setDeletingId(null)}
+                                    className="px-6 py-2 border border-white/10 text-muted rounded-xl hover:bg-white/5 transition-colors uppercase text-[10px] font-black tracking-widest"
+                                >
+                                    Abort
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-8 py-2 bg-danger hover:bg-danger/90 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-danger/20 transition-all flex items-center gap-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Execute Termination
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
