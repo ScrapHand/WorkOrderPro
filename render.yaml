@@ -38,12 +38,6 @@ services:
     startCommand: npm start
     plan: free
     region: ohio
-    envVars:
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: workorderpro-backend
-          property: url
 
 databases:
   - name: workorderpro-db
