@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-    const { tenant, isLoading } = useTenant();
+    const { tenant, user, isLoading } = useTenant();
     const pathname = usePathname();
     const naming = tenant?.theme_json?.naming;
     const slug = tenant?.slug || 'demo';
@@ -38,22 +38,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: 'Admin', href: `/${slug}/admin`, icon: Settings },
     ];
 
-    const [user, setUser] = React.useState<any>(null);
-    const [role, setRole] = React.useState<string>("");
-
-    React.useEffect(() => {
-        const fetchMe = async () => {
-            try {
-                const { api } = await import('@/lib/api');
-                const res = await api.get('/users/me');
-                setUser(res.data);
-                setRole(res.data.role || "");
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        fetchMe();
-    }, []);
+    const role = user?.role || "";
 
     const filteredLinks = links.filter(link => {
         if (!role) return false; // Loading or error
@@ -136,6 +121,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                             <div className="flex flex-col min-w-0">
                                 <span className="text-sm font-semibold text-white truncate">{user.full_name}</span>
                                 <span className="text-[10px] text-muted truncate capitalize">{user.role?.replace('_', ' ')}</span>
+                                <div className="text-[8px] text-red-500 font-mono border border-red-500/20 bg-red-500/10 px-1 rounded mt-1">
+                                    DEBUG ROLE: {user.role || "NULL"}
+                                </div>
                             </div>
                         </div>
                     )}
