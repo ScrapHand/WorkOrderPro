@@ -472,7 +472,7 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                     </div>
                 </div>
             )}
-            )}
+
 
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && (
