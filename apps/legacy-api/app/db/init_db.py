@@ -33,6 +33,8 @@ async def init_db(db: Session) -> None:
     ]
 
     for tenant in tenants:
+        # User seeding (existing logic)...
+        created_users = {}
         for u in users_to_create:
             # Use tenant-specific email to avoid unique constraint violations
             email = f"{u['email_prefix']}@{tenant.slug}.test"
@@ -59,5 +61,60 @@ async def init_db(db: Session) -> None:
                     user.role = u["role"]
                     db.add(user)
                     logger.info(f"Updated user role: {user.email} -> {user.role} in Tenant: {tenant.name}")
-    
+            created_users[u["email_prefix"]] = user
+            
+        # 3. Seed Assets (Only for Demo/Acme if empty)
+        # Check if assets exist
+        a_res = await db.execute(select(models.Asset).where(models.Asset.tenant_id == tenant.id))
+        if not a_res.scalars().first():
+            from datetime import datetime, timedelta
+            import uuid
+            
+            # Create Assets
+            assets = [
+                models.Asset(name="Hydraulic Press A1", description="Main line press", code="HP-01", status="run", model="X1000", manufacturer="Acme Corp", location="Zone A", tenant_id=tenant.id),
+                models.Asset(name="Conveyor Belt C2", description="Packaging conveyor", code="CB-02", status="breakdown", model="BeltPro", manufacturer="LogistiCo", location="Zone B", tenant_id=tenant.id),
+                models.Asset(name="Cooling Tower T1", description="External cooling", code="CT-01", status="run", model="ChillMaster", manufacturer="HVAC Inc", location="Roof", tenant_id=tenant.id),
+            ]
+            for a in assets:
+                db.add(a)
+            await db.flush() # get IDs
+            
+            logger.info(f"Seeded {len(assets)} assets for {tenant.name}")
+
+            # Create Work Orders
+            # Assign to admin or manager
+            assignee = created_users.get("manager") or created_users.get("admin")
+            
+            work_orders = [
+                models.WorkOrder(
+                    tenant_id=tenant.id,
+                    title="Emergency Belt Repair",
+                    description="Conveyor belt snapped during shift.",
+                    status="open",
+                    priority="high",
+                    asset_id=assets[1].id, # Conveyor
+                    created_by_user_id=assignee.id, 
+                    assigned_to_user_id=assignee.id,
+                    created_at=datetime.utcnow() - timedelta(hours=2),
+                    work_order_number="WO-1001"
+                ),
+                models.WorkOrder(
+                    tenant_id=tenant.id,
+                    title="Routine Press Maintenance",
+                    description="Monthly hydraulic check.",
+                    status="open",
+                    priority="medium",
+                    asset_id=assets[0].id, # Press
+                    created_by_user_id=assignee.id, 
+                    assigned_to_user_id=assignee.id,
+                    created_at=datetime.utcnow() - timedelta(days=1),
+                    work_order_number="WO-1002"
+                )
+            ]
+            for wo in work_orders:
+                db.add(wo)
+            
+            logger.info(f"Seeded {len(work_orders)} work orders for {tenant.name}")
+
     await db.commit()
