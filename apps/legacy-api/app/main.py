@@ -57,6 +57,14 @@ async def startup_event():
     
     async with AsyncSessionLocal() as db:
         try:
+            # AUTO-MIGRATION: Fix Remote DB Roles to Lowercase
+            # This ensures compatibility with strict Enum handling
+            from sqlalchemy import text
+            await db.execute(text("UPDATE users SET role = lower(role)"))
+            await db.execute(text("UPDATE work_orders SET status = lower(status)"))
+            await db.commit()
+            
+            # await init_db(db) # Keep original seeding disabled for now
             pass
             # await init_db(db)
         except Exception as e:
