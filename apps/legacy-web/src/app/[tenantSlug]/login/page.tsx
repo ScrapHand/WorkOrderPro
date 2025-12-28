@@ -6,7 +6,7 @@ import { api, setAuthToken, resolveBackendUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-    const { tenant } = useTenant();
+    const { tenant, refreshUser } = useTenant();
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -22,6 +22,7 @@ export default function LoginPage() {
             const res = await api.post('/auth/login', formData);
 
             setAuthToken(res.data.access_token);
+            await refreshUser(); // Force re-fetch of user (permissions)
             // redirect to dashboard
             router.push(`/${tenant?.slug}/dashboard`);
         } catch (err: any) {
