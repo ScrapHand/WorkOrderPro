@@ -88,3 +88,22 @@ async def get_current_active_user(
          raise HTTPException(status_code=403, detail="User does not belong to this tenant")
          
     return current_user
+
+async def get_current_admin(
+    current_user: models.User = Depends(get_current_active_user),
+) -> models.User:
+    if current_user.role != "ADMIN" and current_user.role != "admin": # Support legacy lowercase for now too
+        raise HTTPException(
+            status_code=403, detail="The user does not have enough privileges (ADMIN required)"
+        )
+    return current_user
+
+async def get_current_manager(
+    current_user: models.User = Depends(get_current_active_user),
+) -> models.User:
+    allowed = ["ADMIN", "MANAGER", "admin", "manager"]
+    if current_user.role not in allowed:
+        raise HTTPException(
+            status_code=403, detail="The user does not have enough privileges (MANAGER required)"
+        )
+    return current_user

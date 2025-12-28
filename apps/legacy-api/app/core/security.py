@@ -8,13 +8,16 @@ pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
 
 ALGORITHM = "HS256"
 
-def create_access_token(subject: Union[str, Any], expires_delta: timedelta = None) -> str:
+def create_access_token(subject: Union[str, Any], role: str = None, expires_delta: timedelta = None) -> str:
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     
     to_encode = {"sub": str(subject), "exp": expire}
+    if role:
+        to_encode["role"] = role
+        
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY if hasattr(settings, 'SECRET_KEY') else "SECRET", algorithm=ALGORITHM)
     return encoded_jwt
 

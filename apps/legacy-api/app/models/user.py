@@ -12,7 +12,7 @@ class User(Base):
     email = Column(String, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
-    role = Column(String, default="viewer") # owner, admin, manager, engineer, viewer
+    role = Column(String, default="TECHNICIAN") # ADMIN, MANAGER, TECHNICIAN
     is_active = Column(Boolean, default=True)
 
     # Relationships

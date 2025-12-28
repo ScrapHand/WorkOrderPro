@@ -23,7 +23,7 @@ async def read_users(
     db: AsyncSession = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-    current_user: models.User = Depends(deps.get_current_active_user),
+    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """
@@ -41,7 +41,7 @@ async def create_user(
     *,
     db: AsyncSession = Depends(deps.get_db),
     user_in: schemas.UserCreate,
-    current_user: models.User = Depends(deps.get_current_active_user), # Requires Auth to add users
+    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """
@@ -49,8 +49,6 @@ async def create_user(
     """
     if not current_tenant:
         raise HTTPException(status_code=400, detail="Tenant context required")
-        
-    # Check permissions (only admin/owner) - skipping for scaffold simplicity
     
     # Check email uniqueness in tenant
     existing = await db.execute(select(models.User).where(
@@ -74,13 +72,46 @@ async def create_user(
     await db.refresh(db_obj)
     return db_obj
 
+@router.patch("/{user_id}/role", response_model=schemas.User)
+async def update_user_role(
+    *,
+    db: AsyncSession = Depends(deps.get_db),
+    user_id: uuid.UUID,
+    role: str = Body(..., embed=True), # Expect JSON: { "role": "MANAGER" }
+    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
+    current_tenant: models.Tenant = Depends(deps.get_current_tenant),
+) -> Any:
+    """
+    Update a user's role live.
+    """
+    if not current_tenant:
+        raise HTTPException(status_code=400, detail="Tenant context required")
+        
+    result = await db.execute(select(models.User).where(
+        models.User.id == user_id,
+        models.User.tenant_id == current_tenant.id
+    ))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Validate Role Enum
+    if role not in ["ADMIN", "MANAGER", "TECHNICIAN", "admin", "manager", "engineer", "viewer", "team_leader"]:
+        raise HTTPException(status_code=400, detail="Invalid Role")
+
+    user.role = role
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
 @router.put("/{user_id}", response_model=schemas.User)
 async def update_user(
     *,
     db: AsyncSession = Depends(deps.get_db),
     user_id: uuid.UUID,
     user_in: schemas.UserUpdate,
-    current_user: models.User = Depends(deps.get_current_active_user),
+    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """
@@ -116,7 +147,7 @@ async def delete_user(
     *,
     db: AsyncSession = Depends(deps.get_db),
     user_id: uuid.UUID,
-    current_user: models.User = Depends(deps.get_current_active_user),
+    current_user: models.User = Depends(deps.get_current_admin), # ADMIN ONLY
     current_tenant: models.Tenant = Depends(deps.get_current_tenant),
 ) -> Any:
     """
@@ -124,6 +155,10 @@ async def delete_user(
     """
     if not current_tenant:
         raise HTTPException(status_code=400, detail="Tenant context required")
+    
+    # Prevent self-delete
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account.")
         
     result = await db.execute(select(models.User).where(
         models.User.id == user_id,
