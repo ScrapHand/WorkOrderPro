@@ -27,21 +27,57 @@ async def log_requests(request: Request, call_next):
     return response
 
 # Set all CORS enabled origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "https://workorderpro.vercel.app",
-        "https://work-order-pro.vercel.app", 
-        "https://workorderpro-frontend.vercel.app",
-    ],
-    allow_origin_regex=r"https://work-order-.*-scraphands-projects\.vercel\.app",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Custom CORS Middleware for Vercel Previews
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+import re
+
+class VercelCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin")
+        
+        # Define patterns
+        vercel_pattern = r"https://work-order-.*-scraphands-projects\.vercel\.app"
+        allowed_origins = [
+            "http://localhost:3000", 
+            "http://localhost:3001",
+            "https://workorderpro.vercel.app",
+        ]
+        
+        is_allowed = False
+        if origin:
+            if origin in allowed_origins:
+                is_allowed = True
+            elif re.match(vercel_pattern, origin):
+                is_allowed = True
+        
+        # Handle Preflight OPTIONS
+        if request.method == "OPTIONS" and is_allowed:
+            response = Response()
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            return response
+
+        response = await call_next(request)
+        
+        if is_allowed:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            # Ensure other headers are set if not properly handled by app
+            if "Access-Control-Allow-Methods" not in response.headers:
+                response.headers["Access-Control-Allow-Methods"] = "*"
+            if "Access-Control-Allow-Headers" not in response.headers:
+                response.headers["Access-Control-Allow-Headers"] = "*"
+                
+        return response
+
+app.add_middleware(VercelCORSMiddleware)
+
+# Keep standard CORS for simple local dev fallback if needed, or rely on above
+# app.add_middleware(CORSMiddleware, ...) 
+
 
 # Mount static files
 # app.mount("/static", StaticFiles(directory="static"), name="static")
