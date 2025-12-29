@@ -129,7 +129,10 @@ async def debug_exception_handler(request: Request, exc: Exception):
         content={"message": f"Debug Error: {exc}"},
     )
 
+@app.get("/version")
+async def read_version():
+    return {"version": "1.0.3", "feature": "fix_missing_greenlet", "timestamp": "2025-12-29T21:20:00Z"}
+
 @app.get("/")
 def root():
     return {"message": "Welcome to Work Order Pro API"}
-
