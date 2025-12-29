@@ -53,10 +53,10 @@ class VercelCORSMiddleware(BaseHTTPMiddleware):
         
         # Handle Preflight OPTIONS
         if request.method == "OPTIONS" and is_allowed:
-            response = Response()
+            response = Response(status_code=204)
             response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = "*"
-            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Tenant, X-Tenant-Slug, x-tenant-slug"
             response.headers["Access-Control-Allow-Credentials"] = "true"
             return response
 
@@ -67,9 +67,9 @@ class VercelCORSMiddleware(BaseHTTPMiddleware):
             response.headers["Access-Control-Allow-Credentials"] = "true"
             # Ensure other headers are set if not properly handled by app
             if "Access-Control-Allow-Methods" not in response.headers:
-                response.headers["Access-Control-Allow-Methods"] = "*"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
             if "Access-Control-Allow-Headers" not in response.headers:
-                response.headers["Access-Control-Allow-Headers"] = "*"
+                response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Tenant, X-Tenant-Slug, x-tenant-slug"
                 
         return response
 

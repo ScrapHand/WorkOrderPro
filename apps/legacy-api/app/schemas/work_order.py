@@ -67,7 +67,7 @@ class WorkOrder(WorkOrderBase):
     assigned_to: Optional[User] = None
     completed_by: Optional[User] = None
     asset: Optional[WorkOrderAsset] = None 
-    # active_sessions: List[WorkOrderSession] = []
+    active_sessions: List[WorkOrderSession] = []
 
     class Config:
         from_attributes = True
