@@ -62,6 +62,7 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
     const { tenant, user } = useTenant();
     const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isJoining, setIsJoining] = useState(false);
 
     // Completion Modal State
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -134,22 +135,28 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
     };
 
     const handleJoin = async () => {
+        setIsJoining(true);
         try {
             const res = await api.post(`/work-orders/${resolvedParams.id}/join`);
             setWorkOrder(res.data);
         } catch (err: any) {
             console.error("Failed to join", err);
             alert("Failed to join active duty: " + (err.response?.data?.detail || "Unknown error"));
+        } finally {
+            setIsJoining(false);
         }
     };
 
     const handleLeave = async () => {
+        setIsJoining(true);
         try {
             const res = await api.post(`/work-orders/${resolvedParams.id}/leave`);
             setWorkOrder(res.data);
         } catch (err: any) {
             console.error("Failed to leave", err);
             alert("Failed to leave active duty: " + (err.response?.data?.detail || "Unknown error"));
+        } finally {
+            setIsJoining(false);
         }
     };
 
@@ -395,26 +402,32 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
                             )}
 
                             {/* Join/Leave Action */}
-                            {workOrder.status === 'in_progress' && (
-                                <div className="pt-2">
-                                    {workOrder.active_sessions?.some(s => s.user.id === user?.id && !s.end_time) ? (
-                                        <button
-                                            onClick={handleLeave}
-                                            className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] text-white transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <PauseCircle className="w-4 h-4" />
-                                            Disengage
-                                        </button>
+                            {workOrder.active_sessions?.some(s => s.user.id === user?.id && !s.end_time) ? (
+                                <button
+                                    onClick={handleLeave}
+                                    disabled={isJoining}
+                                    className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-wait"
+                                >
+                                    {isJoining ? (
+                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                                     ) : (
-                                        <button
-                                            onClick={handleJoin}
-                                            className="w-full py-3 bg-primary hover:bg-primary-hover rounded-xl font-black text-[10px] uppercase tracking-[0.2em] text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                                        >
-                                            <PlayCircle className="w-4 h-4" />
-                                            Join Active Duty
-                                        </button>
+                                        <PauseCircle className="w-4 h-4" />
                                     )}
-                                </div>
+                                    {isJoining ? "Disengaging..." : "Disengage"}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleJoin}
+                                    disabled={isJoining}
+                                    className="w-full py-3 bg-primary hover:bg-primary-hover rounded-xl font-black text-[10px] uppercase tracking-[0.2em] text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-wait"
+                                >
+                                    {isJoining ? (
+                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <PlayCircle className="w-4 h-4" />
+                                    )}
+                                    {isJoining ? "Mobilizing..." : "Join Active Duty"}
+                                </button>
                             )}
                         </div>
                     </div>
