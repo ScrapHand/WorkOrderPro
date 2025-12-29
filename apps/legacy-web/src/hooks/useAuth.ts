@@ -4,7 +4,8 @@ import { UserRole } from '@/types';
 export const useAuth = () => {
     const { user, refreshUser, isLoading } = useTenant();
 
-    const role = (user?.role as UserRole) || UserRole.VIEWER;
+    const rawRole = (user?.role as string)?.toLowerCase() || '';
+    const role = (Object.values(UserRole).includes(rawRole as UserRole) ? rawRole : UserRole.VIEWER) as UserRole;
 
     const isAdmin = role === UserRole.ADMIN;
     const isManager = role === UserRole.ADMIN || role === UserRole.MANAGER;

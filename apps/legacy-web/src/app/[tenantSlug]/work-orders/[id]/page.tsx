@@ -137,8 +137,9 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
         try {
             const res = await api.post(`/work-orders/${resolvedParams.id}/join`);
             setWorkOrder(res.data);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to join", err);
+            alert("Failed to join active duty: " + (err.response?.data?.detail || "Unknown error"));
         }
     };
 
@@ -146,8 +147,9 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ tena
         try {
             const res = await api.post(`/work-orders/${resolvedParams.id}/leave`);
             setWorkOrder(res.data);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to leave", err);
+            alert("Failed to leave active duty: " + (err.response?.data?.detail || "Unknown error"));
         }
     };
 
