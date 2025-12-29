@@ -14,12 +14,29 @@ from app.db.session import get_db
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
 async def get_current_tenant_slug(
-    x_tenant_slug: Optional[str] = Header(None),
-    request: Request = None
+    request: Request,
+    x_tenant_slug: Optional[str] = Header(None, alias="X-Tenant-Slug"),
 ) -> Optional[str]:
-    # Also support extracting from path if header is missing, relying on middleware or direct logic
-    # For now, header is primary
-    return x_tenant_slug
+    # Try the explicit header first
+    if x_tenant_slug:
+        return x_tenant_slug
+    
+    # Fallback: Check various header casings manually
+    headers_lower = {k.lower(): v for k, v in request.headers.items()}
+    
+    if "x-tenant-slug" in headers_lower:
+        return headers_lower["x-tenant-slug"]
+    if "x-tenant" in headers_lower:
+        return headers_lower["x-tenant"]
+    
+    # Fallback: Query param (useful for some browser tests)
+    if "tenant_slug" in request.query_params:
+        return request.query_params["tenant_slug"]
+
+    # Explicitly check for 'acme' during debug if all else fails (Temporary safety net)
+    # return "acme" 
+    
+    return None
 
 from sqlalchemy.orm import selectinload
 
