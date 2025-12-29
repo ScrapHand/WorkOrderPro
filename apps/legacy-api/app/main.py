@@ -36,12 +36,11 @@ app.add_middleware(
         "https://workorderpro.vercel.app",
         "https://work-order-pro.vercel.app", 
         "https://workorderpro-frontend.vercel.app",
-        "https://work-order-8qwlxwww9-scraphands-projects.vercel.app", # Current Preview
-        "*", # Temporary Debug: Allow ALL to confirm fix, then restrict.
     ],
+    allow_origin_regex=r"https://work-order-.*-scraphands-projects\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*", "X-Tenant-Slug", "Authorization"],
+    allow_headers=["*"],
 )
 
 # Mount static files
