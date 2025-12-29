@@ -150,7 +150,7 @@ async def update_user(
     await db.refresh(user)
     return user
 
-@router.delete("/{user_id}", response_model=schemas.User)
+@router.delete("/{user_id}")
 async def delete_user(
     *,
     db: AsyncSession = Depends(deps.get_db),
@@ -178,4 +178,8 @@ async def delete_user(
         
     await db.delete(user)
     await db.commit()
-    return user
+    
+    # Return 204 No Content (Standard for DELETE)
+    # Prevents serialization issues with deleted objects
+    from fastapi import Response, status
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -361,7 +361,7 @@ async def leave_work_order(
     
     return await read_work_order(db=db, work_order_id=work_order_id, current_user=current_user, current_tenant=current_tenant)
 
-@router.delete("/{work_order_id}", response_model=schemas.WorkOrder)
+@router.delete("/{work_order_id}")
 async def delete_work_order(
     *,
     db: AsyncSession = Depends(deps.get_db),
@@ -396,4 +396,7 @@ async def delete_work_order(
         await _sync_asset_status(db, asset_id, current_tenant.id)
         
     await db.commit()
-    return wo
+    
+    # Return 204 No Content
+    from fastapi import Response, status
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
