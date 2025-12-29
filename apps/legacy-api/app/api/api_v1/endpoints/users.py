@@ -176,6 +176,24 @@ async def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
+    # Manually cleanup Foreign Key references to avoid IntegrityError
+    # We must nullify references in other tables before deleting the user
+    from sqlalchemy import update, delete
+
+    # 1. Nullify WorkOrder references
+    await db.execute(update(models.WorkOrder).where(models.WorkOrder.reported_by_user_id == user_id).values(reported_by_user_id=None))
+    await db.execute(update(models.WorkOrder).where(models.WorkOrder.assigned_to_user_id == user_id).values(assigned_to_user_id=None))
+    await db.execute(update(models.WorkOrder).where(models.WorkOrder.completed_by_user_id == user_id).values(completed_by_user_id=None))
+
+    # 2. Nullify PMSchedule references
+    await db.execute(update(models.PMSchedule).where(models.PMSchedule.assigned_to_user_id == user_id).values(assigned_to_user_id=None))
+
+    # 3. Nullify PMLog references
+    await db.execute(update(models.PMLog).where(models.PMLog.completed_by_user_id == user_id).values(completed_by_user_id=None))
+
+    # 4. Delete WorkOrderSessions (Non-nullable foreign key)
+    await db.execute(delete(models.WorkOrderSession).where(models.WorkOrderSession.user_id == user_id))
+        
     await db.delete(user)
     await db.commit()
     

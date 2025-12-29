@@ -131,7 +131,7 @@ async def debug_exception_handler(request: Request, exc: Exception):
 
 @app.get("/version")
 async def read_version():
-    return {"version": "1.0.4", "feature": "fix_delete_204", "timestamp": "2025-12-29T21:30:00Z"}
+    return {"version": "1.0.5", "feature": "fix_delete_integrity", "timestamp": "2025-12-29T21:40:00Z"}
 
 @app.get("/")
 def root():
