@@ -32,23 +32,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import re
 
-# Standard CORS Middleware with Regex Support
-# Replaces custom implementation for better stability
-# allowed_origins = [
-#     "http://localhost:3000", 
-#     "http://localhost:3001",
-#     "https://workorderpro.vercel.app",
-# ]
-
-# Regex matches any sub-domain deployment on Vercel
-# e.g. https://work-order-1simgotp2-scraphands-projects.vercel.app
-# allow_origin_regex = r"https://work-order-.*-scraphands-projects\.vercel\.app"
-
-# DEBUG: Allow All Origins to fix NetworkError
+# Robust CORS Middleware with Broad Regex
+# Allows localhost (http) and any Vercel deployment (https)
+# This enables 'allow_credentials=True' to work correctly.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    # allow_origin_regex=allow_origin_regex,
+    allow_origins=[], # Let regex handle it
+    allow_origin_regex=r"^https?://(localhost|.*\.vercel\.app)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
