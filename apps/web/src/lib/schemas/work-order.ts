@@ -7,9 +7,7 @@ export const WizardAssetSchema = z.object({
 
 // Step 2: Priority Selection
 export const WizardPrioritySchema = z.object({
-    priority: z.enum(["low", "medium", "high", "critical"], {
-        required_error: "Please select a priority.",
-    }),
+    priority: z.enum(["low", "medium", "high", "critical"]),
 });
 
 // Step 3: Details
