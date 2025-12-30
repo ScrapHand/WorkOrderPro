@@ -42,6 +42,7 @@ class VercelCORSMiddleware(BaseHTTPMiddleware):
             "http://localhost:3000", 
             "http://localhost:3001",
             "https://workorderpro.vercel.app",
+            "https://work-order-ff0sphvm8-scraphands-projects.vercel.app",
         ]
         
         is_allowed = False
@@ -131,7 +132,7 @@ async def debug_exception_handler(request: Request, exc: Exception):
 
 @app.get("/version")
 async def read_version():
-    return {"version": "2.0.1", "feature": "restore_admin_prod", "timestamp": "2025-12-30T16:45:00Z"}
+    return {"version": "2.0.2", "feature": "fix_cors_explicit", "timestamp": "2025-12-30T16:55:00Z"}
 
 @app.get("/")
 def root():
