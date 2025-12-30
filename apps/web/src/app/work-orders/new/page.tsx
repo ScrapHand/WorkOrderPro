@@ -34,7 +34,14 @@ export default function CreateWorkOrderWizard() {
     // Optimistic Mutation
     const mutation = useMutation({
         mutationFn: async (data: CreateWorkOrderValues) => {
-            return api.post("/work-orders/", data);
+            const payload = {
+                asset_id: data.assetId,
+                priority: data.priority,
+                title: data.title,
+                description: data.description,
+                status: "new",
+            }
+            return api.post("/work-orders/", payload);
         },
         onSuccess: () => {
             // Invalidate list queries

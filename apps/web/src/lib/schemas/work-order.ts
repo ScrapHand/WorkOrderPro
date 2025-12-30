@@ -22,18 +22,7 @@ export const WizardDetailsSchema = z.object({
 // Combined Schema for Mutation
 export const CreateWorkOrderSchema = WizardAssetSchema
     .merge(WizardPrioritySchema)
-    .merge(WizardDetailsSchema)
-    .transform((data) => ({
-        // Transform specifically for backend payload
-        asset_id: data.assetId,
-        priority: data.priority,
-        title: data.title,
-        description: data.description,
-        status: "new",
-        // Backend handles assignment based on user context if we don't send it,
-        // or we might need to send current user ID if assignedToMe is true.
-        // For now, let's assume we handle assignment logic in the mutation or backend default.
-    }));
+    .merge(WizardDetailsSchema);
 
 export type WizardAssetValues = z.infer<typeof WizardAssetSchema>;
 export type WizardPriorityValues = z.infer<typeof WizardPrioritySchema>;
