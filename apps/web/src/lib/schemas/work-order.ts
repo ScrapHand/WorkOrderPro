@@ -16,7 +16,7 @@ export const WizardPrioritySchema = z.object({
 export const WizardDetailsSchema = z.object({
     title: z.string().min(5, "Title must be at least 5 characters."),
     description: z.string().optional(),
-    assignedToMe: z.boolean().default(true),
+    assignedToMe: z.boolean().optional(),
 });
 
 // Combined Schema for Mutation
