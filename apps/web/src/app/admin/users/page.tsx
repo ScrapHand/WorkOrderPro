@@ -92,64 +92,64 @@ function UserManagementContent() {
                 </Button>
             </div>
 
-            {/* Custom Table Implementation since Shadcn Table might be missing */}
+            {/* Shadcn Table Implementation */}
             <div className="rounded-md border bg-card">
-                <div className="relative w-full overflow-auto">
-                    <table className="w-full caption-bottom text-sm text-left">
-                        <thead className="[&_tr]:border-b">
-                            <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Name</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Contact</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Role</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="[&_tr:last-child]:border-0">
-                            {isLoading ? (
-                                <tr><td colSpan={4} className="p-4 text-center">Loading users...</td></tr>
-                            ) : users?.map((user) => (
-                                <tr key={user.id} className="border-b transition-colors hover:bg-muted/50">
-                                    <td className="p-4 align-middle font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-primary font-bold">
-                                                {user.full_name?.charAt(0) || "U"}
-                                            </div>
-                                            {user.full_name || "Unknown"}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Contact</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="h-24 text-center">Loading users...</TableCell>
+                            </TableRow>
+                        ) : users?.map((user) => (
+                            <TableRow key={user.id}>
+                                <TableCell className="font-medium">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-primary font-bold">
+                                            {user.full_name?.charAt(0) || "U"}
                                         </div>
-                                    </td>
-                                    <td className="p-4 align-middle text-muted-foreground">
-                                        <div className="flex items-center gap-2">
-                                            <Mail className="h-3 w-3" />
-                                            {user.email}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 align-middle">
-                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${user.role === 'admin' ? 'bg-purple-50 text-purple-700 ring-purple-600/20' :
-                                                user.role === 'manager' ? 'bg-blue-50 text-blue-700 ring-blue-600/20' :
-                                                    'bg-green-50 text-green-700 ring-green-600/20'
-                                            }`}>
-                                            {user.role}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 align-middle text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-destructive hover:bg-destructive/10"
-                                            onClick={() => {
-                                                if (confirm("Are you sure you want to delete this user? This cannot be undone.")) {
-                                                    deleteMutation.mutate(user.id);
-                                                }
-                                            }}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                        {user.full_name || "Unknown"}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                    <div className="flex items-center gap-2">
+                                        <Mail className="h-3 w-3" />
+                                        {user.email}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${user.role === 'admin' ? 'bg-purple-50 text-purple-700 ring-purple-600/20' :
+                                            user.role === 'manager' ? 'bg-blue-50 text-blue-700 ring-blue-600/20' :
+                                                'bg-green-50 text-green-700 ring-green-600/20'
+                                        }`}>
+                                        {user.role}
+                                    </span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-destructive hover:bg-destructive/10"
+                                        onClick={() => {
+                                            if (confirm("Are you sure you want to delete this user? This cannot be undone.")) {
+                                                deleteMutation.mutate(user.id);
+                                            }
+                                        }}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </div>
 
             {/* Custom Modal for Create User */}
