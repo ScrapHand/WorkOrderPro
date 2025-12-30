@@ -92,7 +92,7 @@ export default function CreateWorkOrderWizard() {
                                             key={asset.id}
                                             type="button"
                                             onClick={() => {
-                                                setValue("asset_id", asset.id); // In real app use real UUID
+                                                setValue("assetId", asset.id); // In real app use real UUID
                                                 nextStep();
                                             }}
                                             className="p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 hover:ring-2 hover:ring-blue-200 transition-all text-left flex flex-col gap-2 h-32 justify-between"
@@ -196,7 +196,7 @@ export default function CreateWorkOrderWizard() {
                                 <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
                                     <div>
                                         <div className="text-sm text-gray-500">Asset</div>
-                                        <div className="font-medium text-lg">{MOCK_ASSETS.find(a => a.id === formData.asset_id)?.name}</div>
+                                        <div className="font-medium text-lg">{MOCK_ASSETS.find(a => a.id === formData.assetId)?.name}</div>
                                     </div>
                                     <div>
                                         <div className="text-sm text-gray-500">Problem</div>
