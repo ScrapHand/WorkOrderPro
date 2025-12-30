@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -48,9 +48,22 @@ async def login_access_token(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
     access_token_expires = timedelta(minutes=60) # extended for dev
+    access_token = security.create_access_token(
+        subject=user.id, role=user.role, expires_delta=access_token_expires
+    )
+    
+    # Set HTTP-Only Cookie for Next.js App
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=60 * 60,
+        expires=60 * 60,
+        samesite="lax",
+        secure=False, # Set to True in production
+    )
+
     return {
-        "access_token": security.create_access_token(
-            subject=user.id, role=user.role, expires_delta=access_token_expires
-        ),
+        "access_token": access_token,
         "token_type": "bearer",
     }
