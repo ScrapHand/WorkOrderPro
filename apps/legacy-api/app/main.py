@@ -180,5 +180,51 @@ async def fix_tenant():
         )
         db.add(tenant)
         await db.commit()
-        await db.refresh(tenant)
         return {"message": "Tenant 'default' created successfully.", "tenant_id": str(tenant.id)}
+
+# TEMPORARY: Force Admin Password Reset
+@app.get("/force-admin")
+async def force_admin():
+    from app.db.session import AsyncSessionLocal
+    from app.core import security
+    from sqlalchemy import select
+    
+    async with AsyncSessionLocal() as db:
+        # 1. Ensure Tenant
+        stmt_tenant = select(models.Tenant).where(models.Tenant.slug == "default")
+        result_tenant = await db.execute(stmt_tenant)
+        tenant = result_tenant.scalars().first()
+        
+        if not tenant:
+            tenant = models.Tenant(name="Default Company", slug="default", plan="enterprise")
+            db.add(tenant)
+            await db.commit()
+            await db.refresh(tenant)
+        
+        # 2. Force Admin
+        stmt = select(models.User).where(models.User.email == "admin@example.com")
+        result = await db.execute(stmt)
+        user = result.scalars().first()
+        
+        hashed_pw = security.get_password_hash("admin123")
+        
+        if user:
+            user.password_hash = hashed_pw
+            user.role = models.UserRole.ADMIN
+            user.tenant_id = tenant.id
+            user.is_active = True
+            msg = "Admin password RESET to 'admin123'."
+        else:
+            user = models.User(
+                email="admin@example.com",
+                password_hash=hashed_pw,
+                full_name="System Admin",
+                role=models.UserRole.ADMIN,
+                tenant_id=tenant.id,
+                is_active=True
+            )
+            db.add(user)
+            msg = "Admin account CREATED with password 'admin123'."
+            
+        await db.commit()
+        return {"message": msg, "email": "admin@example.com", "password": "admin123"}
