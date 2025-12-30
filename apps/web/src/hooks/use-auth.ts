@@ -1,34 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { User, UserRole } from "@/lib/auth/types";
 
-// Zod Schema for User (Mirroring Backend)
-export const UserRoleSchema = z.enum([
-    "admin",
-    "manager",
-    "technician",
-    "engineer",
-    "viewer",
-    "team_leader"
-]);
-
-export const UserSchema = z.object({
-    id: z.string().uuid(),
-    email: z.string().email(),
-    full_name: z.string().nullable(),
-    role: UserRoleSchema,
-    is_active: z.boolean().default(true),
-});
-
-export type User = z.infer<typeof UserSchema>;
+// Re-export specific hook for RoleGuard
+export const useAuth = useUser;
 
 export function useUser() {
     return useQuery({
         queryKey: ["user"],
         queryFn: async () => {
             const res = await api.get("/users/me");
-            return UserSchema.parse(res.data);
+            return res.data as User;
         },
         retry: false, // Fail fast on 401
         staleTime: 1000 * 60 * 5, // 5 minutes
@@ -45,10 +28,32 @@ export function useLogin() {
             const res = await api.post("/login/access-token", credentials);
             return res.data;
         },
-        onSuccess: () => {
-            // Invalidate user query to fetch new profile
-            queryClient.invalidateQueries({ queryKey: ["user"] });
-            router.push("/dashboard");
+        onSuccess: async () => {
+            // Invalidate to ensure we don't have stale guest data
+            await queryClient.invalidateQueries({ queryKey: ["user"] });
+
+            // Fetch fresh user data to determine redirect
+            // We use fetchQuery to bypass the cache we just invalidated/stale-d
+            try {
+                const user = await queryClient.fetchQuery({
+                    queryKey: ["user"],
+                    queryFn: async () => {
+                        const res = await api.get("/users/me");
+                        return res.data as User;
+                    },
+                    staleTime: 0 // Ensure fresh
+                });
+
+                if (user.role === UserRole.TECHNICIAN) {
+                    router.push("/work-orders/my-tasks");
+                } else {
+                    router.push("/dashboard");
+                }
+            } catch (error) {
+                // Fallback if user fetch fails (weird edge case)
+                console.error("Failed to fetch user after login", error);
+                router.push("/dashboard");
+            }
         },
     });
 }
@@ -59,16 +64,11 @@ export function useLogout() {
 
     return useMutation({
         mutationFn: async () => {
-            // Create a logout endpoint or just client-side clear?
-            // Best to have server-side clearing of cookie
-            // For now, we assume we might need to hit an endpoint
             // await api.post("/logout"); 
-            // If no logout endpoint, ensuring cookie is cleared is tricky client-side if HttpOnly.
-            // We will need a logout endpoint.
         },
         onSuccess: () => {
             queryClient.setQueryData(["user"], null);
-            router.push("/login");
+            router.push("/login"); // or /acme/login if that's the main entry
         }
     });
 }
