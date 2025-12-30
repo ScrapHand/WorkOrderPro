@@ -32,55 +32,26 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import re
 
-class VercelCORSMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        origin = request.headers.get("origin")
-        
-        # Define patterns
-        # Regex to match any Vercel preview URL for this project
-        # e.g. https://work-order-git-main-scraphands-projects.vercel.app
-        # e.g. https://work-order-ff0sphvm8-scraphands-projects.vercel.app
-        vercel_pattern = r"^https://work-order-.*-scraphands-projects\.vercel\.app$"
-        
-        allowed_origins = [
-            "http://localhost:3000", 
-            "http://localhost:3001",
-            "https://workorderpro.vercel.app",
-        ]
-        
-        is_allowed = False
-        if origin:
-            if origin in allowed_origins:
-                is_allowed = True
-            elif re.match(vercel_pattern, origin, re.IGNORECASE):
-                is_allowed = True
-        
-        # Handle Preflight OPTIONS
-        if request.method == "OPTIONS" and is_allowed:
-            response = Response(status_code=204)
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Tenant, X-Tenant-Slug, x-tenant-slug"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            return response
+# Standard CORS Middleware with Regex Support
+# Replaces custom implementation for better stability
+allowed_origins = [
+    "http://localhost:3000", 
+    "http://localhost:3001",
+    "https://workorderpro.vercel.app",
+]
 
-        response = await call_next(request)
-        
-        if is_allowed:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            # Ensure other headers are set if not properly handled by app
-            if "Access-Control-Allow-Methods" not in response.headers:
-                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-            if "Access-Control-Allow-Headers" not in response.headers:
-                response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Tenant, X-Tenant-Slug, x-tenant-slug"
-                
-        return response
+# Regex matches any sub-domain deployment on Vercel
+# e.g. https://work-order-1simgotp2-scraphands-projects.vercel.app
+allow_origin_regex = r"https://work-order-.*-scraphands-projects\.vercel\.app"
 
-app.add_middleware(VercelCORSMiddleware)
-
-# Keep standard CORS for simple local dev fallback if needed, or rely on above
-# app.add_middleware(CORSMiddleware, ...) 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+) 
 
 
 # Mount static files
@@ -135,7 +106,7 @@ async def debug_exception_handler(request: Request, exc: Exception):
 
 @app.get("/version")
 async def read_version():
-    return {"version": "2.0.3", "feature": "cors_regex_fix", "timestamp": "2025-12-30T17:30:00Z"}
+    return {"version": "2.0.4", "feature": "standard_cors_secure_cookie", "timestamp": "2025-12-30T17:45:00Z"}
 
 @app.get("/")
 def root():

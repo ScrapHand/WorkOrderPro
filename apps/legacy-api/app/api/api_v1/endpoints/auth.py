@@ -53,14 +53,16 @@ async def login_access_token(
     )
     
     # Set HTTP-Only Cookie for Next.js App
+    # Set HTTP-Only Cookie for Next.js App
+    # Must be SameSite=None + Secure=True for Vercel -> Render cross-site requests
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
         max_age=60 * 60,
         expires=60 * 60,
-        samesite="lax",
-        secure=False, # Set to True in production
+        samesite="none",
+        secure=True,
     )
 
     return {
