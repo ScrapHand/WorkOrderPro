@@ -25,7 +25,8 @@ export function useLogin() {
     return useMutation({
         mutationFn: async (credentials: FormData) => {
             // Backend expects x-www-form-urlencoded for OAuth2
-            const res = await api.post("/login/access-token", credentials);
+            // Endpoint is mounted at /auth in api.py, and defines /login (so /auth/login)
+            const res = await api.post("/auth/login", credentials);
             return res.data;
         },
         onSuccess: async () => {
@@ -68,7 +69,7 @@ export function useLogout() {
         },
         onSuccess: () => {
             queryClient.setQueryData(["user"], null);
-            router.push("/login"); // or /acme/login if that's the main entry
+            router.push("/auth/login"); // Correct path
         }
     });
 }

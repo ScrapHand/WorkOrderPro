@@ -8,6 +8,7 @@ export const api = axios.create({
     withCredentials: true, // Critical for Cookies
     headers: {
         "Content-Type": "application/json",
+        "X-Tenant-Slug": "default", // Required by Backend
     },
 });
 
