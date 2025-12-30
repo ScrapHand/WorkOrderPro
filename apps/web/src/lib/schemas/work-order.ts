@@ -28,3 +28,7 @@ export type WizardAssetValues = z.infer<typeof WizardAssetSchema>;
 export type WizardPriorityValues = z.infer<typeof WizardPrioritySchema>;
 export type WizardDetailsValues = z.infer<typeof WizardDetailsSchema>;
 export type CreateWorkOrderValues = z.infer<typeof CreateWorkOrderSchema>;
+
+// Aliases for other components (e.g. create-wizard.tsx)
+export const workOrderSchema = CreateWorkOrderSchema;
+export type WorkOrderCreate = CreateWorkOrderValues;
