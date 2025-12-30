@@ -24,9 +24,18 @@ export function useLogin() {
 
     return useMutation({
         mutationFn: async (credentials: FormData) => {
+            // Check for tenant_slug override
+            const tenantSlug = credentials.get("tenant_slug")?.toString();
+
+            const config = tenantSlug ? {
+                headers: {
+                    "X-Tenant-Slug": tenantSlug
+                }
+            } : undefined;
+
             // Backend expects x-www-form-urlencoded for OAuth2
             // Endpoint is mounted at /auth in api.py, and defines /login (so /auth/login)
-            const res = await api.post("/auth/login", credentials);
+            const res = await api.post("/auth/login", credentials, config);
             return res.data;
         },
         onSuccess: async () => {
