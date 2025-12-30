@@ -60,17 +60,52 @@ async def startup_event():
     async with AsyncSessionLocal() as db:
         try:
             # AUTO-MIGRATION: Fix Remote DB Roles to Lowercase
-            # This ensures compatibility with strict Enum handling
-            from sqlalchemy import text
+            from sqlalchemy import text, select
             await db.execute(text("UPDATE users SET role = lower(role)"))
             await db.execute(text("UPDATE work_orders SET status = lower(status)"))
-            await db.commit()
             
-            # await init_db(db) # Keep original seeding disabled for now
-            pass
-            # await init_db(db)
+            # --- AUTO-REPAIR: Ensure Valid Connection State ---
+            # 1. Ensure Tenant
+            stmt_tenant = select(models.Tenant).where(models.Tenant.slug == "default")
+            res_tenant = await db.execute(stmt_tenant)
+            tenant = res_tenant.scalars().first()
+            if not tenant:
+                print("STARTUP: Creating default 'Acme Corp' tenant...")
+                tenant = models.Tenant(name="Acme Corp", slug="default", plan="enterprise")
+                db.add(tenant)
+                await db.commit()
+                await db.refresh(tenant)
+            
+            # 2. Ensure Admin Linkage
+            from app.core.security import get_password_hash
+            stmt_user = select(models.User).where(models.User.email == "admin@example.com")
+            res_user = await db.execute(stmt_user)
+            user = res_user.scalars().first()
+            
+            if user:
+                # Force link to tenant if missing or wrong
+                if user.tenant_id != tenant.id:
+                    print(f"STARTUP: Fixing Admin Tenant Link ({user.tenant_id} -> {tenant.id})")
+                    user.tenant_id = tenant.id
+                    db.add(user)
+                    await db.commit()
+            else:
+                 print("STARTUP: Creating Admin User...")
+                 user = models.User(
+                    email="admin@example.com",
+                    password_hash=get_password_hash("admin123"),
+                    full_name="System Admin",
+                    role=models.UserRole.ADMIN,
+                    tenant_id=tenant.id,
+                    is_active=True
+                )
+                 db.add(user)
+                 await db.commit()
+            # --------------------------------------------------
+
+            await db.commit()
         except Exception as e:
-            print(f"Seed failed: {e}")
+            print(f"Startup Logic failed: {e}")
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 

@@ -179,6 +179,20 @@ export default function DebugPage() {
                     </Card>
                 </div>
             )}
+
+            {report && (
+                <Card className="mt-8">
+                    <CardHeader>
+                        <CardTitle>Raw JSON Response</CardTitle>
+                        <CardDescription>Full backend report for debugging.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <pre className="bg-slate-950 text-slate-50 p-4 rounded-lg text-xs overflow-auto max-h-[500px]">
+                            {JSON.stringify(report, null, 2)}
+                        </pre>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }
