@@ -4,10 +4,7 @@ import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-// Note: Shadcn `Switch` not installed yet, verifying in next step or using checkbox fallback.
-// Using Checkbox for now as it's simpler or I can use native checkbox.
-// Let's use native checkbox for speed or a simple custom toggle.
+
 
 export function Step3Details() {
     const { register, formState: { errors } } = useFormContext();
