@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useLogin } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,32 +8,77 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-    const login = useLogin();
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [debugInfo, setDebugInfo] = useState<string>("");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsLoading(true);
+        setDebugInfo("");
 
-        const formData = new FormData();
-        formData.append("username", email); // OAuth2 expects 'username'
-        formData.append("password", password);
+        try {
+            // ROBUST DEBUGGING Logic as requested
+            // 1. Determine API URL
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://workorderpro-backend.onrender.com";
 
-        login.mutate(formData, {
-            onError: (error: any) => {
-                const msg = error.response?.data?.detail || "Login failed. Please check your credentials.";
-                toast.error(msg);
+            // 2. Construct Token URL (Standard FastAPI)
+            // Note: User explicitly requested /token (not /auth/login)
+            const tokenUrl = `${API_URL}/token`;
+
+            console.log("Attempting login to:", tokenUrl);
+            setDebugInfo(`Calling: ${tokenUrl}`);
+
+            // 3. Prepare FormData (Standard FastAPI OAuth2)
+            const formData = new FormData();
+            formData.append("username", email);
+            formData.append("password", password);
+
+            // 4. Direct Fetch
+            const res = await fetch(tokenUrl, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    // Do NOT set Content-Type header when sending FormData, browser does it with boundary
+                    // But we might need X-Tenant-Slug
+                    "X-Tenant-Slug": "default"
+                }
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("Login Failed:", res.status, text);
+                throw new Error(`Login failed: ${res.status} ${text}`);
             }
-        });
+
+            const data = await res.json();
+
+            // 5. Success Handling
+            // Store token in cookie
+            document.cookie = `access_token=${data.access_token}; path=/; max-age=3600; secure; samesite=strict`;
+
+            toast.success("Login successful");
+            router.push("/dashboard");
+
+        } catch (error: any) {
+            console.error("Login Error:", error);
+            toast.error(error.message || "Failed to login");
+            setDebugInfo(prev => `${prev} | Error: ${error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
             <Card className="w-full max-w-sm">
                 <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold">Login</CardTitle>
+                    <CardTitle className="text-2xl font-bold">Sign in to WorkOrderPro</CardTitle>
                     <CardDescription>
                         Enter your email and password to access your account.
                     </CardDescription>
@@ -67,19 +111,21 @@ export default function LoginPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                             />
                         </div>
+                        {debugInfo && (
+                            <div className="bg-muted p-2 rounded text-xs font-mono text-muted-foreground break-all">
+                                {debugInfo}
+                            </div>
+                        )}
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full" type="submit" disabled={login.isPending}>
-                            {login.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Button className="w-full" type="submit" disabled={isLoading}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Sign In
                         </Button>
                     </CardFooter>
                 </form>
                 <div className="p-6 pt-0 text-center text-sm text-muted-foreground">
-                    Don&apos;t have an account?{" "}
-                    <Link href="#" className="underline underline-offset-4 hover:text-primary">
-                        Contact Admin
-                    </Link>
+                    Don't have an account? Contact Admin.
                 </div>
             </Card>
         </div>
