@@ -11,7 +11,7 @@ import { Slot } from "@radix-ui/react-slot"
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: "default" | "outline" | "ghost" | "destructive" | "link"
-    size?: "default" | "sm" | "lg" | "icon"
+    size?: "default" | "sm" | "lg" | "xl" | "icon"
     asChild?: boolean
 }
 
