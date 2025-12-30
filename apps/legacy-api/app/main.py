@@ -34,20 +34,21 @@ import re
 
 # Standard CORS Middleware with Regex Support
 # Replaces custom implementation for better stability
-allowed_origins = [
-    "http://localhost:3000", 
-    "http://localhost:3001",
-    "https://workorderpro.vercel.app",
-]
+# allowed_origins = [
+#     "http://localhost:3000", 
+#     "http://localhost:3001",
+#     "https://workorderpro.vercel.app",
+# ]
 
 # Regex matches any sub-domain deployment on Vercel
 # e.g. https://work-order-1simgotp2-scraphands-projects.vercel.app
-allow_origin_regex = r"https://work-order-.*-scraphands-projects\.vercel\.app"
+# allow_origin_regex = r"https://work-order-.*-scraphands-projects\.vercel\.app"
 
+# DEBUG: Allow All Origins to fix NetworkError
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=allow_origin_regex,
+    allow_origins=["*"],
+    # allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
