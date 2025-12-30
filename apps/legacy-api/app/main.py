@@ -37,19 +37,22 @@ class VercelCORSMiddleware(BaseHTTPMiddleware):
         origin = request.headers.get("origin")
         
         # Define patterns
-        vercel_pattern = r"https://work-order-.*-scraphands-projects\.vercel\.app"
+        # Regex to match any Vercel preview URL for this project
+        # e.g. https://work-order-git-main-scraphands-projects.vercel.app
+        # e.g. https://work-order-ff0sphvm8-scraphands-projects.vercel.app
+        vercel_pattern = r"^https://work-order-.*-scraphands-projects\.vercel\.app$"
+        
         allowed_origins = [
             "http://localhost:3000", 
             "http://localhost:3001",
             "https://workorderpro.vercel.app",
-            "https://work-order-ff0sphvm8-scraphands-projects.vercel.app",
         ]
         
         is_allowed = False
         if origin:
             if origin in allowed_origins:
                 is_allowed = True
-            elif re.match(vercel_pattern, origin):
+            elif re.match(vercel_pattern, origin, re.IGNORECASE):
                 is_allowed = True
         
         # Handle Preflight OPTIONS
@@ -132,7 +135,7 @@ async def debug_exception_handler(request: Request, exc: Exception):
 
 @app.get("/version")
 async def read_version():
-    return {"version": "2.0.2", "feature": "fix_cors_explicit", "timestamp": "2025-12-30T16:55:00Z"}
+    return {"version": "2.0.3", "feature": "cors_regex_fix", "timestamp": "2025-12-30T17:30:00Z"}
 
 @app.get("/")
 def root():
