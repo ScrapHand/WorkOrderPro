@@ -157,3 +157,28 @@ async def setup_admin():
             
         await db.commit()
         return {"message": msg, "credentials": {"email": "admin@example.com", "password": "ScrapHand"}}
+
+# TEMPORARY: Fix Tenant
+@app.get("/fix-tenant")
+async def fix_tenant():
+    from app.db.session import AsyncSessionLocal
+    from sqlalchemy import select
+    
+    async with AsyncSessionLocal() as db:
+        stmt = select(models.Tenant).where(models.Tenant.slug == "default")
+        result = await db.execute(stmt)
+        tenant = result.scalars().first()
+        
+        if tenant:
+            return {"message": "Tenant 'default' already exists.", "tenant_id": str(tenant.id)}
+            
+        tenant = models.Tenant(
+            name="Default Company",
+            slug="default",
+            primary_domain="workorderpro.onrender.com",
+            plan="enterprise"
+        )
+        db.add(tenant)
+        await db.commit()
+        await db.refresh(tenant)
+        return {"message": "Tenant 'default' created successfully.", "tenant_id": str(tenant.id)}
