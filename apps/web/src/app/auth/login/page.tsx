@@ -27,9 +27,9 @@ export default function LoginPage() {
             // 1. Determine API URL
             const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://workorderpro-backend.onrender.com";
 
-            // 2. Construct Token URL (Standard FastAPI)
-            // Note: User explicitly requested /token (not /auth/login)
-            const tokenUrl = `${API_URL}/token`;
+            // 2. Construct Token URL
+            // Confirmed Backend Path: /api/v1/auth/login
+            const tokenUrl = `${API_URL}/api/v1/auth/login`;
 
             console.log("Attempting login to:", tokenUrl);
             setDebugInfo(`Calling: ${tokenUrl}`);
