@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "lucide-react"; // Wait, Shadcn Badge is a component, not lucide icon. 
 // I haven't created Badge component yet. I will use a simple span or create Badge.
 // Let's create Badge component in this same step if possible or just inline it for speed.
-import { PlusCircle, ClipboardList, CheckCircle2, Clock } from "lucide-react";
+import { PlusCircle, ClipboardList, CheckCircle2, Clock, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { RoleGuard } from "@/components/auth/role-guard";
+import { UserRole } from "@/lib/auth/types";
 
 // Placeholder type
 type WorkOrder = {
@@ -41,6 +43,11 @@ export default function DashboardPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Technician Dashboard</h1>
                     <p className="text-muted-foreground">Welcome back, get ready to fix things.</p>
                 </div>
+                <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                    <Button variant="destructive" size="sm">
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete Old Records
+                    </Button>
+                </RoleGuard>
             </div>
 
             {/* Big Action Buttons */}
@@ -82,7 +89,7 @@ export default function DashboardPage() {
                         <div className="text-center p-8 text-muted-foreground">Loading tasks...</div>
                     ) : myTasks && myTasks.length > 0 ? (
                         <div className="divide-y">
-                            {myTasks.slice(0, 5).map(task => (
+                            {myTasks?.slice(0, 5).map(task => (
                                 <div key={task.id} className="py-4 flex items-center justify-between hover:bg-muted/30 px-2 rounded-lg transition-colors">
                                     <div className="flex items-center gap-4">
                                         {task.status === 'completed' ? <CheckCircle2 className="text-green-500 h-5 w-5" /> : <Clock className="text-amber-500 h-5 w-5" />}
@@ -116,6 +123,6 @@ export default function DashboardPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 }
