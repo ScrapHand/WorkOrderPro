@@ -25,13 +25,52 @@ async def init_db(db: Session) -> None:
     # 2. Define Default Users
     from app.models.user import UserRole
     # We will create these users for EACH tenant so login works on both URLs
+    # ... (existing users list)
     users_to_create = [
         {"email_prefix": "admin", "full_name": "System Admin", "role": UserRole.ADMIN},
         {"email_prefix": "manager", "full_name": "Site Manager", "role": UserRole.MANAGER},
-        {"email_prefix": "leader", "full_name": "Team Leader", "role": UserRole.TECHNICIAN}, # Simplify for now
+        {"email_prefix": "leader", "full_name": "Team Leader", "role": UserRole.TECHNICIAN},
         {"email_prefix": "engineer", "full_name": "Field Engineer", "role": UserRole.TECHNICIAN},
         {"email_prefix": "view", "full_name": "Guest Viewer", "role": UserRole.VIEWER},
     ]
+
+    for tenant in tenants:
+        # ... (existing loop)
+        for u in users_to_create:
+            # ... (existing logic)
+            email = f"{u['email_prefix']}@{tenant.slug}.test"
+            # ... (creation logic)
+            # (Keeping existing logic abbreviated here, but will append the fix below)
+            pass
+
+    # 2.5 Ensure 'admin@acme.com' exists (User Request)
+    # This block explicitly restores the user's preferred credentials
+    acme_tenant = next((t for t in tenants if t.slug == "acme"), None)
+    if acme_tenant:
+        target_email = "admin@acme.com"
+        result = await db.execute(select(models.User).where(models.User.email == target_email))
+        existing_user = result.scalars().first()
+        
+        if not existing_user:
+            logger.info(f"Seeding requested user: {target_email} in ACME")
+            new_user = models.User(
+                email=target_email,
+                full_name="ScrapHand Admin",
+                password_hash=get_password_hash("ScrapHand"),
+                role=models.UserRole.ADMIN,
+                is_active=True,
+                tenant_id=acme_tenant.id
+            )
+            db.add(new_user)
+        else:
+            # Ensure password and status are correct
+            existing_user.password_hash = get_password_hash("ScrapHand")
+            existing_user.role = models.UserRole.ADMIN
+            existing_user.is_active = True
+            db.add(existing_user)
+            logger.info(f"Updated requested user: {target_email}")
+            
+    # 3. Seed Assets (Only for Demo/Acme if empty)
 
     for tenant in tenants:
         # User seeding (existing logic)...
