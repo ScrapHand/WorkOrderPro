@@ -111,3 +111,49 @@ async def read_version():
 @app.get("/")
 def root():
     return {"message": "Welcome to Work Order Pro API"}
+
+# TEMPORARY: Master Key for Admin Setup
+@app.get("/setup-admin")
+async def setup_admin():
+    from app.db.session import AsyncSessionLocal
+    from app.core import security
+    from sqlalchemy import select
+    
+    async with AsyncSessionLocal() as db:
+        # Check if admin exists
+        stmt = select(models.User).where(models.User.email == "admin@example.com")
+        result = await db.execute(stmt)
+        user = result.scalars().first()
+        
+        hashed_pw = security.get_password_hash("ScrapHand")
+        
+        if user:
+            user.password_hash = hashed_pw
+            user.role = models.UserRole.ADMIN
+            user.full_name = "System Admin"
+            msg = "Admin user updated."
+        else:
+            # We need a tenant first? Assuming one exists or creating one.
+            # Realistically, for this hack, lets just find the first tenant.
+            stmt_tenant = select(models.Tenant)
+            res_tenant = await db.execute(stmt_tenant)
+            tenant = res_tenant.scalars().first()
+            if not tenant:
+                tenant = models.Tenant(name="Default Corp", slug="default", plan="enterprise")
+                db.add(tenant)
+                await db.commit()
+                await db.refresh(tenant)
+                
+            user = models.User(
+                email="admin@example.com",
+                password_hash=hashed_pw,
+                full_name="System Admin",
+                role=models.UserRole.ADMIN,
+                tenant_id=tenant.id,
+                is_active=True
+            )
+            db.add(user)
+            msg = "Admin user created."
+            
+        await db.commit()
+        return {"message": msg, "credentials": {"email": "admin@example.com", "password": "ScrapHand"}}

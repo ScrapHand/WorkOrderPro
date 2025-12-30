@@ -11,10 +11,12 @@ import {
     Wrench,
     Users,
     PlusCircle,
-    Settings
+    Settings,
+    LogOut
 } from "lucide-react";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
+import { useLogout } from "@/hooks/use-auth";
 
 const sidebarLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -30,6 +32,7 @@ const adminLinks = [
 
 export function Sidebar() {
     const pathname = usePathname();
+    const logout = useLogout();
 
     return (
         <div className="flex h-full w-full flex-col border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -82,12 +85,20 @@ export function Sidebar() {
             </div>
 
             {/* Sticky Footer / Big Button */}
-            <div className="border-t p-4">
+            <div className="border-t p-4 space-y-2">
                 <Link href="/work-orders/new">
                     <Button size="lg" className="w-full gap-2 shadow-lg">
                         <PlusCircle className="h-5 w-5" /> Create Work Order
                     </Button>
                 </Link>
+
+                <Button
+                    variant="outline"
+                    className="w-full gap-2 text-muted-foreground hover:text-foreground"
+                    onClick={() => logout.mutate()}
+                >
+                    <LogOut className="h-4 w-4" /> Sign Out
+                </Button>
             </div>
         </div>
     );
