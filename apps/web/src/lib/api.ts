@@ -12,10 +12,25 @@ export const api = axios.create({
     },
 });
 
+// Request Interceptor: Log outgoing requests
+api.interceptors.request.use((config) => {
+    // [DEBUG] Log Request
+    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.data || '');
+    return config;
+});
+
+// Response Interceptor: Log results or errors
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log(`[API] Success: ${response.status} ${response.config.url}`);
+        return response;
+    },
     (error) => {
-        // Optional: Handle global 401 redirects here or let React Query handle it
+        if (error.response) {
+            console.error(`[API] Error: ${error.response.status} ${error.config.url}`, error.response.data);
+        } else {
+            console.error(`[API] Network Error: ${error.message}`);
+        }
         return Promise.reject(error);
     }
 );
