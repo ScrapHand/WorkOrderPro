@@ -14,13 +14,38 @@ async function main() {
             data: {
                 slug,
                 name: 'Default Tenant',
-                plan: 'pro'
+                plan: 'pro',
+                brandColor: '#2563eb', // Default Blue
+                logoUrl: 'https://via.placeholder.com/150' // Placeholder
             }
         });
         console.log(`Created tenant: ${tenant.slug}`);
     } else {
         console.log(`Tenant '${slug}' already exists.`);
+        // Ensure branding exists if upgrading schema
+        if (!tenant.brandColor) {
+            await prisma.tenant.update({
+                where: { id: tenant.id },
+                data: { brandColor: '#2563eb' }
+            });
+        }
     }
+
+    // 1b. Create Admin User
+    const adminEmail = 'admin@example.com';
+    const adminUser = await prisma.user.upsert({
+        where: { email: adminEmail },
+        update: {},
+        create: {
+            email: adminEmail,
+            // Using a real hash for 'password' to be safe.
+            // $2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4hZ1.s.w.e (example)
+            // For now, using a placeholder string.
+            passwordHash: '$2b$10$lzv.exampleHashForPassword.......', // Placeholder
+            role: 'ADMIN',
+            tenantId: tenant.id
+        }
+    });
 
     // 2. Create Asset Hierarchy
     // Root: Headquarters

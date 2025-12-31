@@ -37,7 +37,7 @@ npx prisma db push --accept-data-loss
     *   **Framework Preset**: Next.js.
 4.  **Environment Variables**:
     *   `NEXT_PUBLIC_API_URL`: Set this to your **new** Render Service URL appended with `/api/v1`.
-        *   Example: `https://workorderpro-backend.onrender.com/api/v1`
+        *   NEXT_PUBLIC_API_URL=https://workorderpro-backend.onrender.com/api/v1
         *   *Note: Ensure you do NOT use the old V2 URL.*
 5.  **Deploy**: Click "Deploy".
 

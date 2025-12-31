@@ -12,12 +12,33 @@ model Tenant {
   slug      String   @unique
   name      String
   plan      String   @default("free")
+  
+  // Branding
+  logoUrl    String?  @map("logo_url")
+  brandColor String   @default("#2563eb") @map("brand_color")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   assets    Asset[]
   workOrders WorkOrder[]
   attachments Attachment[]
+  users     User[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("VIEWER") // ADMIN, TECHNICIAN, VIEWER
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
 }
 
 model Asset {

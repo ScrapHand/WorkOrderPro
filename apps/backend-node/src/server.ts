@@ -67,6 +67,11 @@ import { WorkOrderController } from './infrastructure/http/controllers/work-orde
 import { S3Service } from './infrastructure/services/s3.service';
 import { UploadController } from './infrastructure/http/controllers/upload.controller';
 
+import { UserService } from './application/services/user.service';
+import { UserController } from './infrastructure/http/controllers/user.controller';
+import { AdminController } from './infrastructure/http/controllers/admin.controller';
+import { DebugController } from './infrastructure/http/controllers/debug.controller';
+
 import { AuthController } from './infrastructure/http/controllers/auth.controller'; // [FIX] Import Auth
 
 // Instantiate Services
@@ -81,6 +86,11 @@ const woController = new WorkOrderController(woService, prisma);
 
 const s3Service = new S3Service();
 const uploadController = new UploadController(s3Service, prisma);
+
+const userService = new UserService(prisma);
+const userController = new UserController(userService);
+const adminController = new AdminController(prisma);
+const debugController = new DebugController(prisma);
 
 const authController = new AuthController(); // [FIX] Instantiate Auth
 
@@ -108,6 +118,17 @@ const assetRouter = express.Router();
 assetRouter.post('/', assetController.create);
 assetRouter.get('/:id/tree', assetController.getTree);
 apiRouter.use('/assets', assetRouter);
+
+// User Routes
+const userRouter = express.Router();
+userRouter.post('/', userController.create); // Create User
+userRouter.get('/', userController.getAll); // List Users
+apiRouter.use('/users', userRouter);
+
+// Admin Routes (Tenants)
+const adminRouter = express.Router();
+adminRouter.patch('/branding', adminController.updateBranding);
+apiRouter.use('/tenant', adminRouter);
 
 // Work Order Routes
 const woRouter = express.Router();

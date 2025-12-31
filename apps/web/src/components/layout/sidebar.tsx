@@ -20,14 +20,16 @@ import { useLogout } from "@/hooks/use-auth";
 
 const sidebarLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Work Orders", href: "/work-orders", icon: ClipboardList },
-    { name: "Assets", href: "/assets", icon: Box },
-    { name: "Inventory", href: "/inventory", icon: Wrench },
+    { name: "Work Orders", href: "/dashboard/work-orders", icon: ClipboardList },
+    { name: "Assets", href: "/dashboard/assets", icon: Box },
+    { name: "Inventory", href: "/dashboard/inventory", icon: Wrench },
+    { name: "Reports", href: "/dashboard/reports", icon: ClipboardList }, // Added Reports
 ];
 
 const adminLinks = [
-    { name: "User Management", href: "/admin/users", icon: Users },
-    //    { name: "Settings", href: "/admin/settings", icon: Settings },
+    { name: "User Management", href: "/dashboard/admin/users", icon: Users },
+    { name: "Branding", href: "/dashboard/admin/branding", icon: Settings },
+    { name: "System Doctor", href: "/dashboard/system-status", icon: Settings }, // Added Doctor
 ];
 
 export function Sidebar() {
