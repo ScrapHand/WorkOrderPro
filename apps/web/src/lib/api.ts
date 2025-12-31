@@ -3,17 +3,27 @@ import axios from "axios";
 // Default to localhost:8000 for dev if env not set
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
+// Helper to get slug dynamically
+const getTenantSlug = () => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem('tenant_slug') || 'default';
+    }
+    return 'default';
+};
+
 export const api = axios.create({
     baseURL: BASE_URL,
     withCredentials: true, // Critical for Cookies
     headers: {
         "Content-Type": "application/json",
-        "X-Tenant-Slug": "default", // Required by Backend
     },
 });
 
-// Request Interceptor: Log outgoing requests
+// Request Interceptor: Inject Tenant Slug & Log
 api.interceptors.request.use((config) => {
+    // Dynamic Slug Injection
+    config.headers['X-Tenant-Slug'] = getTenantSlug();
+
     // [DEBUG] Log Request
     console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.data || '');
     return config;

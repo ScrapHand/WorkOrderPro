@@ -38,7 +38,15 @@ export function useLogin() {
             const res = await api.post("/auth/login", credentials, config);
             return res.data;
         },
-        onSuccess: async () => {
+        onSuccess: async (_, variables) => {
+            // Store Tenant Slug for future requests
+            const tenantSlug = variables.get("tenant_slug")?.toString();
+            if (tenantSlug) {
+                localStorage.setItem("tenant_slug", tenantSlug);
+            } else {
+                localStorage.setItem("tenant_slug", "default");
+            }
+
             // Invalidate to ensure we don't have stale guest data
             await queryClient.invalidateQueries({ queryKey: ["user"] });
 
