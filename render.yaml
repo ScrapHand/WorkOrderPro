@@ -3,7 +3,7 @@ services:
     name: workorderpro-backend
     env: node
     rootDir: apps/backend-node
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
