@@ -45,7 +45,13 @@ app.use(session({
 }));
 
 // [ARCH] 5. Tenant Context
+// [ARCH] 5. Tenant Context
 app.use(tenantMiddleware);
+
+// [ARCH] Database Connection
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
 // [ARCH] DI & Routes
 // Import Controllers
