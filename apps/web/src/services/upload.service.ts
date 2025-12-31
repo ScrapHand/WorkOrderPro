@@ -4,7 +4,7 @@ export const UploadService = {
     /**
      * Get Presigned URL
      */
-    getPresignedUrl: async (entityType: 'assets' | 'work-orders', entityId: string, file: File) => {
+    getPresignedUrl: async (entityType: 'assets' | 'work-orders' | 'tenant', entityId: string, file: File) => {
         const res = await api.post("/upload/presign", {
             entityType,
             entityId,
