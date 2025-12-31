@@ -47,6 +47,19 @@ async function main() {
         }
     });
 
+    // 1c. Create Demo User
+    const demoEmail = 'demo@demo.com';
+    await prisma.user.upsert({
+        where: { email: demoEmail },
+        update: {},
+        create: {
+            email: demoEmail,
+            passwordHash: '$2b$10$lzv.exampleHashForPassword.......', // Placeholder same as admin
+            role: 'ADMIN', // [FIX] High privilege for verification
+            tenantId: tenant.id
+        }
+    });
+
     // 2. Create Asset Hierarchy
     // Root: Headquarters
     const hq = await prisma.asset.upsert({

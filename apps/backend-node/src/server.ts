@@ -36,7 +36,7 @@ app.use(session({
     saveUninitialized: false,
     name: 'wop_session',
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // [FIX] Secure in prod
+        secure: true, // [CRITICAL] Required for SameSite=None
         httpOnly: true,
         sameSite: 'none', // Required for cross-site
         partitioned: true, // [CRITICAL] CHIPS opt-in
