@@ -26,6 +26,7 @@ export class DebugController {
                     tenantId: tenant?.id || "N/A",
                     slug: tenant?.slug || "N/A",
                     userRole: (req as any).user?.role || "GUEST", // Assuming AuthMiddleware populates req.user
+                    cookie: req.headers.cookie ? "PRESENT" : "MISSING",
                     nodeEnv: process.env.NODE_ENV
                 },
                 database: {
