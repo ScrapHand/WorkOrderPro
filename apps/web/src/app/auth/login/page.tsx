@@ -35,18 +35,18 @@ export default function LoginPage() {
             console.log("Attempting login to:", tokenUrl);
             setDebugInfo(`Calling: ${tokenUrl}`);
 
-            // 3. Prepare FormData (Standard FastAPI OAuth2)
-            const formData = new FormData();
-            formData.append("username", email);
-            formData.append("password", password);
+            // 3. Prepare JSON Payload (Backend expects JSON via express.json())
+            const payload = {
+                email: email,
+                password: password
+            };
 
-            // 4. Direct Fetch
+            // 4. Direct Fetch as JSON
             const res = await fetch(tokenUrl, {
                 method: "POST",
-                body: formData,
+                body: JSON.stringify(payload),
                 headers: {
-                    // Do NOT set Content-Type header when sending FormData, browser does it with boundary
-                    // But we might need X-Tenant-Slug
+                    "Content-Type": "application/json",
                     "X-Tenant-Slug": "default"
                 }
             });
