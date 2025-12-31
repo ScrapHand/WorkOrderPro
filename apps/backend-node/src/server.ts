@@ -23,130 +23,105 @@ app.use(cors({
     origin: [
         'http://localhost:3000',
         'https://workorderpro.vercel.app',
+        'https://work-order-1tsb23zwd-scraphands-projects.vercel.app', // [FIX] Explicit deployment URL
         /https:\/\/.*\.vercel\.app$/ // Allow preview deployments
     ],
     credentials: true,
 }));
 
-// [ARCH] 4. Session with CHIPS (Partitioned Cookies)
-// Implements the critical requirement for cross-site context.
+// ... (Middlewares) ...
 app.use(session({
     secret: process.env.SESSION_SECRET || 'dev_secret_key_change_in_prod',
     resave: false,
     saveUninitialized: false,
     name: 'wop_session',
     cookie: {
-        secure: true, // Requires HTTPS (or localhost with trust proxy? No, requires HTTPS mostly)
+        secure: process.env.NODE_ENV === 'production', // [FIX] Secure in prod
         httpOnly: true,
         sameSite: 'none', // Required for cross-site
         partitioned: true, // [CRITICAL] CHIPS opt-in
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    } as any // Cast verify TS definition supports 'partitioned' (it might not yet, but runtime accepts it)
+    } as any
 }));
 
 // [ARCH] 5. Tenant Context
 app.use(tenantMiddleware);
 
-// [ARCH] Deep Health Check (Prompt 3)
-import 'dotenv/config'; // Ensure environment variables are loaded FIRST
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient(); // In production, use a singleton service
-
-app.get('/api/health', async (req, res) => {
-    const health = {
-        status: 'UP',
-        checks: {
-            database: 'UNKNOWN',
-            s3: 'SKIPPED' // Mocking S3 for now
-        },
-        timestamp: new Date().toISOString()
-    };
-
-    // 1. Database Check
-    try {
-        await prisma.$queryRaw`SELECT 1`;
-        health.checks.database = 'UP';
-    } catch (error) {
-        health.checks.database = 'DOWN';
-        health.status = 'DOWN'; // Global status fails if DB fails
-        console.error('Health Check DB Fail:', error);
-    }
-
-    const statusCode = health.status === 'UP' ? 200 : 503;
-    res.status(statusCode).json(health);
-});
-
 // [ARCH] DI & Routes
+// Import Controllers
 import { PostgresAssetRepository } from './infrastructure/repositories/postgres-asset.repository';
 import { AssetService } from './application/services/asset.service';
 import { AssetController } from './infrastructure/http/controllers/asset.controller';
 
-const assetRepo = new PostgresAssetRepository(prisma);
-const assetService = new AssetService(assetRepo);
-const assetController = new AssetController(assetService);
-
-const assetRouter = express.Router();
-assetRouter.post('/', assetController.create);
-assetRouter.get('/:id/tree', assetController.getTree);
-
-app.use('/api/assets', assetRouter);
-
-// [ARCH] Work Order DI
 import { PostgresWorkOrderRepository } from './infrastructure/repositories/work-order.repository';
 import { RimeService } from './application/services/rime.service';
 import { WorkOrderService } from './application/services/work-order.service';
 import { WorkOrderController } from './infrastructure/http/controllers/work-order.controller';
+
+import { S3Service } from './infrastructure/services/s3.service';
+import { UploadController } from './infrastructure/http/controllers/upload.controller';
+
+import { AuthController } from './infrastructure/http/controllers/auth.controller'; // [FIX] Import Auth
+
+// Instantiate Services
+const assetRepo = new PostgresAssetRepository(prisma);
+const assetService = new AssetService(assetRepo);
+const assetController = new AssetController(assetService);
 
 const woRepo = new PostgresWorkOrderRepository(prisma);
 const rimeService = new RimeService(assetRepo);
 const woService = new WorkOrderService(woRepo, rimeService);
 const woController = new WorkOrderController(woService);
 
-const woRouter = express.Router();
-woRouter.post('/', woController.create);
-woRouter.get('/', woController.getAll);
-
-app.use('/api/work-orders', woRouter);
-
-// [ARCH] Upload DI
-import { S3Service } from './infrastructure/services/s3.service';
-import { UploadController } from './infrastructure/http/controllers/upload.controller';
-
 const s3Service = new S3Service();
 const uploadController = new UploadController(s3Service, prisma);
 
+const authController = new AuthController(); // [FIX] Instantiate Auth
+
+// Define Routers
+const apiRouter = express.Router(); // [FIX] Group under /api/v1
+
+// Auth Routes
+const authRouter = express.Router();
+authRouter.post('/login', authController.login);
+authRouter.post('/logout', authController.logout);
+authRouter.get('/me', authController.me);
+authRouter.get('/verify', (req, res) => {
+    res.json({
+        message: 'Auth Verification',
+        sessionID: req.sessionID,
+        user: (req.session as any).user || null,
+        tenant: getCurrentTenant(),
+        headers: req.headers
+    });
+});
+apiRouter.use('/auth', authRouter);
+
+// Asset Routes
+const assetRouter = express.Router();
+assetRouter.post('/', assetController.create);
+assetRouter.get('/:id/tree', assetController.getTree);
+apiRouter.use('/assets', assetRouter);
+
+// Work Order Routes
+const woRouter = express.Router();
+woRouter.post('/', woController.create);
+woRouter.get('/', woController.getAll);
+apiRouter.use('/work-orders', woRouter);
+
+// Upload Routes
 const uploadRouter = express.Router();
 uploadRouter.post('/presign', uploadController.presign);
 uploadRouter.post('/confirm', uploadController.createAttachment);
+apiRouter.use('/upload', uploadRouter);
 
-app.use('/api/upload', uploadRouter);
+// Mount API v1
+app.use('/api/v1', apiRouter); // [FIX] Use v1 prefix
+app.use('/api', apiRouter); // [FIX] Fallback for api/ (legacy)
 
-// [VERIFY] Auth Check
-app.get('/api/auth/verify', (req, res) => {
-    // If session exists, we are good.
-    // In real auth, we'd check req.session.user
-    const sessionID = req.sessionID;
-    const hasSession = !!req.session;
+// Health Check (Root)
+app.get('/health', (req, res) => res.send('OK'));
 
-    // For demo/phase 1, let's just create a session if asked
-    if (req.query.login === 'true') {
-        (req.session as any).user = { id: 'admin', role: 'admin' };
-    }
-
-    res.json({
-        message: 'Auth Verification',
-        sessionID,
-        hasSession,
-        user: (req.session as any).user || null,
-        tenant: getCurrentTenant(), // Verify Middleware works
-        cookies: req.cookies,
-        headers: {
-            'x-forwarded-proto': req.headers['x-forwarded-proto'],
-            'origin': req.headers['origin']
-        }
-    });
-});
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
