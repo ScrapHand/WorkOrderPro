@@ -81,7 +81,7 @@ async function main() {
             description: 'Check fuel levels and voltage output.',
             status: 'OPEN',
             priority: 'HIGH',
-            priorityScore: 70, // 10 * 7 (High)
+            rimeScore: 70, // 10 * 7 (High)
         }
     });
 
@@ -94,7 +94,7 @@ async function main() {
             description: 'Hinge is squeaking.',
             status: 'IN_PROGRESS',
             priority: 'LOW',
-            priorityScore: 10, // 10 * 1 (Low)
+            rimeScore: 10, // 10 * 1 (Low)
         }
     });
     console.log('Work Orders seeded.');
