@@ -11,5 +11,6 @@ api_router.include_router(inventory.router, prefix="/inventory", tags=["inventor
 api_router.include_router(pm_schedules.router, prefix="/pm-schedules", tags=["pm-schedules"])
 api_router.include_router(utils.router, prefix="/utils", tags=["utils"])
 api_router.include_router(pages.router, prefix="/pages", tags=["pages"])
-from app.api.api_v1.endpoints import debug
+from app.api.api_v1.endpoints import debug, verify_auth
 api_router.include_router(debug.router, prefix="/debug", tags=["debug"])
+api_router.include_router(verify_auth.router, prefix="/auth", tags=["auth-verify"])

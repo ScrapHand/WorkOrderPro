@@ -14,6 +14,7 @@ router = APIRouter()
 
 @router.post("/login", response_model=schemas.Token)
 async def login_access_token(
+    response: Response,
     db: AsyncSession = Depends(deps.get_db),
     form_data: OAuth2PasswordRequestForm = Depends(),
     current_tenant: models.Tenant = Depends(deps.get_current_tenant) # Added dependency
@@ -62,8 +63,16 @@ async def login_access_token(
         max_age=60 * 60,
         expires=60 * 60,
         samesite="none",
-        secure=True,
+        secure=True, 
+        # domain=None, # Explicitly let browser infer domain
     )
+    
+    # [CRITICAL] Opt-in for CHIPS (Cookies Having Independent Partitioned State)
+    # Required for cross-site cookies in Chrome > 2024/2025 (Privacy Sandbox)
+    # Since 'partitioned' is not yet a standard arg in all Starlette versions, we append it manually.
+    cookie_val = response.headers.get("set-cookie")
+    if cookie_val and "Partitioned" not in cookie_val:
+        response.headers["set-cookie"] = f"{cookie_val}; Partitioned"
 
     return {
         "access_token": access_token,

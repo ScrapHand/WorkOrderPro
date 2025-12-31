@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  assets    Asset[]
+  workOrders WorkOrder[]
+  attachments Attachment[]
+}
+
+model Asset {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  parentId      String?  @map("parent_id")
+  name          String
+  description   String?
+  status        String   @default("OPERATIONAL") // Enum: OPERATIONAL, DOWN, MAINTENANCE
+  criticality   String?  @map("criticality") // Nullable for Recursive Inheritance
+  hierarchyPath String   @default("/") @map("hierarchy_path") // optimization for search
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime? // Soft Delete cursor
+
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  parent      Asset?   @relation("AssetHierarchy", fields: [parentId], references: [id])
+  children    Asset[]  @relation("AssetHierarchy")
+  workOrders  WorkOrder[]
+  attachments Attachment[]
+
+  // Indexes for Performance
+  @@index([tenantId])
+  @@index([parentId])
+  @@index([deletedAt])
+  @@index([hierarchyPath]) // Optimize path searches
+}
+
+model WorkOrder {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  assetId     String   @map("asset_id")
+  title       String
+  description String?
+  priority    String   // Enum: CRITICAL, HIGH, MEDIUM, LOW
+  status      String   @default("OPEN") // Enum: OPEN, IN_PROGRESS, DONE
+  rimeScore   Int      @map("rime_score") // Calculated: Asset Criticality * Priority
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // Soft Delete
+
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  asset       Asset    @relation(fields: [assetId], references: [id])
+  attachments Attachment[]
+
+  @@index([tenantId])
+  @@index([assetId])
+  @@index([rimeScore])
+}
+
+model Attachment {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  assetId     String?  @map("asset_id")
+  workOrderId String?  @map("work_order_id")
+  
+  fileName    String   @map("file_name")
+  mimeType    String   @map("mime_type")
+  size        Int
+  key         String   // S3 Key: tenants/{tid}/assets/{aid}/{uuid}-{name}
+  url         String   // Public URL (or base for presigning)
+  
+  uploadedAt  DateTime @default(now())
+
+  // Relations
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  asset       Asset?     @relation(fields: [assetId], references: [id])
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([tenantId])
+  @@index([assetId])
+  @@index([workOrderId])
+}

@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "module": "commonjs",
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "exclude": [
+        "prisma.config.ts",
+        "verification.js",
+        "test_prisma.ts",
+        "verify_tree.ts",
+        "dist",
+        "node_modules"
+    ]
+}

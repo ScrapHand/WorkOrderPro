@@ -14,6 +14,11 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# [SECURITY] Proxy Trust: Render Load Balancer
+# Enforce trust of proxy headers so the app knows it's behind HTTPS.
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+
 # Logging Middleware
 from fastapi import Request
 import logging
