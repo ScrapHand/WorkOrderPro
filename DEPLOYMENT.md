@@ -17,7 +17,14 @@ If you are NOT using the Blueprint, ensure these are set:
 | :--- | :--- |
 | `NODE_ENV` | `production` |
 | `TRUST_PROXY` | `1` (CRITICAL for secure cookies) |
-| `DATABASE_URL` | (Auto-filled by Render if using Blueprint) |
+### Database Initialization (Critical)
+Since we are initializing a fresh schema without previous migration history files, use `db push` instead of `migrate deploy`.
+
+In the Render **Shell** (or as a Build Command if one-off):
+```bash
+npx prisma db push --accept-data-loss
+```
+*This command forces the database schema to match your `schema.prisma` file.*
 
 ---
 
