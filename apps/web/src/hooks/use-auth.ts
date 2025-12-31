@@ -10,7 +10,7 @@ export function useUser() {
     return useQuery({
         queryKey: ["user"],
         queryFn: async () => {
-            const res = await api.get("/users/me");
+            const res = await api.get("/auth/me");
             return res.data as User;
         },
         retry: false, // Fail fast on 401
@@ -48,7 +48,7 @@ export function useLogin() {
                 const user = await queryClient.fetchQuery({
                     queryKey: ["user"],
                     queryFn: async () => {
-                        const res = await api.get("/users/me");
+                        const res = await api.get("/auth/me");
                         return res.data as User;
                     },
                     staleTime: 0 // Ensure fresh
