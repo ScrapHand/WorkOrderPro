@@ -26,7 +26,7 @@ export class S3Service {
      */
     async generatePresignedUrl(
         tenantId: string,
-        entityType: 'assets' | 'work-orders',
+        entityType: 'assets' | 'work-orders' | 'tenant',
         entityId: string,
         fileName: string,
         mimeType: string

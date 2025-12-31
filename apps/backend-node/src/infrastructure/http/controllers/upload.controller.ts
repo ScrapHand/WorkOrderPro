@@ -16,7 +16,7 @@ export class UploadController {
 
             const { entityType, entityId, fileName, mimeType } = req.body;
 
-            if (!['assets', 'work-orders'].includes(entityType)) {
+            if (!['assets', 'work-orders', 'tenant'].includes(entityType)) {
                 return res.status(400).json({ error: 'Invalid entity type' });
             }
 
@@ -29,7 +29,7 @@ export class UploadController {
 
             const { url, key } = await this.s3Service.generatePresignedUrl(
                 tenantRecord.id, // Real UUID
-                entityType,
+                entityType as 'assets' | 'work-orders' | 'tenant',
                 entityId,
                 fileName,
                 mimeType
