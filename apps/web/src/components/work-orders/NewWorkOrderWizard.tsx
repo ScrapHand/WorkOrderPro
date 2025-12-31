@@ -14,7 +14,7 @@ export function NewWorkOrderWizard() {
     const router = useRouter();
     const [step, setStep] = useState(1);
     const [createdWorkOrderId, setCreatedWorkOrderId] = useState<string | null>(null);
-    const [rootId, setRootId] = useState("41a408f1-64b1-49a2-b7c1-9f6a458bff78"); // Default for demo
+    const [rootId, setRootId] = useState("hq-001"); // Default for demo (Matches Seed)
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [formData, setFormData] = useState({
         title: "",
