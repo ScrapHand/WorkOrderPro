@@ -38,4 +38,9 @@ export class UserService {
             include: { tenant: true }
         });
     }
+
+    async resolveTenantId(slug: string): Promise<string | null> {
+        const tenant = await this.prisma.tenant.findUnique({ where: { slug } });
+        return tenant?.id || null;
+    }
 }

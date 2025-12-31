@@ -7,15 +7,18 @@ export class UserController {
 
     create = async (req: Request, res: Response) => {
         try {
-            const tenant = getCurrentTenant();
-            if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
+            const tenantId = await this.userService.resolveTenantId(tenantCtx.slug);
+            if (!tenantId) return res.status(404).json({ error: 'Tenant not found' });
 
             const { email, role, password } = req.body;
 
             // Basic validation
             if (!email) return res.status(400).json({ error: 'Email is required' });
 
-            const user = await this.userService.createUser(tenant.id, email, role || 'VIEWER', password);
+            const user = await this.userService.createUser(tenantId, email, role || 'VIEWER', password);
 
             // Return user without password hash
             const { passwordHash, ...safeUser } = user;
@@ -31,10 +34,13 @@ export class UserController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            const tenant = getCurrentTenant();
-            if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const users = await this.userService.getAllUsers(tenant.id);
+            const tenantId = await this.userService.resolveTenantId(tenantCtx.slug);
+            if (!tenantId) return res.status(404).json({ error: 'Tenant not found' });
+
+            const users = await this.userService.getAllUsers(tenantId);
             const safeUsers = users.map(u => {
                 const { passwordHash, ...rest } = u;
                 return rest;
