@@ -72,12 +72,12 @@ import { AuthController } from './infrastructure/http/controllers/auth.controlle
 // Instantiate Services
 const assetRepo = new PostgresAssetRepository(prisma);
 const assetService = new AssetService(assetRepo);
-const assetController = new AssetController(assetService);
+const assetController = new AssetController(assetService, prisma);
 
 const woRepo = new PostgresWorkOrderRepository(prisma);
 const rimeService = new RimeService(assetRepo);
 const woService = new WorkOrderService(woRepo, rimeService);
-const woController = new WorkOrderController(woService);
+const woController = new WorkOrderController(woService, prisma);
 
 const s3Service = new S3Service();
 const uploadController = new UploadController(s3Service, prisma);

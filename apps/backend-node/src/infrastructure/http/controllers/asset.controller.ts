@@ -1,23 +1,27 @@
 import { Request, Response } from 'express';
 import { AssetService } from '../../../application/services/asset.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
+import { PrismaClient } from '@prisma/client';
 
 export class AssetController {
-    constructor(private assetService: AssetService) { }
+    constructor(
+        private assetService: AssetService,
+        private prisma: PrismaClient
+    ) { }
 
     create = async (req: Request, res: Response) => {
         try {
-            const tenant = getCurrentTenant();
-            if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
+            // [FIX] Resolve Tenant Slug to UUID
+            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
             const { name, parentId, description, criticality } = req.body;
 
             const asset = await this.assetService.createAsset(
-                tenant.slug, // Using slug for ID in Phase 1 simplification, really should be UUID. 
-                // Wait, schema says tenantId is String.
-                // Middleware gives us slug. 
-                // Phase 1 verification used 'test-corp' as slug.
-                // For now, assume tenantId = slug. In production, middleware resolves slug->uuid.
+                tenant.id, // [FIX] Use UUID
                 name,
                 parentId || null,
                 description,
@@ -33,11 +37,15 @@ export class AssetController {
 
     getTree = async (req: Request, res: Response) => {
         try {
-            const tenant = getCurrentTenant();
-            if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
+            // [FIX] Resolve Tenant Slug to UUID
+            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
             const { id } = req.params;
-            const tree = await this.assetService.getAssetTree(id, tenant.slug);
+            const tree = await this.assetService.getAssetTree(id, tenant.id); // [FIX] Use UUID
             res.json(tree);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
