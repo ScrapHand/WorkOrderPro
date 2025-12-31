@@ -29,7 +29,8 @@ export default function LoginPage() {
 
             // 2. Construct Token URL
             // Confirmed Backend Path: /api/v1/auth/login
-            const tokenUrl = `${API_URL}/api/v1/auth/login`;
+            // API_URL already contains /api/v1 from Env Var.
+            const tokenUrl = `${API_URL}/auth/login`;
 
             console.log("Attempting login to:", tokenUrl);
             setDebugInfo(`Calling: ${tokenUrl}`);
