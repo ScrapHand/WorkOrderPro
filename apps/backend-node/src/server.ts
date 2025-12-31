@@ -142,6 +142,11 @@ uploadRouter.post('/presign', uploadController.presign);
 uploadRouter.post('/confirm', uploadController.createAttachment);
 apiRouter.use('/upload', uploadRouter);
 
+// Debug Routes
+const debugRouter = express.Router();
+debugRouter.get('/tenant', debugController.getTenantStatus);
+apiRouter.use('/debug', debugRouter);
+
 // Mount API v1
 app.use('/api/v1', apiRouter); // [FIX] Use v1 prefix
 app.use('/api', apiRouter); // [FIX] Fallback for api/ (legacy)
