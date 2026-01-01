@@ -14,7 +14,10 @@ export function useUser() {
             // [PHASE 25.5] Fix Data Mismatch
             // API returns { isAuthenticated: true, user: { ... } }
             // We must unwrap it to return just the User object
-            return res.data.user as User;
+            if (res.data && res.data.user) {
+                return res.data.user as User;
+            }
+            return res.data as User; // Fallback if structure flat
         },
         retry: false, // Fail fast on 401
         staleTime: 1000 * 60 * 5, // 5 minutes
