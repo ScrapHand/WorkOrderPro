@@ -121,5 +121,6 @@ model Session {
   sess   Json     @map("sess")
   expire DateTime @map("expire")
 
+  @@map("session")
   @@index([expire], name: "IDX_session_expire")
 }
