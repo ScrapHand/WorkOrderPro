@@ -11,7 +11,10 @@ export function useUser() {
         queryKey: ["user"],
         queryFn: async () => {
             const res = await api.get("/auth/me");
-            return res.data as User;
+            // [PHASE 25.5] Fix Data Mismatch
+            // API returns { isAuthenticated: true, user: { ... } }
+            // We must unwrap it to return just the User object
+            return res.data.user as User;
         },
         retry: false, // Fail fast on 401
         staleTime: 1000 * 60 * 5, // 5 minutes
