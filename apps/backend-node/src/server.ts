@@ -53,7 +53,8 @@ app.use(session({
         secure: true,        // [CRITICAL] HTTPS Only
         httpOnly: true,
         sameSite: 'lax',     // [CRITICAL] First-Party Proxy Friendly
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days (Persistent)
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 Days (Persistent)
+        domain: undefined    // [CRITICAL] Let it float to the Host (vercel.app)
     } as any
 }));
 
