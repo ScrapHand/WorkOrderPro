@@ -9,16 +9,18 @@ export class AuthController {
     login = async (req: Request, res: Response) => {
         try {
             const { email, password } = req.body;
+            console.log('Login Attempt:', email);
 
             // 1. Try Real Auth
             let user = await this.userService.findByEmail(email);
             let isValid = false;
 
             if (user) {
+                console.log('✅ User found. Validating password...');
                 isValid = await bcrypt.compare(password, user.passwordHash);
-            } else if (email === 'demo@demo.com' && password === 'password') {
+            } else if (email === 'demo@demo.com') { // Check email first for auto-seeding
                 // 2. Auto-Provision: Create Demo User if missing (JIT Seeding)
-                console.log('✨ Auto-Provisioning Demo User...');
+                console.log('⚡ User not found. Auto-seeding demo user...');
                 user = await this.userService.createUser(
                     'default',      // tenantId
                     email,          // email
@@ -43,9 +45,11 @@ export class AuthController {
             // 4. Force Save to DB
             req.session.save((err) => {
                 if (err) {
-                    console.error('Session save error:', err);
+                    console.error('Session Save Error:', err);
                     return res.status(500).json({ error: 'Session save failed' });
                 }
+
+                console.log('🍪 Session saved. Sending Cookie...');
 
                 // [PHASE 23] Cookie Mirror
                 res.json({
@@ -57,8 +61,6 @@ export class AuthController {
                         cookieHeader: res.get('Set-Cookie')
                     }
                 });
-                console.log('✅ Login successful for:', email);
-                console.log('🍪 Session ID saved:', req.sessionID);
             });
 
         } catch (error: any) {
