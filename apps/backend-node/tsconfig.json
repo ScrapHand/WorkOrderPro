@@ -11,6 +11,8 @@
     },
     "exclude": [
         "prisma.config.ts",
+        "prisma.config.ts",
+        "scripts",
         "verification.js",
         "test_prisma.ts",
         "verify_tree.ts",
