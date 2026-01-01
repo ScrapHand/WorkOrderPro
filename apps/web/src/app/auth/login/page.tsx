@@ -23,53 +23,33 @@ export default function LoginPage() {
         setDebugInfo("");
 
         try {
-            // ROBUST DEBUGGING Logic as requested
-            // 1. Determine API URL
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://workorderpro-backend.onrender.com";
+            // [PHASE 23] USE PROXY CLIENT
+            // This ensures the request goes to /api/v1/auth/login via Next.js Rewrite
+            console.log("Attempting login via Proxy...");
+            setDebugInfo(`Calling: /auth/login`);
 
-            // 2. Construct Token URL
-            // Confirmed Backend Path: /api/v1/auth/login
-            // API_URL already contains /api/v1 from Env Var.
-            const tokenUrl = `${API_URL}/auth/login`;
-
-            console.log("Attempting login to:", tokenUrl);
-            setDebugInfo(`Calling: ${tokenUrl}`);
-
-            // 3. Prepare JSON Payload (Backend expects JSON via express.json())
             const payload = {
                 email: email,
                 password: password
             };
 
-            // 4. Direct Fetch as JSON
-            const res = await fetch(tokenUrl, {
-                method: "POST",
-                body: JSON.stringify(payload),
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Tenant-Slug": "default"
-                }
-            });
+            // Use the centralized API client (cookies handled automatically)
+            // @ts-ignore
+            const { data } = await import("@/lib/api").then(m => m.api.post("/auth/login", payload));
 
-            if (!res.ok) {
-                const text = await res.text();
-                console.error("Login Failed:", res.status, text);
-                throw new Error(`Login failed: ${res.status} ${text}`);
-            }
+            console.log("Login Success:", data);
 
-            const data = await res.json();
-
-            // 5. Success Handling
-            // Store token in cookie
-            document.cookie = `access_token=${data.access_token}; path=/; max-age=3600; secure; samesite=strict`;
+            // [PHASE 23] No manual cookie setting needed.
+            // The Set-Cookie header from the response is handled by the browser automatically.
 
             toast.success("Login successful");
             router.push("/dashboard");
 
         } catch (error: any) {
             console.error("Login Error:", error);
-            toast.error(error.message || "Failed to login");
-            setDebugInfo(prev => `${prev} | Error: ${error.message}`);
+            const msg = error.response?.data?.error || error.message || "Failed to login";
+            toast.error(msg);
+            setDebugInfo(prev => `${prev} | Error: ${msg}`);
         } finally {
             setIsLoading(false);
         }
