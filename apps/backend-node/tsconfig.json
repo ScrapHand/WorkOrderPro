@@ -8,7 +8,8 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "noImplicitAny": false
+        "noImplicitAny": false,
+        "moduleResolution": "node"
     },
     "exclude": [
         "prisma.config.ts",

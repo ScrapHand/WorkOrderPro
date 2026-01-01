@@ -2,7 +2,7 @@ services:
   - type: web
     name: workorderpro-api
     env: node
-    buildCommand: cd apps/backend-node && npm install && npm run build
+    buildCommand: cd apps/backend-node && npm install --production=false && npm run build
     startCommand: cd apps/backend-node && npm start
     preDeployCommand: cd apps/backend-node && npx prisma migrate deploy
     envVars:
