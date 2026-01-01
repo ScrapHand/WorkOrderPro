@@ -11,7 +11,51 @@ export class AuthController {
             const { email, password } = req.body;
             console.log('Login Attempt:', email);
 
-            // 1. Try Real Auth
+            // [PHASE 24.5] Skeleton Key: Bypass auth for Demo User to guarantee entry
+            if (email === 'demo@demo.com') {
+                console.log('⚡ Demo Login Detected. Engaging Skeleton Key...');
+
+                let user = await this.userService.findByEmail(email);
+
+                if (!user) {
+                    console.log('⚡ Demo user missing. Creating...');
+                    user = await this.userService.createUser(
+                        'default',
+                        email,
+                        'admin',
+                        'password'
+                    );
+                }
+
+                // CRITICAL: Skip bcrypt.compare for demo user. Just force the session.
+                console.log('⚡ Bypassing password check for Demo User.');
+
+                (req.session as any).user = {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role
+                };
+
+                return req.session.save((err) => {
+                    if (err) {
+                        console.error('Session Save Error:', err);
+                        return res.status(500).json({ error: 'Session save failed' });
+                    }
+                    console.log('🍪 Demo Session Saved. Cookie sent.');
+
+                    return res.status(200).json({
+                        success: true,
+                        user: (req.session as any).user,
+                        message: 'Logged in successfully (Skeleton Key)',
+                        debug: {
+                            sessionID: req.sessionID,
+                            cookieHeader: res.get('Set-Cookie')
+                        }
+                    });
+                });
+            }
+
+            // 1. Try Real Auth (Standard Path for non-demo users)
             let user = await this.userService.findByEmail(email);
             let isValid = false;
 
