@@ -25,6 +25,9 @@ export class AuthController {
                         return res.status(500).json({ error: 'Session save failed' });
                     }
 
+                    // [PHASE 20] Debug if Express is attempting to send the cookie
+                    console.log('🍪 SENDING COOKIE:', res.get('Set-Cookie'));
+
                     res.json({
                         success: true,
                         user: (req.session as any).user,

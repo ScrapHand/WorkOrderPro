@@ -56,11 +56,12 @@ app.use(session({
     proxy: true, // [CRITICAL] Trust the proxy
     cookie: {
         path: '/',           // [CRITICAL] Available on root
-        secure: false,       // [PHASE 19] TRACER BULLET: Force allow to rule out SSL termination issues
+        secure: true,        // [PHASE 20] Revert to TRUE (Required for Partitioned)
         httpOnly: true,
-        sameSite: 'lax',     // [CRITICAL] First-Party Proxy Friendly
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 Days (Persistent)
-        domain: undefined    // [CRITICAL] Let it float to the Host (vercel.app)
+        sameSite: 'none',    // [PHASE 20] Switch to NONE (Most permissive)
+        partitioned: true,   // [PHASE 20] Modern Browser Support (CHIPS)
+        maxAge: 24 * 60 * 60 * 1000, // 1 Day (Shorter for testing)
+        domain: 'work-order-pro.vercel.app' // [PHASE 20] HARDCODE THIS. No more guessing.
     } as any
 }));
 
