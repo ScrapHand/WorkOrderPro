@@ -9,101 +9,50 @@ export class AuthController {
     login = async (req: Request, res: Response) => {
         try {
             const { email, password } = req.body;
-            console.log('Login Attempt:', email);
+            // console.log('Login Attempt:', email); // Clean logs
 
-            // [PHASE 24.5] Skeleton Key: Bypass auth for Demo User to guarantee entry
-            if (email === 'demo@demo.com') {
-                console.log('⚡ Demo Login Detected. Engaging Skeleton Key...');
-
-                let user = await this.userService.findByEmail(email);
-
-                if (!user) {
-                    console.log('⚡ Demo user missing. Creating...');
-                    user = await this.userService.createUser(
-                        'default',
-                        email,
-                        'admin',
-                        'password'
-                    );
-                }
-
-                // CRITICAL: Skip bcrypt.compare for demo user. Just force the session.
-                console.log('⚡ Bypassing password check for Demo User.');
-
-                (req.session as any).user = {
-                    id: user.id,
-                    email: user.email,
-                    role: user.role
-                };
-
-                return req.session.save((err) => {
-                    if (err) {
-                        console.error('Session Save Error:', err);
-                        return res.status(500).json({ error: 'Session save failed' });
-                    }
-                    console.log('🍪 Demo Session Saved. Cookie sent.');
-
-                    return res.status(200).json({
-                        success: true,
-                        user: (req.session as any).user,
-                        message: 'Logged in successfully (Skeleton Key)',
-                        debug: {
-                            sessionID: req.sessionID,
-                            cookieHeader: res.get('Set-Cookie')
-                        }
-                    });
-                });
-            }
-
-            // 1. Try Real Auth (Standard Path for non-demo users)
+            // 1. Try to find the user
             let user = await this.userService.findByEmail(email);
-            let isValid = false;
 
-            if (user) {
-                console.log('✅ User found. Validating password...');
-                isValid = await bcrypt.compare(password, user.passwordHash);
-            } else if (email === 'demo@demo.com') { // Check email first for auto-seeding
-                // 2. Auto-Provision: Create Demo User if missing (JIT Seeding)
-                console.log('⚡ User not found. Auto-seeding demo user...');
+            // 2. [JIT Seeding] If Demo User is missing, create it safely with REAL HASH
+            if (!user && email === 'demo@demo.com') {
+                console.log('🌱 Seeding Demo User (Legitimate Flow)...');
                 user = await this.userService.createUser(
-                    'default',      // tenantId
-                    email,          // email
-                    'admin',        // role
-                    password        // plainPassword (will be hashed by service)
+                    'default',
+                    email,
+                    'SYSTEM_ADMIN',  // Ensure high privilege
+                    password // Service hashes it automatically
                 );
-                isValid = true;
-                console.log('✅ Demo User Created:', user.id);
             }
 
-            if (!isValid || !user) {
+            if (!user) {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            // 3. Success: Set Session Data
+            // 3. [Validation] Standard bcrypt check (No Bypass!)
+            const isValid = await bcrypt.compare(password, user.passwordHash);
+
+            if (!isValid) {
+                return res.status(401).json({ error: 'Invalid credentials' });
+            }
+
+            // 4. [Session] Create Persistence
             (req.session as any).user = {
                 id: user.id,
                 email: user.email,
                 role: user.role
             };
 
-            // 4. Force Save to DB
             req.session.save((err) => {
                 if (err) {
                     console.error('Session Save Error:', err);
                     return res.status(500).json({ error: 'Session save failed' });
                 }
 
-                console.log('🍪 Session saved. Sending Cookie...');
-
-                // [PHASE 23] Cookie Mirror
                 res.json({
                     success: true,
                     user: (req.session as any).user,
                     message: 'Logged in successfully',
-                    debug: {
-                        sessionID: req.sessionID,
-                        cookieHeader: res.get('Set-Cookie')
-                    }
                 });
             });
 
@@ -113,21 +62,27 @@ export class AuthController {
         }
     };
 
-    logout = async (req: Request, res: Response) => {
-        req.session.destroy((err) => {
-            if (err) return res.status(500).json({ error: 'Logout failed' });
-            res.clearCookie('wop_session');
-            res.json({ success: true, message: 'Logged out' });
-        });
+} catch (error: any) {
+    console.error('Login Error:', error);
+    res.status(500).json({ error: error.message });
+}
     };
 
-    // Check if session is valid
-    me = async (req: Request, res: Response) => {
-        if ((req.session as any).user) {
-            res.json({ isAuthenticated: true, user: (req.session as any).user });
-        } else {
-            console.log('❌ Auth Check Failed. Session:', req.session); // [LOGGING] Phase 14
-            res.status(401).json({ isAuthenticated: false });
-        }
-    };
+logout = async (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+        if (err) return res.status(500).json({ error: 'Logout failed' });
+        res.clearCookie('wop_session');
+        res.json({ success: true, message: 'Logged out' });
+    });
+};
+
+// Check if session is valid
+me = async (req: Request, res: Response) => {
+    if ((req.session as any).user) {
+        res.json({ isAuthenticated: true, user: (req.session as any).user });
+    } else {
+        console.log('❌ Auth Check Failed. Session:', req.session); // [LOGGING] Phase 14
+        res.status(401).json({ isAuthenticated: false });
+    }
+};
 }

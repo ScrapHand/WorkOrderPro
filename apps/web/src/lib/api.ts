@@ -24,8 +24,8 @@ api.interceptors.request.use((config) => {
     // Dynamic Slug Injection
     config.headers['X-Tenant-Slug'] = getTenantSlug();
 
-    // [DEBUG] Log Request
-    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.data || '');
+    // [DEBUG] Log Request - Reduced Noise
+    // console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.data || '');
     return config;
 });
 
