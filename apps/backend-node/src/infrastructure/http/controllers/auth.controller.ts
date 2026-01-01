@@ -62,27 +62,21 @@ export class AuthController {
         }
     };
 
-} catch (error: any) {
-    console.error('Login Error:', error);
-    res.status(500).json({ error: error.message });
-}
+    logout = async (req: Request, res: Response) => {
+        req.session.destroy((err) => {
+            if (err) return res.status(500).json({ error: 'Logout failed' });
+            res.clearCookie('wop_session');
+            res.json({ success: true, message: 'Logged out' });
+        });
     };
 
-logout = async (req: Request, res: Response) => {
-    req.session.destroy((err) => {
-        if (err) return res.status(500).json({ error: 'Logout failed' });
-        res.clearCookie('wop_session');
-        res.json({ success: true, message: 'Logged out' });
-    });
-};
-
-// Check if session is valid
-me = async (req: Request, res: Response) => {
-    if ((req.session as any).user) {
-        res.json({ isAuthenticated: true, user: (req.session as any).user });
-    } else {
-        console.log('❌ Auth Check Failed. Session:', req.session); // [LOGGING] Phase 14
-        res.status(401).json({ isAuthenticated: false });
-    }
-};
+    // Check if session is valid
+    me = async (req: Request, res: Response) => {
+        if ((req.session as any).user) {
+            res.json({ isAuthenticated: true, user: (req.session as any).user });
+        } else {
+            console.log('❌ Auth Check Failed. Session:', req.session); // [LOGGING] Phase 14
+            res.status(401).json({ isAuthenticated: false });
+        }
+    };
 }
