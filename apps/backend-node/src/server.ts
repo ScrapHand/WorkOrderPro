@@ -1,3 +1,8 @@
+import 'dotenv/config'; // [PHASE 18] Load Env Vars FIRST
+if (!process.env.DATABASE_URL) {
+    throw new Error('FATAL: DATABASE_URL is missing on startup.');
+}
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -41,7 +46,8 @@ app.use(session({
             connectionString: process.env.DATABASE_URL,
             ssl: { rejectUnauthorized: false } // Render requires SSL
         },
-        createTableIfMissing: true // Safety check (though we have a migration)
+        createTableIfMissing: true, // Safety check (though we have a migration)
+        errorLog: console.error // [PHASE 18] Log connection errors
     }),
     secret: process.env.SESSION_SECRET || 'dev_secret_key_change_in_prod',
     resave: false,
@@ -63,7 +69,6 @@ app.use(session({
 app.use(tenantMiddleware);
 
 // [ARCH] Database Connection
-import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
