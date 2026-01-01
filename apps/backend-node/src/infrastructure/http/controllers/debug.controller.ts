@@ -39,6 +39,8 @@ export class DebugController {
                     nodeEnv: process.env.NODE_ENV
                 },
                 meta: {
+                    cookiesReceived: req.headers.cookie ? 'YES' : 'NONE',
+                    cookieDump: req.headers.cookie, // [DEBUG] Show raw string
                     host: req.hostname,           // [DEBUG] Did Vercel rewrite this?
                     protocol: req.protocol,       // [DEBUG] Is it https?
                     ip: req.ip,                   // [DEBUG] Proxy IP vs Real IP

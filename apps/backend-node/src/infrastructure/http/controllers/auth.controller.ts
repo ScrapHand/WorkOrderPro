@@ -25,13 +25,15 @@ export class AuthController {
                         return res.status(500).json({ error: 'Session save failed' });
                     }
 
-                    // [PHASE 20] Debug if Express is attempting to send the cookie
-                    console.log('🍪 SENDING COOKIE:', res.get('Set-Cookie'));
-
+                    // [PHASE 22] Cookie Mirror: Prove the backend generated the session
                     res.json({
                         success: true,
                         user: (req.session as any).user,
-                        message: 'Logged in successfully (Mock)'
+                        message: 'Logged in successfully (Mock)',
+                        debug: {
+                            sessionID: req.sessionID,
+                            cookieHeader: res.get('Set-Cookie') // [DEBUG] Critical: See if Express generated it
+                        }
                     });
                     console.log('✅ Login successful for:', email);
                     console.log('🍪 Session ID created:', req.sessionID);
