@@ -31,6 +31,11 @@ export class DebugController {
                     secure: req.secure, // [DEBUG] Check if Express thinks it is secure
                     nodeEnv: process.env.NODE_ENV
                 },
+                diagnostics: {
+                    headers: req.headers, // [FORENSIC] See exactly what Render sends us
+                    sessionID: req.sessionID,
+                    sessionData: req.session // [FORENSIC] See if the session store loaded anything
+                },
                 database: {
                     status: dbStatus
                 }

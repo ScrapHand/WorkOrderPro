@@ -30,18 +30,30 @@ app.use(cors({
     credentials: true,
 }));
 
-// ... (Middlewares) ...
+// [ARCH] 4. Session Persistence (Postgres)
+// Replaces MemoryStore to survive Render restarts/re-deploys.
+import pgSession from 'connect-pg-simple';
+const PgStore = pgSession(session);
+
 app.use(session({
+    store: new PgStore({
+        conObject: {
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false } // Render requires SSL
+        },
+        createTableIfMissing: true // Safety check (though we have a migration)
+    }),
     secret: process.env.SESSION_SECRET || 'dev_secret_key_change_in_prod',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: false, // [OPTIONAL] Set to true if you want to track "Guest" sessions
     name: 'wop_session',
-    proxy: true, // [FIX] Explicitly tell express-session to trust the proxy
+    proxy: true, // [CRITICAL] Trust the proxy
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Only secure in Prod
+        path: '/',           // [CRITICAL] Available on root
+        secure: true,        // [CRITICAL] HTTPS Only
         httpOnly: true,
-        sameSite: 'lax', // [FIX] Optimization for Proxy (First-Party)
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        sameSite: 'lax',     // [CRITICAL] First-Party Proxy Friendly
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days (Persistent)
     } as any
 }));
 
