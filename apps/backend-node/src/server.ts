@@ -15,8 +15,8 @@ const PORT = process.env.PORT || 8080;
 
 // [ARCH] 1. Proxy Trust (Render Requirement)
 // Crucial for X-Forwarded-Proto to work, enabling Secure cookies.
-// 'true' trusts ALL proxies (the safest for Render/Vercel multi-hop)
-app.set('trust proxy', true);
+// '3' trusts the last 3 hops (e.g., Internal -> Render LB -> Vercel)
+app.set('trust proxy', 3); // [PHASE 19] Explicit hop count
 
 // [ARCH] 2. Security Middleware
 app.use(helmet());
@@ -56,7 +56,7 @@ app.use(session({
     proxy: true, // [CRITICAL] Trust the proxy
     cookie: {
         path: '/',           // [CRITICAL] Available on root
-        secure: true,        // [CRITICAL] HTTPS Only
+        secure: false,       // [PHASE 19] TRACER BULLET: Force allow to rule out SSL termination issues
         httpOnly: true,
         sameSite: 'lax',     // [CRITICAL] First-Party Proxy Friendly
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 Days (Persistent)
