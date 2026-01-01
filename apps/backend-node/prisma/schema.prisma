@@ -114,3 +114,12 @@ model Attachment {
   @@index([assetId])
   @@index([workOrderId])
 }
+
+// Session table for connect-pg-simple
+model Session {
+  sid    String   @id @map("sid")
+  sess   Json     @map("sess")
+  expire DateTime @map("expire")
+
+  @@index([expire], name: "IDX_session_expire")
+}
