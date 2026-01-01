@@ -36,10 +36,9 @@ app.use(session({
     saveUninitialized: false,
     name: 'wop_session',
     cookie: {
-        secure: true, // [CRITICAL] Required for SameSite=None
+        secure: true, // Keep true (Vercel is HTTPS)
         httpOnly: true,
-        sameSite: 'none', // Required for cross-site
-        partitioned: true, // [CRITICAL] CHIPS opt-in
+        sameSite: 'lax', // [FIX] Optimization for Proxy (First-Party)
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     } as any
 }));

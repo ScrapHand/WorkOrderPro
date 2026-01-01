@@ -30,6 +30,8 @@ export class AuthController {
                         user: (req.session as any).user,
                         message: 'Logged in successfully (Mock)'
                     });
+                    console.log('✅ Login successful for:', email);
+                    console.log('🍪 Session ID created:', req.sessionID);
                 });
                 return;
             }
@@ -55,6 +57,7 @@ export class AuthController {
         if ((req.session as any).user) {
             res.json({ isAuthenticated: true, user: (req.session as any).user });
         } else {
+            console.log('❌ Auth Check Failed. Session:', req.session); // [LOGGING] Phase 14
             res.status(401).json({ isAuthenticated: false });
         }
     };
