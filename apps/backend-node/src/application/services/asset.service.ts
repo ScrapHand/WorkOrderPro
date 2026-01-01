@@ -38,4 +38,8 @@ export class AssetService {
     async getAssetTree(rootId: string, tenantId: string): Promise<Asset[]> {
         return this.assetRepo.findSubtree(rootId, tenantId);
     }
+
+    async getAllAssets(tenantId: string): Promise<Asset[]> {
+        return this.assetRepo.findAll(tenantId);
+    }
 }

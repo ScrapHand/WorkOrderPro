@@ -11,10 +11,10 @@ const BACKEND_REGEX = /router\.(get|post|put|patch|delete|use)\(['"`]([^'"`]+)['
 const EXPRESS_APP_REGEX = /app\.(get|post|put|patch|delete|use)\(['"`]([^'"`]+)['"`]/g;
 
 // Store results
-const frontendCalls = new Set();
-const backendRoutes = new Set();
+const frontendCalls = new Set<string>();
+const backendRoutes = new Set<string>();
 
-function walkDir(dir, callback) {
+function walkDir(dir: string, callback: (filePath: string) => void) {
     if (!fs.existsSync(dir)) return;
     const files = fs.readdirSync(dir);
     for (const file of files) {

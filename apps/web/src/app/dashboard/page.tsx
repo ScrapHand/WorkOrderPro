@@ -80,49 +80,67 @@ export default function DashboardPage() {
             </div>
 
             {/* My Tasks List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>My Active Tasks</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="text-center p-8 text-muted-foreground">Loading tasks...</div>
-                    ) : myTasks && myTasks.length > 0 ? (
-                        <div className="divide-y">
-                            {myTasks?.slice(0, 5).map(task => (
-                                <div key={task.id} className="py-4 flex items-center justify-between hover:bg-muted/30 px-2 rounded-lg transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        {task.status === 'completed' ? <CheckCircle2 className="text-green-500 h-5 w-5" /> : <Clock className="text-amber-500 h-5 w-5" />}
-                                        <div>
-                                            <h4 className="font-semibold">{task.title}</h4>
-                                            <p className="text-xs text-muted-foreground">{task.work_order_number || "WO-PENDING"}</p>
-                                        </div>
+            <div className="space-y-4">
+                <h2 className="text-xl font-semibold tracking-tight">My Active Tasks</h2>
+
+                {isLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[1, 2, 3].map(i => (
+                            <Card key={i} className="h-32 animate-pulse bg-muted/50" />
+                        ))}
+                    </div>
+                ) : myTasks && myTasks.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {myTasks?.slice(0, 6).map(task => (
+                            <Card key={task.id} className="hover:shadow-md transition-shadow cursor-pointer bg-card border-border/60">
+                                <CardHeader className="pb-2">
+                                    <div className="flex justify-between items-start">
+                                        <Badge className={`uppercase text-[10px] px-2 py-0.5 border-none
+                                            ${task.priority === 'critical' ? 'bg-red-100 text-red-700 hover:bg-red-200' :
+                                                task.priority === 'high' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' :
+                                                    'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                                            {task.priority || 'NORMAL'}
+                                        </Badge>
+                                        {task.status === 'completed'
+                                            ? <CheckCircle2 className="text-green-500 h-4 w-4" />
+                                            : <Clock className="text-muted-foreground h-4 w-4" />
+                                        }
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase
-                            ${task.priority === 'critical' ? 'bg-red-100 text-red-700' :
-                                                task.priority === 'high' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                                            {task.priority}
-                                        </span>
-                                        <Button variant="ghost" size="sm" asChild>
-                                            <Link href={`/work-orders/${task.id}`}>View</Link>
+                                    <CardTitle className="text-base font-medium line-clamp-1 mt-2">
+                                        {task.title}
+                                    </CardTitle>
+                                    <CardDescription className="text-xs font-mono">
+                                        {task.work_order_number || "WO-PENDING"}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex justify-end pt-2">
+                                        <Button variant="outline" size="sm" asChild className="h-8 text-xs w-full">
+                                            <Link href={`/work-orders/${task.id}`}>View Details</Link>
                                         </Button>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center p-8 text-muted-foreground">No active tasks assigned to you.</div>
-                    )}
-
-                    <div className="pt-4 text-center">
-                        <Button variant="link" asChild>
-                            {/* Link to Legacy for full list if needed */}
-                            <a href="https://workorderpro.vercel.app/acme/work-orders">View All Tasks in Legacy App &rarr;</a>
-                        </Button>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
-                </CardContent>
-            </Card>
-        </div >
+                ) : (
+                    <Card className="border-dashed shadow-none">
+                        <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+                            <ClipboardList className="h-12 w-12 opacity-20 mb-4" />
+                            <p>No active tasks assigned to you.</p>
+                            <Button variant="link" className="mt-2 text-primary" asChild>
+                                <Link href="/work-orders/new">Create your first task</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <div className="flex justify-center pt-4">
+                    <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+                        <a href="https://workorderpro.vercel.app/acme/work-orders">View All History &rarr;</a>
+                    </Button>
+                </div>
+            </div>
+        </div>
     );
 }

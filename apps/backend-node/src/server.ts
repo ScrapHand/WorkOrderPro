@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 8080;
 // [ARCH] 1. Proxy Trust (Render Requirement)
 // Crucial for X-Forwarded-Proto to work, enabling Secure cookies.
 // '1' trusts the first hop (the Render Load Balancer)
-app.set('trust proxy', 1); // [PHASE 22] Calibrate to Render Standard
+app.set('trust proxy', process.env.TRUST_PROXY || 1); // [PHASE 22] Calibrate to Render Standard
 
 // [ARCH] 2. Security Middleware
 app.use(helmet());
@@ -53,14 +53,14 @@ app.use(session({
     resave: false,
     saveUninitialized: false, // [OPTIONAL] Set to true if you want to track "Guest" sessions
     name: 'wop_sid', // [PHASE 22] Rename to clear legacy collisions
-    proxy: true, // [CRITICAL] Trust the proxy
+    proxy: true, // [CRITICAL] Trust the proxy for secure cookies
     cookie: {
-        path: '/',           // [CRITICAL] Available on root
+        path: '/',
         secure: true,        // [PHASE 21] Standard HTTPS
         httpOnly: true,
-        sameSite: 'lax',     // [PHASE 21] Standard First-Party
+        sameSite: 'none',     // [PHASE 21] Cross-Site for Vercel
+        partitioned: true,   // [PHASE 21] Chrome CHIPS Compliance
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days (Persistent)
-        // domain: undefined (Let browser infer)
     } as any
 }));
 
@@ -135,6 +135,7 @@ apiRouter.use('/auth', authRouter);
 // Asset Routes
 const assetRouter = express.Router();
 assetRouter.post('/', assetController.create);
+assetRouter.get('/', assetController.getAll); // [FIX] Restore Helper
 assetRouter.get('/:id/tree', assetController.getTree);
 apiRouter.use('/assets', assetRouter);
 

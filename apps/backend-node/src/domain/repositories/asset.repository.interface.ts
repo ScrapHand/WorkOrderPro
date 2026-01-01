@@ -22,4 +22,5 @@ export interface IAssetRepository {
      * @param tenantId Tenant context
      */
     findAncestors(assetId: string, tenantId: string): Promise<Asset[]>;
+    findAll(tenantId: string): Promise<Asset[]>;
 }

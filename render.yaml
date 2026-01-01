@@ -1,26 +1,26 @@
 services:
   - type: web
-    name: workorderpro-backend
+    name: workorderpro-api
     env: node
-    rootDir: apps/backend-node
-    buildCommand: npm install --include=dev && npx prisma generate && npm run build
-    startCommand: npm run start
+    buildCommand: cd apps/backend-node && npm install && npm run build
+    startCommand: cd apps/backend-node && npm start
+    preDeployCommand: cd apps/backend-node && npx prisma migrate deploy
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: DATABASE_URL
         fromDatabase:
           name: workorderpro-db
           property: connectionString
-      - key: JWT_SECRET
+      - key: SESSION_SECRET
         generateValue: true
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_BUCKET_NAME
+        sync: false
       - key: TRUST_PROXY
         value: 1
-
-databases:
-  - name: workorderpro-db
-    databaseName: workorderpro
-    user: workorderpro_user
-    plan: free

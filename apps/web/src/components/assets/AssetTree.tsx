@@ -91,21 +91,25 @@ export const AssetTree = ({ assets, onSelect, selectedId }: AssetTreeProps) => {
     const roots = assets.filter(a => !a.parentId || !allIds.has(a.parentId));
 
     return (
-        <div className="p-4 bg-white shadow rounded-lg border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-                <Monitor className="w-5 h-5" /> Asset Hierarchy
+        <div className="bg-white shadow-sm rounded-lg border border-border p-4 h-full flex flex-col">
+            <h3 className="text-lg font-semibold mb-4 text-foreground flex items-center gap-2">
+                <Monitor className="w-5 h-5 text-primary" /> Asset Hierarchy
             </h3>
-            <div className="flex flex-col gap-1">
-                {roots.map(root => (
-                    <AssetNode
-                        key={root.id}
-                        asset={root}
-                        allAssets={assets}
-                        onSelect={onSelect}
-                        selectedId={selectedId}
-                    />
-                ))}
-                {roots.length === 0 && <p className="text-gray-500 italic">No assets found.</p>}
+
+            {/* Scrollable Container */}
+            <div className="flex-1 overflow-x-auto overflow-y-auto min-h-[300px]">
+                <div className="flex flex-col gap-1 min-w-max pb-4">
+                    {roots.map(root => (
+                        <AssetNode
+                            key={root.id}
+                            asset={root}
+                            allAssets={assets}
+                            onSelect={onSelect}
+                            selectedId={selectedId}
+                        />
+                    ))}
+                    {roots.length === 0 && <p className="text-muted-foreground italic p-4">No assets found.</p>}
+                </div>
             </div>
         </div>
     );

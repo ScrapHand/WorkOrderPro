@@ -64,6 +64,13 @@ export class PostgresAssetRepository implements IAssetRepository {
         return results.map(mapToDomain);
     }
 
+    async findAll(tenantId: string): Promise<Asset[]> {
+        const results = await this.prisma.asset.findMany({
+            where: { tenantId, deletedAt: null }
+        });
+        return results.map(mapToDomain);
+    }
+
     async findSubtree(rootId: string, tenantId: string): Promise<Asset[]> {
         // [ARCH] Recursive CTE for Deep Tree Retrieval
         // Note: SQLite syntax for Recursive CTE is standard SQL.
