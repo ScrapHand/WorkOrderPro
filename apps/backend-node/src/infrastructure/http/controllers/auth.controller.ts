@@ -17,17 +17,16 @@ export class AuthController {
             if (user) {
                 isValid = await bcrypt.compare(password, user.passwordHash);
             } else if (email === 'demo@demo.com' && password === 'password') {
-                // 2. Fallback: Demo User (if not in DB)
+                // 2. Auto-Provision: Create Demo User if missing (JIT Seeding)
+                console.log('✨ Auto-Provisioning Demo User...');
+                user = await this.userService.createUser(
+                    'default',      // tenantId
+                    email,          // email
+                    'admin',        // role
+                    password        // plainPassword (will be hashed by service)
+                );
                 isValid = true;
-                user = {
-                    id: 'demo-user-123',
-                    email: email,
-                    role: 'admin',
-                    passwordHash: '',
-                    tenantId: 'default',
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                } as any;
+                console.log('✅ Demo User Created:', user.id);
             }
 
             if (!isValid || !user) {
