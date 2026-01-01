@@ -5,7 +5,7 @@ services:
     env: node
     buildCommand: cd apps/backend-node && npm install --production=false && npm run build
     startCommand: cd apps/backend-node && npm start
-    preDeployCommand: cd apps/backend-node && npx prisma migrate deploy
+    preDeployCommand: cd apps/backend-node && npx prisma db push --accept-data-loss
     envVars:
       - key: NODE_ENV
         value: production
