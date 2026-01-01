@@ -1,6 +1,7 @@
 services:
   - type: web
     name: workorderpro-api
+    region: ohio
     env: node
     buildCommand: cd apps/backend-node && npm install --production=false && npm run build
     startCommand: cd apps/backend-node && npm start
