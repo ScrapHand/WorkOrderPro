@@ -42,9 +42,13 @@ export default function LoginPage() {
 
             console.log("Login Success:", data);
 
-            // [PHASE 25] Frontend State Sync
-            // Manually invalidate the 'user' query so useAuth() fetches the new role immediately.
+            // [PHASE 25] Frontend State Sync (Fix)
+            // 1. Prime the cache immediately so useAuth() returns data instantly
+            queryClient.setQueryData(["user"], data.user);
+
+            // 2. Invalidate caches to ensure fresh data elsewhere
             await queryClient.invalidateQueries({ queryKey: ["user"] });
+            await queryClient.invalidateQueries({ queryKey: ["system-status"] });
 
             // [PHASE 23] No manual cookie setting needed.
             // The Set-Cookie header from the response is handled by the browser automatically.
