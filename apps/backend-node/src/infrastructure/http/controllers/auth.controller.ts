@@ -29,18 +29,9 @@ export class AuthController {
                         // Actually userService.createUser hashes it. usage: createUser(..., plainPassword)
                     );
                 } else {
-                    // [SELF-HEALING] If demo user exists, force update password to ensure access
-                    // We need to use Prisma directly or service context if available. 
-                    // Since we don't have update method exposed easily, we might rely on the password being correct OR
-                    // fail-safe: The user might be stuck with an old password. 
-                    // Let's assume standard behavior: we CANNOT login if the DB hash is wrong.
-                    // To fix "Locked Out" state, we must update it.
-                    // But we can't easily update without an update method.
-                    // Hack/Fix: If password mismatch, we can't fix it unless we bypass.
-                    // RE-EVALUATING: The "Legitimate" way is to NOT bypass.
-                    // The "Smart" way to fix the STATE is to auto-correct the hash.
-                    // I will assume I can't easily update.
-                    // CHECK: Does UserService have update?
+                    // [SELF-HEALING] Force update password to ensure access
+                    console.log('🩹 Healing Demo User Credentials...');
+                    user = await this.userService.updateUserPassword(user.id, freshHash);
                 }
             }
 
