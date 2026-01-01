@@ -31,6 +31,12 @@ export class DebugController {
                     secure: req.secure, // [DEBUG] Check if Express thinks it is secure
                     nodeEnv: process.env.NODE_ENV
                 },
+                meta: {
+                    host: req.hostname,           // [DEBUG] Did Vercel rewrite this?
+                    protocol: req.protocol,       // [DEBUG] Is it https?
+                    ip: req.ip,                   // [DEBUG] Proxy IP vs Real IP
+                    sessionID: req.sessionID      // [DEBUG] Persistence Check
+                },
                 diagnostics: {
                     headers: req.headers, // [FORENSIC] See exactly what Render sends us
                     sessionID: req.sessionID,
