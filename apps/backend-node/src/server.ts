@@ -47,7 +47,7 @@ app.use(session({
             connectionString: process.env.DATABASE_URL,
             ssl: { rejectUnauthorized: false } // Render requires SSL
         },
-        createTableIfMissing: true, // Safety check (though we have a migration)
+        createTableIfMissing: false, // [FIX] Managed by Prisma now to avoid IDX conflict
         errorLog: console.error // [PHASE 18] Log connection errors
     }),
     secret: process.env.SESSION_SECRET || 'dev_secret_key_change_in_prod',
