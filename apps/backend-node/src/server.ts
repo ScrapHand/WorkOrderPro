@@ -29,7 +29,8 @@ app.use(cors({
     origin: [
         'http://localhost:3000',
         'https://workorderpro.vercel.app',
-        'https://work-order-1tsb23zwd-scraphands-projects.vercel.app', // [FIX] Explicit deployment URL
+        'https://work-order-pro.vercel.app', // [FIX] New Prod URL
+        ...(process.env.BACKEND_CORS_ORIGINS ? process.env.BACKEND_CORS_ORIGINS.split(',') : []),
         /https:\/\/.*\.vercel\.app$/ // Allow preview deployments
     ],
     credentials: true,
