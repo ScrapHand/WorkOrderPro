@@ -24,6 +24,13 @@ export class UserService {
         });
     }
 
+    async updateUserPassword(id: string, passwordHash: string): Promise<User> {
+        return this.prisma.user.update({
+            where: { id },
+            data: { passwordHash }
+        });
+    }
+
     async getAllUsers(tenantId: string): Promise<User[]> {
         return this.prisma.user.findMany({
             where: { tenantId },
