@@ -1,47 +1,66 @@
 import { Request, Response } from 'express';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
+import { UserService } from '../../../application/services/user.service';
+import bcrypt from 'bcryptjs';
 
 export class AuthController {
+    constructor(private userService: UserService) { }
+
     login = async (req: Request, res: Response) => {
         try {
             const { email, password } = req.body;
-            const tenant = getCurrentTenant();
 
-            // [MOCK] Simple Auth for Phase 1/Deployment Verification
-            // In a real app, verify against DB (User table).
-            // For now, allow any non-empty login or specific demo creds.
+            // 1. Try Real Auth
+            let user = await this.userService.findByEmail(email);
+            let isValid = false;
 
-            if (email === 'demo@demo.com' && password === 'password') {
-                // Success
-                (req.session as any).user = {
+            if (user) {
+                isValid = await bcrypt.compare(password, user.passwordHash);
+            } else if (email === 'demo@demo.com' && password === 'password') {
+                // 2. Fallback: Demo User (if not in DB)
+                isValid = true;
+                user = {
                     id: 'demo-user-123',
                     email: email,
-                    role: 'admin'
-                };
-
-                req.session.save((err) => {
-                    if (err) {
-                        console.error('Session save error:', err);
-                        return res.status(500).json({ error: 'Session save failed' });
-                    }
-
-                    // [PHASE 22] Cookie Mirror: Prove the backend generated the session
-                    res.json({
-                        success: true,
-                        user: (req.session as any).user,
-                        message: 'Logged in successfully (Mock)',
-                        debug: {
-                            sessionID: req.sessionID,
-                            cookieHeader: res.get('Set-Cookie') // [DEBUG] Critical: See if Express generated it
-                        }
-                    });
-                    console.log('✅ Login successful for:', email);
-                    console.log('🍪 Session ID created:', req.sessionID);
-                });
-                return;
+                    role: 'admin',
+                    passwordHash: '',
+                    tenantId: 'default',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                } as any;
             }
 
-            res.status(401).json({ error: 'Invalid credentials. Try demo@demo.com / password' });
+            if (!isValid || !user) {
+                return res.status(401).json({ error: 'Invalid credentials' });
+            }
+
+            // 3. Success: Set Session Data
+            (req.session as any).user = {
+                id: user.id,
+                email: user.email,
+                role: user.role
+            };
+
+            // 4. Force Save to DB
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    return res.status(500).json({ error: 'Session save failed' });
+                }
+
+                // [PHASE 23] Cookie Mirror
+                res.json({
+                    success: true,
+                    user: (req.session as any).user,
+                    message: 'Logged in successfully',
+                    debug: {
+                        sessionID: req.sessionID,
+                        cookieHeader: res.get('Set-Cookie')
+                    }
+                });
+                console.log('✅ Login successful for:', email);
+                console.log('🍪 Session ID saved:', req.sessionID);
+            });
 
         } catch (error: any) {
             console.error('Login Error:', error);

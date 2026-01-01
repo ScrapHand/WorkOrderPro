@@ -111,7 +111,7 @@ const userController = new UserController(userService);
 const adminController = new AdminController(prisma);
 const debugController = new DebugController(prisma);
 
-const authController = new AuthController(); // [FIX] Instantiate Auth
+const authController = new AuthController(userService); // [PHASE 23] Real Auth
 
 // Define Routers
 const apiRouter = express.Router(); // [FIX] Group under /api/v1
