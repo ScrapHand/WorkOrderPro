@@ -30,7 +30,8 @@ export default function SystemStatusPage() {
         retry: 0
     });
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "N/A";
+    // [PHASE 16] Display actual API client base URL to confirm Proxy usage
+    const apiUrl = api.defaults.baseURL || "Unknown";
 
     // Cookie Check (Naive)
     const hasAuthCookie = typeof document !== 'undefined' && document.cookie.includes('connect.sid');

@@ -1,9 +1,7 @@
 import axios from "axios";
 
-// Default to localhost:8000 for dev if env not set
-// Proxy Strategy: Use relative path to hit Next.js Rewrites (First Party)
-// Proxy Strategy: Use relative path to hit Next.js Rewrites (First Party)
-const BASE_URL = "/api/v1"; // Fixed in Phase 14
+// [PHASE 16] FORCE RELATIVE PATH to trigger Next.js Rewrite Proxy
+const BASE_URL = "/api/v1";
 
 // Helper to get slug dynamically
 const getTenantSlug = () => {
