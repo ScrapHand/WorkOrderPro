@@ -20,7 +20,11 @@ interface DebugInfo {
     };
 }
 
+import { useAuth } from "@/hooks/use-auth"; // [PHASE 25] Live Auth State
+
 export default function SystemStatusPage() {
+    const { data: user, isLoading: isAuthLoading } = useAuth(); // [PHASE 25]
+
     const { data, isLoading, error, refetch } = useQuery({
         queryKey: ["system-status"],
         queryFn: async () => {
@@ -112,7 +116,9 @@ export default function SystemStatusPage() {
                                     <div className="font-mono">{data?.context?.slug}</div>
 
                                     <div className="text-muted-foreground">Your Role:</div>
-                                    <div className="font-mono font-bold">{data?.context?.userRole}</div>
+                                    <div className="font-mono font-bold">
+                                        {user?.role?.toUpperCase() || data?.context?.userRole}
+                                    </div>
                                 </div>
                             </div>
                         )}

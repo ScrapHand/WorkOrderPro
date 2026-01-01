@@ -10,8 +10,11 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { useQueryClient } from "@tanstack/react-query"; // [PHASE 25] State Sync
+
 export default function LoginPage() {
     const router = useRouter();
+    const queryClient = useQueryClient(); // [PHASE 25]
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +41,10 @@ export default function LoginPage() {
             const { data } = await import("@/lib/api").then(m => m.api.post("/auth/login", payload));
 
             console.log("Login Success:", data);
+
+            // [PHASE 25] Frontend State Sync
+            // Manually invalidate the 'user' query so useAuth() fetches the new role immediately.
+            await queryClient.invalidateQueries({ queryKey: ["user"] });
 
             // [PHASE 23] No manual cookie setting needed.
             // The Set-Cookie header from the response is handled by the browser automatically.
