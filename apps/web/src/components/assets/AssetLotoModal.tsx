@@ -1,7 +1,7 @@
 "use client";
 
 import { Asset } from "@/types/asset";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Lock, AlertTriangle, Zap, Droplets, Wind } from "lucide-react";
 import { useState } from "react";
