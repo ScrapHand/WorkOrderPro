@@ -17,7 +17,7 @@ export default function ArchivePage() {
             </header>
 
             <WorkOrderTable
-                statusFilter="DONE"
+                statusFilter="COMPLETED"
             />
         </div>
     );

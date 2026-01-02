@@ -106,7 +106,7 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all' }: WorkOrderTa
                         ) : filteredOrders?.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-64 text-center text-muted-foreground italic">
-                                    No work orders found.
+                                    {filterMode === 'me' ? "No tasks assigned to you." : "No work orders found."}
                                 </TableCell>
                             </TableRow>
                         ) : (
