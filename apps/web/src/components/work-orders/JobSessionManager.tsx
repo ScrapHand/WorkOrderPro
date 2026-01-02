@@ -161,7 +161,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
                     {activeSessions.length > 0 && (
                         <Button
-                            variant="secondary"
+                            variant="outline"
                             onClick={() => pauseMutation.mutate()}
                             disabled={pauseMutation.isPending}
                         >
