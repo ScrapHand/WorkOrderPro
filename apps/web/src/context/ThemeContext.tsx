@@ -9,6 +9,7 @@ type BrandingConfig = {
     secondaryColor?: string;
     logoUrl?: string;
     font?: string;
+    appName?: string;
 };
 
 type TenantConfig = {

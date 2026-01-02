@@ -17,6 +17,7 @@ type CompanyFormValues = {
         primaryColor: string;
         secondaryColor: string;
         logoUrl: string;
+        appName: string;
     };
 };
 
@@ -106,6 +107,15 @@ export default function CompanyBuilderPage() {
                         <CardDescription>Customize the look and feel of your workspace.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Application Name</Label>
+                            <Input
+                                {...register("branding.appName")}
+                                placeholder="e.g. ScrapHand OS"
+                            />
+                            <p className="text-[0.8rem] text-muted-foreground">This title will verify in the sidebar and header.</p>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Primary Color</Label>

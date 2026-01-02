@@ -159,6 +159,16 @@ export default function AdminUsersPage() {
                                     ))}
                                 </select>
                             </div>
+                            <div className="space-y-2 md:col-span-1">
+                                <label className="text-sm font-medium">New Password</label>
+                                <Input
+                                    type="password"
+                                    placeholder="Leave blank to keep current"
+                                    value={editingUser.password || ""}
+                                    onChange={e => setEditingUser({ ...editingUser, password: e.target.value })}
+                                />
+                                <p className="text-[10px] text-muted-foreground">Only enter to reset password.</p>
+                            </div>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
                             <Button variant="outline" type="button" onClick={() => setEditingUser(null)}>Cancel</Button>
@@ -166,9 +176,10 @@ export default function AdminUsersPage() {
                                 {editUser.isPending ? "Saving..." : "Save Changes"}
                             </Button>
                         </div>
-                    </form>
-                </div>
-            )}
+                    </form >
+                </div >
+            )
+            }
 
             <div className="border rounded-md">
                 <table className="w-full text-sm text-left">
@@ -221,7 +232,7 @@ export default function AdminUsersPage() {
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     );
 }
 

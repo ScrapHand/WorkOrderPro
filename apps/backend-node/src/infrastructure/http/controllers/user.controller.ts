@@ -35,7 +35,21 @@ export class UserController {
     update = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const user = await this.userService.updateUser(id, req.body);
+            const updates = { ...req.body };
+
+            // Handle Password Update
+            if (updates.password) {
+                // We need to bypass the Service's generic update which ignores 'password'
+                // Actually, let's just use the service's update pass method if needed or do it here.
+                // Cleaner: Update the service to handle it or separate.
+                // Let's do it here for now to save a trip, or import bcrypt.
+                // Better: rely on service.
+                const user = await this.userService.updateUserWithPassword(id, updates);
+                const { passwordHash, ...safeUser } = user;
+                return res.json(safeUser);
+            }
+
+            const user = await this.userService.updateUser(id, updates);
             const { passwordHash, ...safeUser } = user;
             res.json(safeUser);
         } catch (error: any) {

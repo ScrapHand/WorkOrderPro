@@ -27,6 +27,7 @@ export class UserService {
     }
 
     async updateUser(id: string, data: Partial<User>): Promise<User> {
+        // Drop passwordHash if accidentally passed without hashing
         const { passwordHash, ...rest } = data;
         return this.prisma.user.update({
             where: { id },
@@ -34,9 +35,25 @@ export class UserService {
         });
     }
 
+    async updateUserWithPassword(id: string, data: any): Promise<User> {
+        const { password, ...rest } = data;
+        const updateData: any = { ...rest };
+
+        if (password) {
+            updateData.passwordHash = await bcrypt.hash(password, 10);
+        }
+
+        return this.prisma.user.update({
+            where: { id },
+            data: updateData
+        });
+    }
+
     async deleteUser(id: string): Promise<User> {
-        return this.prisma.user.delete({
-            where: { id }
+        // Soft delete to preserve referential integrity
+        return this.prisma.user.update({
+            where: { id },
+            data: { deletedAt: new Date(), email: `deleted_${id}@example.com` } // Rename email to allow re-creation if needed
         });
     }
 
@@ -49,7 +66,10 @@ export class UserService {
 
     async getAllUsers(tenantId: string): Promise<User[]> {
         return this.prisma.user.findMany({
-            where: { tenantId },
+            where: {
+                tenantId,
+                deletedAt: null
+            },
             orderBy: { createdAt: 'desc' },
         });
     }
