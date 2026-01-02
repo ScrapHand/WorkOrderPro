@@ -31,6 +31,29 @@ export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProp
 
     const currentImages = getImages(activeTab);
 
+    // [FIX] Secure Proxy for Private S3 Buckets
+    const getImageUrl = (url: string) => {
+        if (!url) return "";
+        // If it's already a proxy URL, return as is
+        if (url.includes('/api/v1/upload/proxy')) return url;
+
+        // If it is a full S3 URL, try to extract key
+        // Format: https://bucket.s3.region.amazonaws.com/KEY
+        if (url.includes('amazonaws.com')) {
+            try {
+                const urlObj = new URL(url);
+                const key = urlObj.pathname.substring(1); // Remove leading slash
+                return `${process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com'}/api/v1/upload/proxy?key=${key}`;
+            } catch (e) {
+                return url;
+            }
+        }
+
+        // Fallback: If it looks like a relative path or key, try proxying it?
+        // Safest to return original if unsure.
+        return url;
+    };
+
     const handleUploadComplete = async (attachment: any) => {
         try {
             const currentLoto = asset.lotoConfig as any || {};
