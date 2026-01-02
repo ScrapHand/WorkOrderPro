@@ -43,7 +43,9 @@ export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProp
             try {
                 const urlObj = new URL(url);
                 const key = urlObj.pathname.substring(1); // Remove leading slash
-                return `${process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com'}/api/v1/upload/proxy?key=${key}`;
+                // [FIX] Sanitized Base URL Construction
+                const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
+                return `${apiBase}/api/v1/upload/proxy?key=${key}`;
             } catch (e) {
                 return url;
             }

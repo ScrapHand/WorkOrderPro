@@ -62,8 +62,9 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
 
     const getDocUrl = (doc: any) => {
         if (doc.key) {
-            // [FIX] Use Backend Proxy for private buckets
-            return `${process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com'}/api/v1/upload/proxy?key=${doc.key}`;
+            // [FIX] Use Backend Proxy for private buckets with sanitized Base URL
+            const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
+            return `${apiBase}/api/v1/upload/proxy?key=${doc.key}`;
         }
         return doc.url;
     };

@@ -17,9 +17,13 @@ interface AssetGridProps {
 }
 
 export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
-    const [selectedDocsAsset, setSelectedDocsAsset] = useState<Asset | null>(null);
-    const [selectedLotoAsset, setSelectedLotoAsset] = useState<Asset | null>(null);
-    // const [editAsset, setEditAsset] = useState<Asset | null>(null); // Lifted up
+    const [selectedDocsAssetId, setSelectedDocsAssetId] = useState<string | null>(null);
+    const [selectedLotoAssetId, setSelectedLotoAssetId] = useState<string | null>(null);
+
+    // Derive current asset from list to ensure fresh data after refetch
+    const selectedDocsAsset = assets.find(a => a.id === selectedDocsAssetId);
+    const selectedLotoAsset = assets.find(a => a.id === selectedLotoAssetId);
+
     const queryClient = useQueryClient();
 
     const handleDelete = async (id: string) => {
@@ -45,8 +49,8 @@ export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
                         <AssetCard
                             key={asset.id}
                             asset={asset}
-                            onViewDocs={(a) => setSelectedDocsAsset(a)}
-                            onViewLoto={(a) => setSelectedLotoAsset(a)}
+                            onViewDocs={(a) => setSelectedDocsAssetId(a.id)}
+                            onViewLoto={(a) => setSelectedLotoAssetId(a.id)}
                             onEdit={isAdmin && onEdit ? onEdit : undefined}
                             onDelete={isAdmin ? handleDelete : undefined}
                         />
@@ -57,16 +61,16 @@ export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
             {/* Modals */}
             {selectedDocsAsset && (
                 <AssetDocsModal
-                    open={!!selectedDocsAsset}
-                    onOpenChange={(open: boolean) => !open && setSelectedDocsAsset(null)}
+                    open={!!selectedDocsAssetId}
+                    onOpenChange={(open: boolean) => !open && setSelectedDocsAssetId(null)}
                     asset={selectedDocsAsset}
                 />
             )}
 
             {selectedLotoAsset && (
                 <AssetLotoModal
-                    open={!!selectedLotoAsset}
-                    onOpenChange={(open: boolean) => !open && setSelectedLotoAsset(null)}
+                    open={!!selectedLotoAssetId}
+                    onOpenChange={(open: boolean) => !open && setSelectedLotoAssetId(null)}
                     asset={selectedLotoAsset}
                 />
             )}
