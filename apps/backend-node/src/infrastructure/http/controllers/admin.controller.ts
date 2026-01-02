@@ -7,6 +7,7 @@ export class AdminController {
 
     updateConfig = async (req: Request, res: Response) => {
         try {
+            console.log("AdminController.updateConfig: Body:", JSON.stringify(req.body, null, 2));
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -21,6 +22,7 @@ export class AdminController {
             const data: any = {};
 
             if (branding) {
+                console.log("Updating Branding:", branding);
                 data.brandingConfig = branding;
                 // [Sync Legacy Fields]
                 if (branding.primaryColor) data.brandColor = branding.primaryColor;
@@ -36,11 +38,6 @@ export class AdminController {
             }
 
             if (req.body.secrets) {
-                // [SECURITY] We might want to encrypt here, but for now we store as JSON.
-                // In a real app, use AES-256 before saving to DB.
-                // Merging logic: We need to merge with existing if partial update?
-                // For now, assume full replacement or frontend handles merge.
-                // Let's do a smart merge serverside.
                 const currentSecrets = (tenant.secretsConfig as any) || {};
                 data.secretsConfig = { ...currentSecrets, ...req.body.secrets };
             }
@@ -51,6 +48,7 @@ export class AdminController {
                 data: data
             });
 
+            console.log("Tenant Updated:", updated.brandingConfig);
             res.json(updated);
         } catch (error: any) {
             console.error('Update Config Error:', error);
@@ -79,14 +77,21 @@ export class AdminController {
                 }
             }
 
+            // Robust Merging of Branding
+            const dbBranding = t.brandingConfig || {};
+            const mergedBranding = {
+                primaryColor: dbBranding.primaryColor || tenant.brandColor,
+                logoUrl: dbBranding.logoUrl || tenant.logoUrl,
+                secondaryColor: dbBranding.secondaryColor
+            };
+
+            console.log("AdminController.getConfig: Merged Branding:", mergedBranding);
+
             // Return safe public config
             res.json({
                 slug: tenant.slug,
                 name: tenant.name,
-                branding: t.brandingConfig || {
-                    primaryColor: tenant.brandColor,
-                    logoUrl: tenant.logoUrl
-                },
+                branding: mergedBranding,
                 rbac: t.rbacConfig || {},
                 notifications: t.notificationConfig || {
                     enabled: true,

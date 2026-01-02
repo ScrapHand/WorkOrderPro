@@ -129,7 +129,7 @@ export default function DashboardPage() {
                             <ClipboardList className="h-12 w-12 opacity-20 mb-4" />
                             <p>No active tasks assigned to you.</p>
                             <Button variant="link" className="mt-2 text-primary" asChild>
-                                <Link href="/work-orders/new">Create your first task</Link>
+                                <Link href="/dashboard/work-orders/new">Create your first task</Link>
                             </Button>
                         </CardContent>
                     </Card>
