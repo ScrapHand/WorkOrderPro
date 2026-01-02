@@ -101,6 +101,10 @@ import { PostgresRoleRepository } from './infrastructure/repositories/postgres-r
 import { RoleService } from './application/services/role.service';
 import { RoleController } from './infrastructure/http/controllers/role.controller';
 
+import { PostgresWorkOrderSessionRepository } from './infrastructure/repositories/postgres-work-order-session.repository';
+import { WorkOrderSessionService } from './application/services/work-order-session.service';
+import { WorkOrderSessionController } from './infrastructure/http/controllers/work-order-session.controller';
+
 import { AuthController } from './infrastructure/http/controllers/auth.controller'; // [FIX] Import Auth
 
 // Instantiate Services
@@ -131,6 +135,10 @@ const reportController = new ReportController(reportService, prisma);
 const roleRepo = new PostgresRoleRepository(prisma);
 const roleService = new RoleService(roleRepo);
 const roleController = new RoleController(roleService, prisma);
+
+const sessionRepo = new PostgresWorkOrderSessionRepository(prisma);
+const sessionService = new WorkOrderSessionService(sessionRepo, prisma);
+const sessionController = new WorkOrderSessionController(sessionService);
 
 const authController = new AuthController(userService); // [PHASE 23] Real Auth
 
@@ -190,6 +198,13 @@ woRouter.post('/', woController.create);
 woRouter.get('/', woController.getAll);
 woRouter.get('/:id', woController.getById);
 woRouter.delete('/:id', woController.delete);
+
+// Session Routes
+woRouter.post('/:workOrderId/session/start', sessionController.start);
+woRouter.post('/:workOrderId/session/stop', sessionController.stop);
+woRouter.post('/:workOrderId/pause', sessionController.pause);
+woRouter.post('/:workOrderId/complete', sessionController.complete);
+woRouter.get('/:workOrderId/sessions', sessionController.getSessions);
 apiRouter.use('/work-orders', woRouter);
 
 // Upload Routes

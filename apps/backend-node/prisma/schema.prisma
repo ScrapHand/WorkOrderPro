@@ -30,6 +30,7 @@ model Tenant {
   users     User[]
   inventoryItems InventoryItem[]
   roles     Role[]
+  workOrderSessions WorkOrderSession[]
 }
 
 model User {
@@ -48,6 +49,8 @@ model User {
   // RBAC Relations
   customRoleId String?  @map("custom_role_id")
   customRole   Role?    @relation(fields: [customRoleId], references: [id])
+  
+  sessions     WorkOrderSession[] // Relation to time logs
 
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
 
@@ -113,6 +116,10 @@ model WorkOrder {
   priority    String   // Enum: CRITICAL, HIGH, MEDIUM, LOW
   status      String   @default("OPEN") // Enum: OPEN, IN_PROGRESS, DONE
   rimeScore   Int      @map("rime_score") // Calculated: Asset Criticality * Priority
+  
+  completedAt     DateTime? @map("completed_at")
+  completionNotes String?   @map("completion_notes")
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime? // Soft Delete
@@ -120,6 +127,7 @@ model WorkOrder {
   // Relations
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   asset       Asset    @relation(fields: [assetId], references: [id])
+  sessions    WorkOrderSession[]
   attachments Attachment[]
 
   @@index([tenantId])
@@ -177,4 +185,23 @@ model Session {
 
   @@map("session")
   @@index([expire], name: "IDX_session_expire")
+}
+
+model WorkOrderSession {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  workOrderId String    @map("work_order_id")
+  userId      String    @map("user_id")
+  
+  startTime   DateTime  @default(now())
+  endTime     DateTime? // Null equals Active
+  duration    Int?      // Computed in minutes when closed
+
+  // Relations
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([workOrderId])
+  @@index([userId])
 }

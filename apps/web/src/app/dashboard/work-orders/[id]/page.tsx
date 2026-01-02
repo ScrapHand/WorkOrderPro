@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { JobSessionManager } from "@/components/work-orders/JobSessionManager";
+import { useQueryClient } from "@tanstack/react-query";
 
 const RimeBadge = ({ score }: { score: number }) => {
     let color = "bg-green-100 text-green-800 border-green-200";
@@ -41,7 +43,12 @@ const RimeBadge = ({ score }: { score: number }) => {
 export default function WorkOrderDetailsPage() {
     const params = useParams();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const id = params.id as string;
+
+    const handleStatusChange = () => {
+        queryClient.invalidateQueries({ queryKey: ["workOrder", id] });
+    };
 
     const { data: wo, isLoading, error } = useQuery({
         queryKey: ["workOrder", id],
@@ -118,6 +125,8 @@ export default function WorkOrderDetailsPage() {
 
                 {/* Sidebar Metrics */}
                 <div className="space-y-6">
+                    <JobSessionManager status={wo.status} onStatusChange={handleStatusChange} />
+
                     <Card className="bg-gradient-to-br from-white to-gray-50/50">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">RIME Priority Matrix</CardTitle>
