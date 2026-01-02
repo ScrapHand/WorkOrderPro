@@ -37,8 +37,10 @@ export const AssetService = {
         return res.data;
     },
 
-    getWorkOrders: async (): Promise<WorkOrder[]> => {
-        const res = await api.get("/work-orders");
+    getWorkOrders: async (status?: string): Promise<WorkOrder[]> => {
+        const res = await api.get("/work-orders", {
+            params: status ? { status } : undefined
+        });
         return res.data;
     },
 

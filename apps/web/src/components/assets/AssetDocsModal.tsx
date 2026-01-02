@@ -80,6 +80,29 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
+                                        {/* [NEW] Set Primary Image (Only for images) */}
+                                        {doc.type.startsWith('image/') && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                title="Set as Cover Image"
+                                                className={asset.imageUrl === doc.url ? "text-yellow-500 hover:bg-yellow-50" : "text-gray-400 hover:text-yellow-500"}
+                                                onClick={async () => {
+                                                    try {
+                                                        await api.patch(`/assets/${asset.id}`, { imageUrl: doc.url });
+                                                        toast.success("Cover image updated");
+                                                        queryClient.invalidateQueries({ queryKey: ["assets"] });
+                                                    } catch (e) {
+                                                        toast.error("Failed to set cover image");
+                                                    }
+                                                }}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={asset.imageUrl === doc.url ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                                </svg>
+                                            </Button>
+                                        )}
+
                                         <Button variant="ghost" size="icon" asChild>
                                             <a href={doc.url} target="_blank" rel="noopener noreferrer">
                                                 <Download className="h-4 w-4" />

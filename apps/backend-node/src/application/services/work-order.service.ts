@@ -26,8 +26,8 @@ export class WorkOrderService {
         return this.woRepo.create(workOrder);
     }
 
-    async getWorkOrders(tenantId: string) {
-        return this.woRepo.findAll(tenantId);
+    async getWorkOrders(tenantId: string, status?: string) {
+        return this.woRepo.findAll(tenantId, status);
     }
     async getWorkOrderById(id: string, tenantId: string) {
         return this.woRepo.findById(id, tenantId);

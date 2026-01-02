@@ -13,7 +13,8 @@ import {
     PlusCircle,
     Settings,
     LogOut,
-    Lock
+    Lock,
+    Archive
 } from "lucide-react";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
@@ -23,6 +24,7 @@ import { useTheme } from "@/context/ThemeContext";
 const sidebarLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Work Orders", href: "/dashboard/work-orders", icon: ClipboardList },
+    { name: "Archived Jobs", href: "/dashboard/work-orders/archive", icon: Archive }, // [NEW] Archive
     { name: "Assets", href: "/dashboard/assets", icon: Box },
     { name: "Asset Tree", href: "/dashboard/assets/tree", icon: Box }, // Added Tree
     { name: "Inventory", href: "/dashboard/inventory", icon: Wrench },

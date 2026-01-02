@@ -77,6 +77,7 @@ export class UploadController {
             res.status(201).json(attachment);
 
         } catch (error: any) {
+            console.error('Create Attachment Error:', error);
             res.status(500).json({ error: error.message });
         }
     }

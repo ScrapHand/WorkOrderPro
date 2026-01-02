@@ -33,7 +33,7 @@ const AssetNode = ({ data }: NodeProps<AssetNodeData>) => {
                 <div className="flex items-center gap-2">
                     <StatusIcon />
                     <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">
-                        {asset.criticality}
+                        {asset.criticality || 'N/A'}
                     </Badge>
                 </div>
                 {/* Future: Action Menu */}

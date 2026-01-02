@@ -35,33 +35,11 @@ const RimeBadge = ({ score }: { score: number }) => {
 
 import { Suspense } from "react";
 
+import { WorkOrderTable } from "@/components/work-orders/WorkOrderTable";
+
 function WorkOrderListContent() {
-    const router = useRouter();
     const searchParams = useSearchParams();
     const predefinedFilter = searchParams.get("assignee");
-    const queryClient = useQueryClient();
-
-    const { data: orders, isLoading } = useQuery({
-        queryKey: ["workOrders"],
-        queryFn: AssetService.getWorkOrders,
-        refetchInterval: 30000,
-    });
-
-    const deleteMutation = useMutation({
-        mutationFn: AssetService.deleteWorkOrder,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["workOrders"] });
-            toast.success("Work Order deleted");
-        },
-        onError: () => toast.error("Failed to delete Work Order")
-    });
-
-    const filteredOrders = orders?.filter(wo => {
-        if (predefinedFilter === 'me') {
-            return wo.status !== 'DONE';
-        }
-        return true;
-    });
 
     return (
         <div className="space-y-6">
@@ -79,102 +57,10 @@ function WorkOrderListContent() {
                 </Link>
             </header>
 
-            {/* Filter Bar */}
-            <div className="flex items-center gap-4 bg-white p-3 rounded-xl border shadow-sm">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Filter by ID, title, or asset..." className="pl-9 h-10 border-none focus-visible:ring-0" />
-                </div>
-                {predefinedFilter === 'me' && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        Filtering: My Tasks
-                    </Badge>
-                )}
-                <div className="flex-1" />
-                <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-transparent hover:border-border transition-all">
-                    <Filter className="h-4 w-4" /> Filters
-                </button>
-            </div>
-
-            <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
-                <Table>
-                    <TableHeader className="bg-gray-50/50">
-                        <TableRow>
-                            <TableHead className="w-[80px]">RIME</TableHead>
-                            <TableHead>Work Order</TableHead>
-                            <TableHead>Asset</TableHead>
-                            <TableHead>Priority</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Created</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            [1, 2, 3].map(i => (
-                                <TableRow key={i}>
-                                    <TableCell colSpan={7} className="h-16 bg-muted/5 animate-pulse" />
-                                </TableRow>
-                            ))
-                        ) : filteredOrders?.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="h-64 text-center text-muted-foreground italic">
-                                    No work orders found.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredOrders?.map(wo => (
-                                <TableRow
-                                    key={wo.id}
-                                    className="group cursor-pointer hover:bg-blue-50/30 transition-colors"
-                                    onClick={() => router.push(`/dashboard/work-orders/${wo.id}`)}
-                                >
-                                    <TableCell>
-                                        <RimeBadge score={wo.rimeScore} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{wo.title}</div>
-                                        <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">WO-{wo.id.slice(0, 8)}</div>
-                                    </TableCell>
-                                    <TableCell className="text-gray-600">
-                                        {wo.asset?.name || "Global"}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${wo.priority === 'CRITICAL' ? 'text-red-600' : 'text-gray-500'}`}>
-                                            {wo.priority}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 px-2 py-0 h-5">
-                                            {wo.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right text-muted-foreground tabular-nums text-sm">
-                                        {new Date(wo.createdAt).toLocaleDateString()}
-                                    </TableCell>
-                                    <TableCell onClick={(e) => e.stopPropagation()}>
-                                        <RoleGuard allowedRoles={[UserRole.ADMIN]}>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-red-50"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (confirm("Are you sure you want to delete this Work Order?")) {
-                                                        deleteMutation.mutate(wo.id);
-                                                    }
-                                                }}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </RoleGuard>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+            <WorkOrderTable
+                // If filter is 'me', we pass 'me', logic inside table handles it
+                filterMode={predefinedFilter === 'me' ? 'me' : 'all'}
+            />
         </div>
     );
 }

@@ -1,6 +1,6 @@
 export interface IWorkOrderRepository {
     create(data: any): Promise<any>;
-    findAll(tenantId: string): Promise<any[]>;
+    findAll(tenantId: string, status?: string): Promise<any[]>;
     findById(id: string, tenantId: string): Promise<any | null>;
     delete(id: string, tenantId: string): Promise<void>;
 }
@@ -14,9 +14,14 @@ export class PostgresWorkOrderRepository implements IWorkOrderRepository {
         return this.prisma.workOrder.create({ data });
     }
 
-    async findAll(tenantId: string): Promise<any[]> {
+    async findAll(tenantId: string, status?: string): Promise<any[]> {
+        const where: any = { tenantId, deletedAt: null };
+        if (status) {
+            where.status = status;
+        }
+
         return this.prisma.workOrder.findMany({
-            where: { tenantId, deletedAt: null },
+            where,
             orderBy: { rimeScore: 'desc' }, // Sorted by RIME Descending
             include: { asset: true }
         });
