@@ -107,8 +107,8 @@ export default function CreateWorkOrderWizard() {
                                                 className="p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 hover:ring-2 hover:ring-blue-200 transition-all text-left flex flex-col gap-2 h-32 justify-between"
                                             >
                                                 <span className="font-bold text-lg text-gray-800 line-clamp-2">{asset.name}</span>
-                                                <span className={`text-xs px-2 py-1 rounded-full w-fit bg-gray-100 text-gray-700`}>
-                                                    {asset.locationId || "Main Floor"}
+                                                <span className="text-xs text-muted-foreground ml-2">
+                                                    {asset.hierarchyPath || "Main Floor"}
                                                 </span>
                                             </button>
                                         ))}

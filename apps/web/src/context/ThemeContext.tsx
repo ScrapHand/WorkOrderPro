@@ -17,6 +17,11 @@ type TenantConfig = {
     branding: BrandingConfig;
     rbac: any;
     secrets?: Record<string, string>;
+    notifications?: {
+        enabled: boolean;
+        soundUrl: string;
+        volume: number;
+    };
 };
 
 type ThemeContextType = {

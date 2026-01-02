@@ -1,0 +1,110 @@
+"use client";
+
+import { Asset } from "@/types/asset";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { FileText, Upload, Trash, Download } from "lucide-react";
+import { useState } from "react";
+import { FileUploader } from "@/components/common/FileUploader";
+import { api } from "@/lib/api"; // Assuming we have an update endpoint or generic Asset update
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+
+interface AssetDocsModalProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    asset: Asset;
+}
+
+export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProps) {
+    const [isUploading, setIsUploading] = useState(false);
+    const queryClient = useQueryClient();
+
+    const handleUploadComplete = async (attachment: any) => {
+        // Update asset with new document
+        // We need a specific endpoint to push to the 'documents' array, or just update the whole asset.
+        // For efficiency, let's assume PATCH /assets/:id handles "documents" merge or replacement.
+
+        try {
+            const newDoc = { name: attachment.fileName, url: attachment.url, type: attachment.mimeType };
+            const currentDocs = asset.documents || [];
+            const updatedDocs = [...currentDocs, newDoc];
+
+            await api.patch(`/assets/${asset.id}`, { documents: updatedDocs });
+
+            toast.success("Document added");
+            queryClient.invalidateQueries({ queryKey: ["assets"] });
+            setIsUploading(false);
+        } catch (error) {
+            toast.error("Failed to link document to asset");
+        }
+    };
+
+    const handleDeleteDoc = async (docUrl: string) => {
+        if (!confirm("Remove this document?")) return;
+        try {
+            const currentDocs = asset.documents || [];
+            const updatedDocs = currentDocs.filter(d => d.url !== docUrl);
+
+            await api.patch(`/assets/${asset.id}`, { documents: updatedDocs });
+
+            toast.success("Document removed");
+            queryClient.invalidateQueries({ queryKey: ["assets"] });
+        } catch (error) {
+            toast.error("Failed to remove document");
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl bg-white">
+                <DialogHeader>
+                    <DialogTitle>Documents: {asset.name}</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-6">
+                    {/* List */}
+                    <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-gray-500 uppercase">Existing Files</h3>
+                        {(!asset.documents || asset.documents.length === 0) && (
+                            <p className="text-sm text-gray-400 italic">No documents attached.</p>
+                        )}
+                        <div className="grid gap-2">
+                            {asset.documents?.map((doc, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-muted/40 rounded border">
+                                    <div className="flex items-center gap-3">
+                                        <FileText className="h-5 w-5 text-blue-500" />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium">{doc.name}</span>
+                                            <span className="text-[10px] text-gray-500">{doc.type}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button variant="ghost" size="icon" asChild>
+                                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                <Download className="h-4 w-4" />
+                                            </a>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-red-50" onClick={() => handleDeleteDoc(doc.url)}>
+                                            <Trash className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Upload */}
+                    <div className="border-t pt-4">
+                        <h3 className="text-sm font-medium text-gray-500 uppercase mb-2">Upload New</h3>
+                        <FileUploader
+                            entityType="assets"
+                            entityId={`${asset.id}-doc`}
+                            onUploadComplete={handleUploadComplete}
+                        />
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}

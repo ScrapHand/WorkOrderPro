@@ -58,6 +58,7 @@ model Asset {
   criticality   String?  @map("criticality") // Nullable for Recursive Inheritance
   hierarchyPath String   @default("/") @map("hierarchy_path") // optimization for search
   lotoConfig    Json?    @map("loto_config") // { electrical: url, pneumatic: url, hydraulic: url }
+  documents     Json?    @map("documents")   // [{ name: "Manual", url: "..." }]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

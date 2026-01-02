@@ -13,6 +13,7 @@ export interface Asset {
         pneumatic?: string;
         hydraulic?: string;
     } | null;
+    documents?: { name: string; url: string; type: string }[];
     status: AssetStatus;
     criticality: AssetCriticality;
     hierarchyPath: string;
