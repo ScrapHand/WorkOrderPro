@@ -14,8 +14,8 @@ export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
 export const tenantMiddleware = (req: Request, res: Response, next: NextFunction) => {
     // 1. Extract Slug from Header (X-Tenant-Slug)
-    // We also support query param for easier dev testing, though header is preferred.
-    let slug = req.get('x-tenant-slug') || (req.query.tenant as string);
+    // We also support query param for easier dev testing or for Proxy URLs (static assets)
+    let slug = req.get('x-tenant-slug') || (req.query.tenant as string) || (req.query.slug as string);
 
     // 2. Default to 'default' tenant if not provided (for Phase 1 dev)
     // In production, this might be strict (return 400).

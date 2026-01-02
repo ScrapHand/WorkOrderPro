@@ -16,8 +16,8 @@ import { Asset } from "@/types/asset";
 export default function AssetsPage() {
     const { data: user } = useAuth();
     const [view, setView] = useState<"grid" | "tree">("grid");
-    const [rootId, setRootId] = useState("41a408f1-64b1-49a2-b7c1-9f6a458bff78");
-    const [inputVal, setInputVal] = useState(rootId);
+    // const [rootId, setRootId] = useState("41a408f1-64b1-49a2-b7c1-9f6a458bff78");
+    // const [inputVal, setInputVal] = useState(rootId);
 
     // Edit & Create State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -28,20 +28,8 @@ export default function AssetsPage() {
         queryFn: () => AssetService.getAll(),
     });
 
-    const { data: treeAssets, isLoading: isTreeLoading, refetch: refetchTree } = useQuery({
-        queryKey: ["assetTree", rootId],
-        queryFn: () => AssetService.getTree(rootId),
-        enabled: view === "tree" && !!rootId,
-    });
-
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        setRootId(inputVal);
-    };
-
     const handleSuccess = () => {
         refetchAll();
-        if (view === "tree") refetchTree();
         setEditAsset(null);
     };
 
@@ -88,29 +76,13 @@ export default function AssetsPage() {
                 </TabsContent>
 
                 <TabsContent value="tree" className="mt-0 space-y-4">
-                    <div className="bg-white p-4 rounded-lg border shadow-sm max-w-md">
-                        <form onSubmit={handleSearch} className="flex gap-2">
-                            <input
-                                type="text"
-                                value={inputVal}
-                                onChange={(e) => setInputVal(e.target.value)}
-                                placeholder="Enter Root Asset ID..."
-                                className="flex-1 border rounded px-3 py-2 text-sm"
-                            />
-                            <Button type="submit" size="sm">
-                                Load Tree
-                            </Button>
-                        </form>
-                        <p className="text-xs text-gray-500 mt-2">
-                            Try ID: 41a408f1-64b1-49a2-b7c1-9f6a458bff78 (Site A)
-                        </p>
-                    </div>
+                    {/* [UX] Removed confusing "Root ID" input. Now auto-loads all assets. */}
 
-                    {isTreeLoading && <p>Loading hierarchy...</p>}
-                    {treeAssets && (
+                    {isAllLoading && <p>Loading hierarchy...</p>}
+                    {!isAllLoading && allAssets && (
                         <div className="h-[600px] bg-white rounded-xl border overflow-hidden">
                             <InteractiveTree
-                                assets={treeAssets}
+                                assets={allAssets} // Pass all assets, component handles tree building
                                 onNodeClick={(asset) => isAdminOrManager ? setEditAsset(asset) : null}
                             />
                         </div>

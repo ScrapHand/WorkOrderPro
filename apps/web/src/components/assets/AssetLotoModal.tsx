@@ -45,7 +45,9 @@ export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProp
                 const key = urlObj.pathname.substring(1); // Remove leading slash
                 // [FIX] Sanitized Base URL Construction
                 const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
-                return `${apiBase}/api/v1/upload/proxy?key=${key}`;
+                // [FIX] Append Tenant Slug for Proxy Auth (since <img> tags don't send headers)
+                // In Phase 1 we default to 'default', in future use dynamic slug.
+                return `${apiBase}/api/v1/upload/proxy?key=${key}&tenant=default`;
             } catch (e) {
                 return url;
             }
