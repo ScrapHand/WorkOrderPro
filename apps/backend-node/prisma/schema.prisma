@@ -29,6 +29,7 @@ model Tenant {
   attachments Attachment[]
   users     User[]
   inventoryItems InventoryItem[]
+  roles     Role[]
 }
 
 model User {
@@ -42,9 +43,32 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   deletedAt    DateTime? @map("deleted_at")
+  preferences  Json?    @map("preferences") // { assetLayout: { [assetId]: {x,y} } }
+  
+  // RBAC Relations
+  customRoleId String?  @map("custom_role_id")
+  customRole   Role?    @relation(fields: [customRoleId], references: [id])
 
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  description String?
+  permissions Json     @default("[]") // ["work_order:read", "asset:write", ...]
+  isSystem    Boolean  @default(false) @map("is_system") // System roles (ADMIN, MANAGER) cannot be deleted coverage
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  users       User[]
+
+  @@unique([tenantId, name])
   @@index([tenantId])
 }
 
@@ -60,6 +84,7 @@ model Asset {
   hierarchyPath String   @default("/") @map("hierarchy_path") // optimization for search
   lotoConfig    Json?    @map("loto_config") // { electrical: url, pneumatic: url, hydraulic: url }
   documents     Json?    @map("documents")   // [{ name: "Manual", url: "..." }]
+  metadata      Json?    @map("metadata")    // { position: { x: 0, y: 0 } }
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

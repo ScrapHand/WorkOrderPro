@@ -42,6 +42,6 @@
         "typescript": "^5.9.3"
     },
     "prisma": {
-        "seed": "ts-node prisma/seed.ts"
+        "seed": "npx ts-node scripts/seed_roles_v2.ts"
     }
 }

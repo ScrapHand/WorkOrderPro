@@ -32,7 +32,7 @@ const sidebarLinks = [
 const adminLinks = [
     { name: "User Management", href: "/dashboard/admin/users", icon: Users },
     { name: "Company Actions", href: "/dashboard/admin/company", icon: Settings }, // Updated from Branding
-    { name: "Permissions (RBAC)", href: "/dashboard/admin/rbac", icon: Lock }, // Added RBAC
+    { name: "Role Management", href: "/dashboard/admin/roles", icon: Lock }, // Added RBAC
     { name: "Secrets & Config", href: "/dashboard/admin/secrets", icon: Lock }, // Added Secrets
     { name: "System Doctor", href: "/dashboard/system-status", icon: Settings },
 ];

@@ -13,6 +13,10 @@ export const AssetService = {
         return res.data;
     },
 
+    saveLayout: async (layout: Record<string, { x: number, y: number }>, scope: 'global' | 'user' = 'user'): Promise<void> => {
+        await api.post("/assets/layout", { layout, scope });
+    },
+
     getTree: async (rootId: string): Promise<Asset[]> => {
         const res = await api.get(`/assets/${rootId}/tree`);
         return res.data;

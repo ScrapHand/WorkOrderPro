@@ -97,6 +97,10 @@ import { InventoryController } from './infrastructure/http/controllers/inventory
 import { ReportService } from './application/services/report.service';
 import { ReportController } from './infrastructure/http/controllers/report.controller';
 
+import { PostgresRoleRepository } from './infrastructure/repositories/postgres-role.repository';
+import { RoleService } from './application/services/role.service';
+import { RoleController } from './infrastructure/http/controllers/role.controller';
+
 import { AuthController } from './infrastructure/http/controllers/auth.controller'; // [FIX] Import Auth
 
 // Instantiate Services
@@ -124,6 +128,10 @@ const inventoryController = new InventoryController(inventoryService, prisma);
 const reportService = new ReportService(prisma);
 const reportController = new ReportController(reportService, prisma);
 
+const roleRepo = new PostgresRoleRepository(prisma);
+const roleService = new RoleService(roleRepo);
+const roleController = new RoleController(roleService, prisma);
+
 const authController = new AuthController(userService); // [PHASE 23] Real Auth
 
 // Define Routers
@@ -148,6 +156,7 @@ apiRouter.use('/auth', authRouter);
 // Asset Routes
 const assetRouter = express.Router();
 assetRouter.post('/', assetController.create);
+assetRouter.post('/layout', assetController.saveLayout); // [NEW] Save Layout
 assetRouter.get('/', assetController.getAll); // [FIX] Restore Helper
 assetRouter.get('/:id/tree', assetController.getTree);
 apiRouter.use('/assets', assetRouter);
@@ -159,6 +168,15 @@ userRouter.get('/', userController.getAll); // List Users
 userRouter.patch('/:id', userController.update);
 userRouter.delete('/:id', userController.delete);
 apiRouter.use('/users', userRouter);
+
+// Role Routes
+const roleRouter = express.Router();
+roleRouter.post('/', roleController.create);
+roleRouter.get('/', roleController.getAll);
+roleRouter.patch('/:id', roleController.update);
+roleRouter.delete('/:id', roleController.delete);
+roleRouter.get('/:id', roleController.getById);
+apiRouter.use('/roles', roleRouter);
 
 // Admin Routes (Tenants)
 const adminRouter = express.Router();

@@ -14,6 +14,7 @@ export interface Asset {
         hydraulic?: string;
     } | null;
     documents?: { name: string; url: string; type: string }[];
+    metadata?: { position?: { x: number; y: number } } | null;
     status: AssetStatus;
     criticality: AssetCriticality;
     hierarchyPath: string;

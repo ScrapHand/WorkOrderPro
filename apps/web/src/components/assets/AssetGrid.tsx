@@ -6,20 +6,18 @@ import { useState } from "react";
 import { AssetDocsModal } from "./AssetDocsModal"; // We will create this next
 import { AssetLotoModal } from "./AssetLotoModal"; // We will create this next
 import { AssetService } from "@/services/asset.service";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-
-import { CreateAssetModal } from "./CreateAssetModal";
+// import { CreateAssetModal } from "./CreateAssetModal"; // Removed as we lift state
 
 interface AssetGridProps {
     assets: Asset[];
     isAdmin?: boolean;
+    onEdit?: (asset: Asset) => void;
 }
 
-export function AssetGrid({ assets, isAdmin }: AssetGridProps) {
+export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
     const [selectedDocsAsset, setSelectedDocsAsset] = useState<Asset | null>(null);
     const [selectedLotoAsset, setSelectedLotoAsset] = useState<Asset | null>(null);
-    const [editAsset, setEditAsset] = useState<Asset | null>(null);
+    // const [editAsset, setEditAsset] = useState<Asset | null>(null); // Lifted up
     const queryClient = useQueryClient();
 
     const handleDelete = async (id: string) => {
@@ -47,7 +45,7 @@ export function AssetGrid({ assets, isAdmin }: AssetGridProps) {
                             asset={asset}
                             onViewDocs={(a) => setSelectedDocsAsset(a)}
                             onViewLoto={(a) => setSelectedLotoAsset(a)}
-                            onEdit={isAdmin ? (a) => setEditAsset(a) : undefined}
+                            onEdit={isAdmin && onEdit ? onEdit : undefined}
                             onDelete={isAdmin ? handleDelete : undefined}
                         />
                     ))}
@@ -68,18 +66,6 @@ export function AssetGrid({ assets, isAdmin }: AssetGridProps) {
                     open={!!selectedLotoAsset}
                     onOpenChange={(open: boolean) => !open && setSelectedLotoAsset(null)}
                     asset={selectedLotoAsset}
-                />
-            )}
-
-            {editAsset && (
-                <CreateAssetModal
-                    open={!!editAsset}
-                    onOpenChange={(open: boolean) => !open && setEditAsset(null)}
-                    initialData={editAsset}
-                    onSuccess={() => {
-                        queryClient.invalidateQueries({ queryKey: ["assets"] });
-                        setEditAsset(null);
-                    }}
                 />
             )}
         </>

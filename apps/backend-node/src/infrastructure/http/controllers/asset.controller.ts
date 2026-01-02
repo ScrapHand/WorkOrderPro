@@ -94,4 +94,45 @@ export class AssetController {
             res.status(500).json({ error: error.message });
         }
     };
+
+    saveLayout = async (req: Request, res: Response) => {
+        try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
+            const resolvedTenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            if (!resolvedTenant) return res.status(404).json({ error: 'Tenant not found' });
+
+            const { layout, scope } = req.body;
+            const user = (req.session as any).user;
+            if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+            if (scope === 'user') {
+                const currentUser = await this.prisma.user.findUnique({ where: { id: user.id } });
+                const currentPrefs = ((currentUser as any)?.preferences) || {};
+                const newPrefs = { ...currentPrefs, assetLayout: layout };
+
+                await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: { preferences: newPrefs } as any
+                });
+            } else if (scope === 'global') {
+                if (user.role !== 'ADMIN' && user.role !== 'MANAGER') return res.status(403).json({ error: 'Forbidden' });
+
+                await Promise.all(
+                    Object.entries(layout).map(([assetId, pos]) =>
+                        this.prisma.asset.update({
+                            where: { id: assetId, tenantId: resolvedTenant.id },
+                            data: { metadata: { position: pos } } as any
+                        })
+                    )
+                );
+            }
+
+            res.status(200).json({ success: true });
+        } catch (error: any) {
+            console.error('Save Layout Error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    };
 }
