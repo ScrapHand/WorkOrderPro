@@ -25,7 +25,9 @@ import { Play, Pause, CheckCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthProvider";
 
-const SESSION_API = (id: string) => `/api/v1/work-orders/${id}`;
+import { api } from "@/lib/api";
+
+const SESSION_API = (id: string) => `/work-orders/${id}`;
 
 export function JobSessionManager({ status, onStatusChange }: { status: string, onStatusChange: () => void }) {
     const { id } = useParams();
@@ -38,9 +40,8 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
     const { data: sessions, isLoading } = useQuery({
         queryKey: ["workOrderSessions", id],
         queryFn: async () => {
-            const res = await fetch(`${SESSION_API(id as string)}/sessions`);
-            if (!res.ok) throw new Error("Failed to fetch sessions");
-            return res.json();
+            const res = await api.get(`${SESSION_API(id as string)}/sessions`);
+            return res.data;
         },
         refetchInterval: 10000 // Refresh every 10s for live updates
     });
@@ -48,9 +49,8 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
     // --- Mutations ---
     const startMutation = useMutation({
         mutationFn: async () => {
-            const res = await fetch(`${SESSION_API(id as string)}/session/start`, { method: "POST" });
-            if (!res.ok) throw new Error("Failed to start session");
-            return res.json();
+            const res = await api.post(`${SESSION_API(id as string)}/session/start`);
+            return res.data;
         },
         onSuccess: () => {
             toast.success("Clocked in successfully");
@@ -62,9 +62,8 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
     const stopMutation = useMutation({
         mutationFn: async () => {
-            const res = await fetch(`${SESSION_API(id as string)}/session/stop`, { method: "POST" });
-            if (!res.ok) throw new Error("Failed to stop session");
-            return res.json();
+            const res = await api.post(`${SESSION_API(id as string)}/session/stop`);
+            return res.data;
         },
         onSuccess: () => {
             toast.success("Clocked out successfully");
@@ -75,9 +74,8 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
     const pauseMutation = useMutation({
         mutationFn: async () => {
-            const res = await fetch(`${SESSION_API(id as string)}/pause`, { method: "POST" });
-            if (!res.ok) throw new Error("Failed to pause job");
-            return res.json();
+            const res = await api.post(`${SESSION_API(id as string)}/pause`);
+            return res.data;
         },
         onSuccess: () => {
             toast.info("Job paused. All users clocked out.");
@@ -89,13 +87,10 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
     const completeMutation = useMutation({
         mutationFn: async () => {
-            const res = await fetch(`${SESSION_API(id as string)}/complete`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ notes: completionNotes })
+            const res = await api.post(`${SESSION_API(id as string)}/complete`, {
+                notes: completionNotes
             });
-            if (!res.ok) throw new Error("Failed to complete job");
-            return res.json();
+            return res.data;
         },
         onSuccess: () => {
             toast.success("Job completed!");

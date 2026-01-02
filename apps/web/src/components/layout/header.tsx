@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/context/ThemeContext";
 import { UserRole } from "@/lib/auth/types";
 import { useState } from "react";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export function Header() {
     const { data: user } = useAuth();
@@ -46,6 +47,9 @@ export function Header() {
                     <Bell className="h-5 w-5" />
                     <span className="sr-only">Notifications</span>
                 </Button>
+                <div className="-ml-2">
+                    <ModeToggle />
+                </div>
 
                 {/* User Profile Dropdown (Simplified) */}
                 <div className="relative">
