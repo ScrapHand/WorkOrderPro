@@ -234,6 +234,7 @@ apiRouter.use('/work-orders', woRouter);
 const uploadRouter = express.Router();
 uploadRouter.post('/presign', uploadController.presign);
 uploadRouter.post('/confirm', uploadController.createAttachment);
+uploadRouter.get('/proxy', uploadController.proxy); // [NEW] S3 Proxy
 apiRouter.use('/upload', uploadRouter);
 
 // Inventory Routes

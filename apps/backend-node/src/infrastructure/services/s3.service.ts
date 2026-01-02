@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 import 'dotenv/config';
@@ -46,5 +46,18 @@ export class S3Service {
         const url = await getSignedUrl(this.client, command, { expiresIn: 900 });
 
         return { url, key };
+    }
+
+    /**
+     * Generates a Presigned URL for GET download.
+     */
+    async generatePresignedGetUrl(key: string): Promise<string> {
+        const command = new GetObjectCommand({
+            Bucket: this.bucket,
+            Key: key
+        });
+
+        // Expires in 1 hour
+        return getSignedUrl(this.client, command, { expiresIn: 3600 });
     }
 }

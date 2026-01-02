@@ -26,7 +26,12 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
         // For efficiency, let's assume PATCH /assets/:id handles "documents" merge or replacement.
 
         try {
-            const newDoc = { name: attachment.fileName, url: attachment.url, type: attachment.mimeType };
+            const newDoc = {
+                name: attachment.fileName,
+                url: attachment.url,
+                type: attachment.mimeType,
+                key: attachment.key // [FIX] Store S3 Key
+            };
             const currentDocs = asset.documents || [];
             const updatedDocs = [...currentDocs, newDoc];
 
@@ -53,6 +58,14 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
         } catch (error) {
             toast.error("Failed to remove document");
         }
+    };
+
+    const getDocUrl = (doc: any) => {
+        if (doc.key) {
+            // [FIX] Use Backend Proxy for private buckets
+            return `${process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com'}/api/v1/upload/proxy?key=${doc.key}`;
+        }
+        return doc.url;
     };
 
     return (
@@ -86,10 +99,10 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
                                                 variant="ghost"
                                                 size="icon"
                                                 title="Set as Cover Image"
-                                                className={asset.imageUrl === doc.url ? "text-yellow-500 hover:bg-yellow-50" : "text-gray-400 hover:text-yellow-500"}
+                                                className={asset.imageUrl === getDocUrl(doc) ? "text-yellow-500 hover:bg-yellow-50" : "text-gray-400 hover:text-yellow-500"}
                                                 onClick={async () => {
                                                     try {
-                                                        await api.patch(`/assets/${asset.id}`, { imageUrl: doc.url });
+                                                        await api.patch(`/assets/${asset.id}`, { imageUrl: getDocUrl(doc) });
                                                         toast.success("Cover image updated");
                                                         queryClient.invalidateQueries({ queryKey: ["assets"] });
                                                     } catch (e) {
@@ -97,14 +110,14 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
                                                     }
                                                 }}
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={asset.imageUrl === doc.url ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={asset.imageUrl === getDocUrl(doc) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                                                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                                                 </svg>
                                             </Button>
                                         )}
 
                                         <Button variant="ghost" size="icon" asChild>
-                                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                            <a href={getDocUrl(doc)} target="_blank" rel="noopener noreferrer">
                                                 <Download className="h-4 w-4" />
                                             </a>
                                         </Button>
