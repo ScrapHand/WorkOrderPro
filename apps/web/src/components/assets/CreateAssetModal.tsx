@@ -126,7 +126,7 @@ export function CreateAssetModal({ open, onOpenChange, parentId, parentName, ini
                                 )}
                                 <FileUploader
                                     entityType="assets"
-                                    entityId="temp"
+                                    entityId={initialData?.id} // [FIX] ID or undefined
                                     onUploadComplete={(file) => setValue("imageUrl", file.url)}
                                 />
                             </div>
