@@ -1,67 +1,56 @@
 "use client";
-
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { AssetTree } from "@/components/assets/AssetTree";
+import { AssetService } from "@/services/asset.service";
+import { InteractiveTree } from "@/components/assets/tree/InteractiveTree";
+import { useState } from "react";
+import { UserRole } from "@/lib/auth/types";
+import { useAuth } from "@/hooks/use-auth";
 import { CreateAssetModal } from "@/components/assets/CreateAssetModal";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Asset } from "@/types/asset";
 
 export default function AssetTreePage() {
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [selectedParent, setSelectedParent] = useState<{ id: string; name: string } | null>(null);
+    const { data: user } = useAuth();
+    const isAdminOrManager = user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER;
 
-    const { data: assets, isLoading, refetch } = useQuery({
+    // Edit State (for Tree clicks)
+    const [editAsset, setEditAsset] = useState<Asset | null>(null);
+
+    const { data: allAssets, isLoading, refetch } = useQuery({
         queryKey: ["assets"],
-        queryFn: async () => {
-            const res = await api.get("/assets");
-            return res.data;
-        }
+        queryFn: () => AssetService.getAll(),
     });
 
-    const handleAddRoot = () => {
-        setSelectedParent(null);
-        setIsCreateOpen(true);
-    };
-
-    const handleAddChild = (parentId: string) => {
-        // Find parent logic if needed for name, though ID is enough
-        const parent = assets?.find((a: any) => a.id === parentId);
-        setSelectedParent({ id: parentId, name: parent?.name || "Unknown" });
-        setIsCreateOpen(true);
+    const handleSuccess = () => {
+        refetch();
+        setEditAsset(null);
     };
 
     return (
-        <div className="h-full flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Asset Hierarchy</h2>
-                    <p className="text-muted-foreground">Manage your asset tree structure.</p>
-                </div>
-                <Button onClick={handleAddRoot}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Root Asset
-                </Button>
-            </div>
+        <div className="space-y-6">
+            <header>
+                <h1 className="text-3xl font-bold tracking-tight text-gray-900">Asset Hierarchy</h1>
+                <p className="text-muted-foreground">Interactive visual map of your asset relationships.</p>
+            </header>
 
-            <div className="flex-1 min-h-[500px]">
-                {isLoading ? (
-                    <div className="flex items-center justify-center h-full">Loading tree...</div>
-                ) : (
-                    <AssetTree
-                        assets={assets || []}
-                        onAddChild={handleAddChild}
+            <div className="h-[calc(100vh-12rem)] bg-white rounded-xl border overflow-hidden shadow-sm">
+                {isLoading && <div className="flex items-center justify-center h-full">Loading hierarchy...</div>}
+                {!isLoading && allAssets && (
+                    <InteractiveTree
+                        assets={allAssets}
+                        onNodeClick={(asset) => isAdminOrManager ? setEditAsset(asset) : null}
                     />
                 )}
             </div>
 
-            <CreateAssetModal
-                open={isCreateOpen}
-                onOpenChange={setIsCreateOpen}
-                parentId={selectedParent?.id}
-                parentName={selectedParent?.name}
-                onSuccess={() => refetch()}
-            />
+            {/* Edit Modal */}
+            {editAsset && (
+                <CreateAssetModal
+                    open={!!editAsset}
+                    onOpenChange={(open) => !open && setEditAsset(null)}
+                    initialData={editAsset}
+                    onSuccess={handleSuccess}
+                />
+            )}
         </div>
     );
 }

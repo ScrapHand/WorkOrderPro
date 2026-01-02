@@ -62,7 +62,7 @@ const AssetNode = ({ data }: NodeProps<AssetNodeData>) => {
                         e.stopPropagation();
                         onToggle?.();
                     }}
-                    className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-50 rounded-full w-6 h-6 flex items-center justify-center border bg-white hover:bg-gray-100 shadow-sm text-xs cursor-pointer"
+                    className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-[500] rounded-full w-8 h-8 flex items-center justify-center border-2 border-gray-300 bg-white hover:bg-gray-50 shadow-md text-sm font-bold text-gray-700 cursor-pointer transition-transform hover:scale-110 active:scale-95"
                     title={isCollapsed ? "Expand" : "Collapse"}
                 >
                     {isCollapsed ? "+" : "-"}

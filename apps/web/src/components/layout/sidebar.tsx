@@ -14,7 +14,8 @@ import {
     Settings,
     LogOut,
     Lock,
-    Archive
+    Archive,
+    Network
 } from "lucide-react";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
@@ -26,7 +27,7 @@ const sidebarLinks = [
     { name: "Work Orders", href: "/dashboard/work-orders", icon: ClipboardList },
     { name: "Archived Jobs", href: "/dashboard/work-orders/archive", icon: Archive }, // [NEW] Archive
     { name: "Assets", href: "/dashboard/assets", icon: Box },
-    { name: "Asset Tree", href: "/dashboard/assets/tree", icon: Box }, // Added Tree
+    { name: "Hierarchy Tree", href: "/dashboard/assets/tree", icon: Network }, // Renamed from Asset Tree and Icon updated
     { name: "Inventory", href: "/dashboard/inventory", icon: Wrench },
     { name: "Reports", href: "/dashboard/reports", icon: ClipboardList },
 ];

@@ -55,9 +55,7 @@ export default function AssetsPage() {
                         <TabsTrigger value="grid" className="gap-2">
                             <LayoutGrid className="h-4 w-4" /> Grid View
                         </TabsTrigger>
-                        <TabsTrigger value="tree" className="gap-2">
-                            <Network className="h-4 w-4" /> Hierarchy Tree (Interactive)
-                        </TabsTrigger>
+                        {/* Tree moved to Sidebar */}
                     </TabsList>
                 </div>
 
