@@ -37,6 +37,35 @@ export class AssetController {
         }
     };
 
+    update = async (req: Request, res: Response) => {
+        try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
+            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+
+            const { id } = req.params;
+            const data = req.body;
+
+            // Prevent updating read-only fields or tenantId
+            delete data.id;
+            delete data.tenantId;
+            delete data.createdAt;
+            delete data.updatedAt;
+
+            const updated = await this.prisma.asset.update({
+                where: { id, tenantId: tenant.id },
+                data
+            });
+
+            res.json(updated);
+        } catch (error: any) {
+            console.error("Update Asset Error:", error);
+            res.status(500).json({ error: error.message });
+        }
+    };
+
     getTree = async (req: Request, res: Response) => {
         try {
             const tenantCtx = getCurrentTenant();

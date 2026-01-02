@@ -185,6 +185,7 @@ assetRouter.post('/', assetController.create);
 assetRouter.post('/layout', assetController.saveLayout); // [NEW] Save Layout
 assetRouter.get('/', assetController.getAll); // [FIX] Restore Helper
 assetRouter.get('/:id/tree', assetController.getTree);
+assetRouter.patch('/:id', assetController.update); // [FIX] Add Update Route
 apiRouter.use('/assets', assetRouter);
 
 // User Routes
