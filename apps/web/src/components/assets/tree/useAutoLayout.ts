@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useReactFlow, Edge, Node } from 'reactflow';
+import { useReactFlow, Edge, Node, Position } from 'reactflow';
 import dagre from 'dagre';
 
 // Default node size for layout calculation
@@ -39,8 +39,8 @@ export const useAutoLayout = (nodes: Node[], edges: Edge[]) => {
                     x: nodeWithPosition.x - NODE_WIDTH / 2,
                     y: nodeWithPosition.y - NODE_HEIGHT / 2,
                 },
-                targetPosition: 'top',
-                sourcePosition: 'bottom',
+                targetPosition: 'top' as Position,
+                sourcePosition: 'bottom' as Position,
             };
         });
 

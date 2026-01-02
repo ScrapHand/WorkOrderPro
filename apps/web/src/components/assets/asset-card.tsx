@@ -17,7 +17,7 @@ interface AssetCardProps {
     onDelete?: (id: string) => void;
 }
 
-export function AssetCard({ asset, onViewDocs, onViewLoto, onDelete }: AssetCardProps) {
+export function AssetCard({ asset, onViewDocs, onViewLoto, onEdit, onDelete }: AssetCardProps) {
     const isCritical = asset.criticality === "A";
 
     return (

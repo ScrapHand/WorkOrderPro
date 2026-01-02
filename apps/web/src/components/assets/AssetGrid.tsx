@@ -1,6 +1,8 @@
 "use client";
 
 import { Asset } from "@/types/asset";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { AssetCard } from "./asset-card";
 import { useState } from "react";
 import { AssetDocsModal } from "./AssetDocsModal"; // We will create this next

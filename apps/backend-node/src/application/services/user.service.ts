@@ -27,16 +27,16 @@ export class UserService {
     }
 
     async updateUser(id: string, data: Partial<User>): Promise<User> {
-        // Drop passwordHash if accidentally passed without hashing
-        const { passwordHash, ...rest } = data;
+        // Drop passwordHash and system fields from generic update
+        const { passwordHash, id: _id, tenantId, createdAt, updatedAt, deletedAt, ...rest } = data;
         return this.prisma.user.update({
             where: { id },
-            data: rest
+            data: rest as any
         });
     }
 
     async updateUserWithPassword(id: string, data: any): Promise<User> {
-        const { password, ...rest } = data;
+        const { password, id: _id, tenantId, createdAt, updatedAt, deletedAt, ...rest } = data;
         const updateData: any = { ...rest };
 
         if (password) {
@@ -45,7 +45,7 @@ export class UserService {
 
         return this.prisma.user.update({
             where: { id },
-            data: updateData
+            data: updateData as any
         });
     }
 

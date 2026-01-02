@@ -1,0 +1,34 @@
+﻿
+> workorderpro-api-v3@1.0.0 build
+> npx prisma generate && tsc && npx prisma db push --accept-data-loss
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Ô£ö Generated Prisma Client (v5.10.2) to .\node_modules\@prisma\client in 67ms
+
+Start using Prisma Client in Node.js (See: https://pris.ly/d/client)
+```
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
+```
+or start using Prisma Client at the edge (See: https://pris.ly/d/accelerate)
+```
+import { PrismaClient } from '@prisma/client/edge'
+const prisma = new PrismaClient()
+```
+
+See other ways of importing Prisma Client: http://pris.ly/d/importing-client
+
+ÔöîÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÉ
+Ôöé  Deploying your app to serverless or edge functions?        Ôöé
+Ôöé  Try Prisma Accelerate for connection pooling and caching.  Ôöé
+Ôöé  https://pris.ly/cli/accelerate                             Ôöé
+ÔööÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÿ
+
+src/application/services/user.service.ts(34,13): error TS2322: Type '{ id?: string | undefined; tenantId?: string | undefined; email?: string | undefined; username?: string | null | undefined; role?: string | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; deletedAt?: Date | ... 1 more ... | undefined; preferences?: JsonValue | undefined; customRoleId?: string ...' is not assignable to type '(Without<UserUpdateInput, UserUncheckedUpdateInput> & UserUncheckedUpdateInput) | (Without<...> & UserUpdateInput)'.
+  Type '{ id?: string | undefined; tenantId?: string | undefined; email?: string | undefined; username?: string | null | undefined; role?: string | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; deletedAt?: Date | ... 1 more ... | undefined; preferences?: JsonValue | undefined; customRoleId?: string ...' is not assignable to type 'Without<UserUncheckedUpdateInput, UserUpdateInput> & UserUpdateInput'.
+    Type '{ id?: string | undefined; tenantId?: string | undefined; email?: string | undefined; username?: string | null | undefined; role?: string | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; deletedAt?: Date | ... 1 more ... | undefined; preferences?: JsonValue | undefined; customRoleId?: string ...' is not assignable to type 'Without<UserUncheckedUpdateInput, UserUpdateInput>'.
+      Types of property 'tenantId' are incompatible.
+        Type 'string | undefined' is not assignable to type 'undefined'.
+          Type 'string' is not assignable to type 'undefined'.
