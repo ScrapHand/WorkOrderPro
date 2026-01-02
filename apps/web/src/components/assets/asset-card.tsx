@@ -24,7 +24,23 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onEdit, onDelete }: A
         <Card className="hover:shadow-md transition-shadow group">
             <div className="relative aspect-video bg-muted w-full overflow-hidden rounded-t-xl">
                 {asset.imageUrl ? (
-                    <img src={asset.imageUrl} alt={asset.name} className="object-cover w-full h-full" />
+                    <img
+                        src={(() => {
+                            if (!asset.imageUrl) return "";
+                            if (asset.imageUrl.includes('/api/v1/upload/proxy')) return `${asset.imageUrl}&tenant=default`; // Append tenant if already proxy
+                            if (asset.imageUrl.includes('amazonaws.com')) {
+                                try {
+                                    const urlObj = new URL(asset.imageUrl);
+                                    const key = urlObj.pathname.substring(1);
+                                    const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
+                                    return `${apiBase}/api/v1/upload/proxy?key=${key}&tenant=default`;
+                                } catch (e) { return asset.imageUrl; }
+                            }
+                            return asset.imageUrl;
+                        })()}
+                        alt={asset.name}
+                        className="object-cover w-full h-full"
+                    />
                 ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground bg-gray-100">
                         No Image
@@ -53,9 +69,7 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onEdit, onDelete }: A
             </CardHeader>
 
             <CardContent className="p-4 pt-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="bg-muted px-2 py-1 rounded">Location: {asset.hierarchyPath}</span>
-                </div>
+                {/* Cleaned up Location info as requested */}
             </CardContent>
 
             <CardFooter className="p-4 pt-0 flex gap-2">

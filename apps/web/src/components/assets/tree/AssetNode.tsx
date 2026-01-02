@@ -10,10 +10,13 @@ import { Asset } from "@/types/asset";
 interface AssetNodeData {
     asset: Asset;
     onEdit?: (asset: Asset) => void;
+    isCollapsed?: boolean;
+    hasChildren?: boolean;
+    onToggle?: () => void;
 }
 
 const AssetNode = ({ data }: NodeProps<AssetNodeData>) => {
-    const { asset } = data;
+    const { asset, isCollapsed, hasChildren, onToggle } = data;
 
     // Status Icon Helper
     const StatusIcon = () => {
@@ -26,37 +29,46 @@ const AssetNode = ({ data }: NodeProps<AssetNodeData>) => {
     };
 
     return (
-        <Card className="w-[280px] shadow-lg border-2 hover:border-primary transition-colors bg-white">
-            <Handle type="target" position={Position.Top} className="!bg-muted-foreground w-3 h-3" />
+        <div className="relative">
+            <Card className="w-[280px] shadow-lg border-2 hover:border-primary transition-colors bg-white z-10 relative">
+                <Handle type="target" position={Position.Top} className="!bg-muted-foreground w-3 h-3" />
 
-            <CardHeader className="p-3 pb-0 flex flex-row items-center justify-between space-y-0">
-                <div className="flex items-center gap-2">
-                    <StatusIcon />
-                    <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">
-                        {asset.criticality || 'N/A'}
-                    </Badge>
-                </div>
-                {/* Future: Action Menu */}
-                <MoreVertical className="h-4 w-4 text-muted-foreground cursor-pointer opacity-50 hover:opacity-100" />
-            </CardHeader>
+                <CardHeader className="p-3 pb-0 flex flex-row items-center justify-between space-y-0">
+                    <div className="flex items-center gap-2">
+                        <StatusIcon />
+                        <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">
+                            {asset.criticality || 'N/A'}
+                        </Badge>
+                    </div>
+                </CardHeader>
 
-            <CardContent className="p-3 pt-2">
-                <CardTitle className="text-sm font-semibold truncate" title={asset.name}>
-                    {asset.name}
-                </CardTitle>
-                <div className="text-xs text-muted-foreground mt-1 truncate">
-                    {asset.description || "No description"}
-                </div>
-                <div className="mt-2 text-[10px] text-gray-400 flex justify-between">
-                    <span>{asset.hierarchyPath}</span>
-                    {asset.children && asset.children.length > 0 && (
-                        <span>{asset.children.length} Children</span>
-                    )}
-                </div>
-            </CardContent>
+                <CardContent className="p-3 pt-2">
+                    <CardTitle className="text-sm font-semibold truncate" title={asset.name}>
+                        {asset.name}
+                    </CardTitle>
+                    <div className="text-xs text-muted-foreground mt-1 truncate">
+                        {asset.description || "No description"}
+                    </div>
+                    {/* Collapsed Details - Removed Location as per Request */}
+                </CardContent>
 
-            <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground w-3 h-3" />
-        </Card>
+                <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground w-3 h-3" />
+            </Card>
+
+            {/* Collapse/Expand Toggle Button */}
+            {hasChildren && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggle?.();
+                    }}
+                    className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-50 rounded-full w-6 h-6 flex items-center justify-center border bg-white hover:bg-gray-100 shadow-sm text-xs cursor-pointer"
+                    title={isCollapsed ? "Expand" : "Collapse"}
+                >
+                    {isCollapsed ? "+" : "-"}
+                </button>
+            )}
+        </div>
     );
 };
 

@@ -9,7 +9,8 @@ import ReactFlow, {
     Edge,
     ReactFlowProvider,
     MiniMap,
-    Panel
+    Panel,
+    useReactFlow
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Asset } from "@/types/asset";
@@ -35,28 +36,76 @@ interface InteractiveTreeProps {
 const LayoutFlow = ({ assets, onNodeClick }: InteractiveTreeProps) => {
     const { data: user } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
+    const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+
+    // Toggle Collapse Handler
+    const onToggleCollapse = useCallback((nodeId: string) => {
+        setCollapsedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(nodeId)) {
+                next.delete(nodeId);
+            } else {
+                next.add(nodeId);
+            }
+            return next;
+        });
+    }, []);
+
+    // Helper to find all descendants of a node
+    // Memoized set of hidden nodes based on collapsed parents
+    const hiddenNodes = useMemo(() => {
+        const hidden = new Set<string>();
+        const childrenMap = new Map<string, string[]>();
+
+        // Build adjacency list
+        assets.forEach(a => {
+            if (a.parentId) {
+                if (!childrenMap.has(a.parentId)) childrenMap.set(a.parentId, []);
+                childrenMap.get(a.parentId)?.push(a.id);
+            }
+        });
+
+        // Traverse from collapsed nodes
+        const traverse = (parentId: string) => {
+            const children = childrenMap.get(parentId) || [];
+            children.forEach(childId => {
+                hidden.add(childId);
+                traverse(childId); // Recursive hide
+            });
+        };
+
+        collapsedIds.forEach(id => traverse(id));
+        return hidden;
+    }, [assets, collapsedIds]);
 
     // 1. Transform Data
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = [];
         const edges: Edge[] = [];
+        // Map allows quick lookup to check if node has children
+        const parentMap = new Set(assets.map(a => a.parentId).filter(Boolean));
 
         assets.forEach((asset) => {
-            // Priority: User's saved pos > Global saved pos > Auto-layout (0,0)
-            // Note: Currently we only receive 'assets' which might include 'metadata' from DB.
-            // If we implement user prefs, we might need to merge that in 'assets' or pass separately.
-            // For now, let's look at asset.metadata.position
+            const isHidden = hiddenNodes.has(asset.id);
+            if (isHidden) return; // Don't render hidden nodes
 
             const savedPos = asset.metadata?.position || { x: 0, y: 0 };
+            const hasChildren = assets.some(a => a.parentId === asset.id);
 
             nodes.push({
                 id: asset.id,
                 type: 'assetNode',
-                data: { asset, onEdit: onNodeClick },
+                data: {
+                    asset,
+                    onEdit: onNodeClick,
+                    isCollapsed: collapsedIds.has(asset.id),
+                    hasChildren: hasChildren,
+                    onToggle: () => onToggleCollapse(asset.id)
+                },
                 position: savedPos,
             });
 
-            if (asset.parentId) {
+            if (asset.parentId && !hiddenNodes.has(asset.parentId)) {
                 edges.push({
                     id: `e-${asset.parentId}-${asset.id}`,
                     source: asset.parentId,
@@ -69,18 +118,44 @@ const LayoutFlow = ({ assets, onNodeClick }: InteractiveTreeProps) => {
         });
 
         return { initialNodes: nodes, initialEdges: edges };
-    }, [assets, onNodeClick]);
+    }, [assets, onNodeClick, hiddenNodes, collapsedIds, onToggleCollapse]);
 
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    // Update Nodes/Edges when asset list or collapsed state changes
+    // We use useEffect to sync the internal ReactFlow state
+    const { setNodes, setEdges } = useReactFlow(); // Needs to be inside provider, but we are inside LayoutFlow
+
+    // FIX: useNodesState matches initial state, but we need to update it when 'initialNodes' recalculates.
+    // However, setNodes from useNodesState is local.
+    // Let's rely on the auto-layout or direct prop passing if controlled.
+    // Actually, simply passing 'nodes={initialNodes}' to ReactFlow makes it controlled?
+    // No, ReactFlow is uncontrolled by default unless onNodesChange is wired to a state that updates.
+
+    // Let's force update the local state when computed nodes change
+    const [nodes, setNodesState, onNodesChange] = useNodesState([]);
+    const [edges, setEdgesState, onEdgesChange] = useEdgesState([]);
+
+    // Sync computed nodes to local state
+    // Use deep comparison or simple length check to avoid loops?
+    // Actually simplicity: Just set them.
+    useMemo(() => {
+        setNodesState(initialNodes);
+        setEdgesState(initialEdges);
+    }, [initialNodes, initialEdges, setNodesState, setEdgesState]);
+
+    // ... (Auto Layout logic remains similar, but trigger needs check)
 
     // 3. Auto Layout
-    // Only run if NO nodes have saved positions (first time load)
     const hasSavedPositions = useMemo(() => {
         return assets.some(a => a.metadata?.position);
     }, [assets]);
 
-    useAutoLayout(initialNodes, initialEdges); // We might want to make this conditional on !hasSavedPositions in useAutoLayout itself
+    // Only run layout if we have nodes and NOT using saved positions (or forced)
+    // For collapsing, we might want to re-run layout?
+    // User wants "interactive hierarchy tree... with ability to collapse".
+    // If we hide nodes, the tree should probably shrink.
+    // useAutoLayout runs on 'nodes' change.
+
+    useAutoLayout(nodes, edges);
 
     const onSaveLayout = async () => {
         setIsSaving(true);
