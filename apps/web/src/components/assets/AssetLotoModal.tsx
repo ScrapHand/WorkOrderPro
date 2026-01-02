@@ -143,7 +143,7 @@ export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProp
                                         <p className="text-sm font-medium text-gray-500 mb-2">Add Another Image</p>
                                         <FileUploader
                                             entityType="assets"
-                                            entityId={`${asset.id}-loto-${activeTab}-${Date.now()}`}
+                                            entityId={asset.id} // Fix: Must be UUID for DB FK
                                             onUploadComplete={handleUploadComplete}
                                         />
                                     </div>
@@ -157,7 +157,7 @@ export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProp
                                     <div className="w-64">
                                         <FileUploader
                                             entityType="assets"
-                                            entityId={`${asset.id}-loto-${activeTab}`}
+                                            entityId={asset.id} // Fix: Must be UUID for DB FK
                                             onUploadComplete={handleUploadComplete}
                                         />
                                     </div>

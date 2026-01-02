@@ -122,7 +122,7 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
                         <h3 className="text-sm font-medium text-gray-500 uppercase mb-2">Upload New</h3>
                         <FileUploader
                             entityType="assets"
-                            entityId={`${asset.id}-doc`}
+                            entityId={asset.id} // Fix: Must be UUID for DB FK
                             onUploadComplete={handleUploadComplete}
                         />
                     </div>
