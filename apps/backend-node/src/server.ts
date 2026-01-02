@@ -76,11 +76,10 @@ app.use(session({
     proxy: true, // [CRITICAL] Trust the proxy for secure cookies
     cookie: {
         path: '/',
-        secure: true,        // [PHASE 21] Standard HTTPS
+        secure: true,        // Production is always HTTPS (Vercel)
         httpOnly: true,
-        sameSite: 'none',     // [PHASE 21] Cross-Site for Vercel
-        partitioned: true,   // [PHASE 21] Chrome CHIPS Compliance
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days (Persistent)
+        sameSite: 'lax',     // [FIX] Proxied via Vercel Rewrites = First Party
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
     } as any
 }));
 
