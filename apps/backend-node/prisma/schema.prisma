@@ -13,9 +13,12 @@ model Tenant {
   name      String
   plan      String   @default("free")
   
-  // Branding
-  logoUrl    String?  @map("logo_url")
-  brandColor String   @default("#2563eb") @map("brand_color")
+  // Branding & Configuration
+  logoUrl        String?  @map("logo_url")
+  brandColor     String   @default("#2563eb") @map("brand_color")
+  brandingConfig Json?    @map("branding_config") // { primary, secondary, font, logo }
+  rbacConfig     Json?    @map("rbac_config")     // { "ROLE": { "feature": boolean } }
+  secretsConfig  Json?    @map("secrets_config")  // { "STRIPE_KEY": "...", "OPENAI_KEY": "..." }
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

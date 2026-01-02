@@ -12,7 +12,8 @@ import {
     Users,
     PlusCircle,
     Settings,
-    LogOut
+    LogOut,
+    Lock
 } from "lucide-react";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
@@ -22,14 +23,17 @@ const sidebarLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Work Orders", href: "/dashboard/work-orders", icon: ClipboardList },
     { name: "Assets", href: "/dashboard/assets", icon: Box },
+    { name: "Asset Tree", href: "/dashboard/assets/tree", icon: Box }, // Added Tree
     { name: "Inventory", href: "/dashboard/inventory", icon: Wrench },
-    { name: "Reports", href: "/dashboard/reports", icon: ClipboardList }, // Added Reports
+    { name: "Reports", href: "/dashboard/reports", icon: ClipboardList },
 ];
 
 const adminLinks = [
     { name: "User Management", href: "/dashboard/admin/users", icon: Users },
-    { name: "Branding", href: "/dashboard/admin/branding", icon: Settings },
-    { name: "System Doctor", href: "/dashboard/system-status", icon: Settings }, // Added Doctor
+    { name: "Company Actions", href: "/dashboard/admin/company", icon: Settings }, // Updated from Branding
+    { name: "Permissions (RBAC)", href: "/dashboard/admin/rbac", icon: Lock }, // Added RBAC
+    { name: "Secrets & Config", href: "/dashboard/admin/secrets", icon: Lock }, // Added Secrets
+    { name: "System Doctor", href: "/dashboard/system-status", icon: Settings },
 ];
 
 export function Sidebar() {

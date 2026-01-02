@@ -148,7 +148,8 @@ apiRouter.use('/users', userRouter);
 
 // Admin Routes (Tenants)
 const adminRouter = express.Router();
-adminRouter.patch('/branding', adminController.updateBranding);
+adminRouter.patch('/config', adminController.updateConfig);
+adminRouter.get('/config', adminController.getConfig);
 apiRouter.use('/tenant', adminRouter);
 
 // Work Order Routes

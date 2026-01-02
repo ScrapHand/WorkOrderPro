@@ -29,7 +29,7 @@ const StatusIcon = ({ status }: { status: string }) => {
     return <Monitor className="w-4 h-4 text-gray-500" />;
 };
 
-const AssetNode = ({ asset, allAssets, depth = 0, onSelect, selectedId }: { asset: Asset; allAssets: Asset[]; depth?: number; onSelect?: (a: Asset) => void; selectedId?: string | null }) => {
+const AssetNode = ({ asset, allAssets, depth = 0, onSelect, onAddChild, selectedId }: { asset: Asset; allAssets: Asset[]; depth?: number; onSelect?: (a: Asset) => void; onAddChild?: (parentId: string) => void; selectedId?: string | null }) => {
     const [isOpen, setIsOpen] = useState(true);
 
     // Find children from the flat list (or if nested)
@@ -50,7 +50,7 @@ const AssetNode = ({ asset, allAssets, depth = 0, onSelect, selectedId }: { asse
     const isSelected = selectedId === asset.id;
 
     return (
-        <div className="select-none">
+        <div className="select-none group">
             <div
                 className={`flex items-center gap-2 py-1 px-2 hover:bg-gray-50 rounded cursor-pointer border-l-2 ${depth > 0 ? 'ml-4' : ''} ${isSelected ? 'bg-blue-50 border-blue-500' : 'border-gray-200'}`}
                 onClick={handleSelect}
@@ -66,6 +66,19 @@ const AssetNode = ({ asset, allAssets, depth = 0, onSelect, selectedId }: { asse
                 <CriticalityBadge level={asset.criticality} />
 
                 {asset.description && <span className="text-xs text-gray-400 truncate max-w-[200px]">- {asset.description}</span>}
+
+                {/* Add Child Button */}
+                {onAddChild && (
+                    <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            className="p-1 hover:bg-gray-200 rounded text-gray-500"
+                            onClick={(e) => { e.stopPropagation(); onAddChild(asset.id); }}
+                            title="Add Child Asset"
+                        >
+                            <span className="text-xs font-bold">+ Child</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {isOpen && hasChildren && (
@@ -77,6 +90,7 @@ const AssetNode = ({ asset, allAssets, depth = 0, onSelect, selectedId }: { asse
                             allAssets={allAssets}
                             depth={depth + 1}
                             onSelect={onSelect}
+                            onAddChild={onAddChild}
                             selectedId={selectedId}
                         />
                     ))}
@@ -86,7 +100,15 @@ const AssetNode = ({ asset, allAssets, depth = 0, onSelect, selectedId }: { asse
     );
 };
 
-export const AssetTree = ({ assets, onSelect, selectedId }: AssetTreeProps) => {
+interface AssetTreeProps {
+    assets: Asset[];
+    onSelect?: (asset: Asset) => void;
+    onAddChild?: (parentId: string) => void;
+    selectedId?: string | null;
+}
+// ... (CriticalityBadge, StatusIcon omitted matching original file if not replaced) ...
+
+export const AssetTree = ({ assets, onSelect, onAddChild, selectedId }: AssetTreeProps) => {
     const allIds = new Set(assets.map(a => a.id));
     const roots = assets.filter(a => !a.parentId || !allIds.has(a.parentId));
 
@@ -105,10 +127,11 @@ export const AssetTree = ({ assets, onSelect, selectedId }: AssetTreeProps) => {
                             asset={root}
                             allAssets={assets}
                             onSelect={onSelect}
+                            onAddChild={onAddChild}
                             selectedId={selectedId}
                         />
                     ))}
-                    {roots.length === 0 && <p className="text-muted-foreground italic p-4">No assets found.</p>}
+                    {roots.length === 0 && <p className="text-muted-foreground italic p-4">No assets found. Start by creating a root asset.</p>}
                 </div>
             </div>
         </div>
