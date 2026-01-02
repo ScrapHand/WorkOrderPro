@@ -9,7 +9,7 @@ export const AssetService = {
     },
 
     update: async (id: string, data: Partial<CreateAssetDTO>): Promise<Asset> => {
-        const res = await api.put(`/assets/${id}`, data);
+        const res = await api.patch(`/assets/${id}`, data);
         return res.data;
     },
 
