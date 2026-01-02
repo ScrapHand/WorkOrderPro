@@ -14,7 +14,7 @@ export class AdminController {
             // Expecting: { branding: { primaryColor, ... }, rbac: { "ROLE": ... } }
 
             // 1. Resolve Tenant
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } }) as any;
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
             // 2. Prepare Update Data

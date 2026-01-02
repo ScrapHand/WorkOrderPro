@@ -1,5 +1,5 @@
-import { InventoryItem } from '../domain/entities/inventory.entity';
-import { IInventoryRepository } from '../domain/repositories/inventory.repository.interface';
+import { InventoryItem } from '../../domain/entities/inventory.entity';
+import { IInventoryRepository } from '../../domain/repositories/inventory.repository.interface';
 import { v4 as uuidv4 } from 'uuid';
 
 export class InventoryService {
