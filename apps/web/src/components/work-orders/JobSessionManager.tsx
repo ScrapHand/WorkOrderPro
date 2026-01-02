@@ -49,7 +49,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
     // --- Mutations ---
     const startMutation = useMutation({
         mutationFn: async () => {
-            const res = await api.post(`${SESSION_API(id as string)}/session/start`);
+            const res = await api.post(`${SESSION_API(id as string)}/session/start`, {});
             return res.data;
         },
         onSuccess: () => {
@@ -65,7 +65,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
     const stopMutation = useMutation({
         mutationFn: async () => {
-            const res = await api.post(`${SESSION_API(id as string)}/session/stop`);
+            const res = await api.post(`${SESSION_API(id as string)}/session/stop`, {});
             return res.data;
         },
         onSuccess: () => {
@@ -77,7 +77,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
     const pauseMutation = useMutation({
         mutationFn: async () => {
-            const res = await api.post(`${SESSION_API(id as string)}/pause`);
+            const res = await api.post(`${SESSION_API(id as string)}/pause`, {});
             return res.data;
         },
         onSuccess: () => {
