@@ -73,6 +73,9 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
             <DialogContent className="max-w-2xl bg-white">
                 <DialogHeader>
                     <DialogTitle>Documents: {asset.name}</DialogTitle>
+                    <DialogDescription className="text-gray-500">
+                        View and manage documents attached to this asset.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6">

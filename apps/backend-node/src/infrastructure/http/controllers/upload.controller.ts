@@ -50,6 +50,8 @@ export class UploadController {
 
             const { entityType, entityId, key, fileName, mimeType, size } = req.body;
 
+            console.log(`[Upload] Creating Attachment:`, { entityType, entityId, fileName }); // [DEBUG]
+
             // Resolve Tenant ID
             const tenantRecord = await this.prisma.tenant.findUnique({
                 where: { slug: tenant.slug }

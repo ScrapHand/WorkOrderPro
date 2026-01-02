@@ -106,67 +106,17 @@ export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProp
 
                         <div className="pt-4 mt-auto">
                             <div className="bg-red-50 p-3 rounded text-xs text-red-800 border border-red-100">
-                                <strong>Safety First:</strong> Ensure all energy sources are isolated before work.
+                                entityType="assets"
+                                entityId={asset.id} // Fix: Must be UUID for DB FK
+                                onUploadComplete={handleUploadComplete}
+                                        />
                             </div>
                         </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 flex flex-col overflow-y-auto pr-2">
-                        <div className="flex-1 p-4 bg-gray-50 rounded-xl border min-h-0 overflow-y-auto">
-                            {currentImages.length > 0 ? (
-                                <div className="grid grid-cols-2 gap-4">
-                                    {currentImages.map((url, idx) => (
-                                        <div key={idx} className="relative group aspect-video bg-gray-200 rounded-lg overflow-hidden border">
-                                            <img src={url} alt={`LOTO ${activeTab} ${idx + 1}`} className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="bg-white/90 hover:bg-white text-black border-none"
-                                                    onClick={() => window.open(url, '_blank')}
-                                                >
-                                                    View
-                                                </Button>
-                                                <Button
-                                                    variant="destructive"
-                                                    size="sm"
-                                                    onClick={() => handleDeleteImage(url)}
-                                                >
-                                                    Delete
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {/* Add Button as last grid item */}
-                                    <div className="aspect-video border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center p-4 hover:bg-gray-100 transition-colors">
-                                        <p className="text-sm font-medium text-gray-500 mb-2">Add Another Image</p>
-                                        <FileUploader
-                                            entityType="assets"
-                                            entityId={asset.id} // Fix: Must be UUID for DB FK
-                                            onUploadComplete={handleUploadComplete}
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-center text-gray-400">
-                                    <Lock className="h-16 w-16 mb-4 opacity-20" />
-                                    <p className="text-lg font-medium text-gray-600">No images for {activeTab} isolation</p>
-                                    <p className="text-sm max-w-sm mx-auto mt-2 mb-6">Upload photos of the isolation points, switches, or valves required for this procedure.</p>
-
-                                    <div className="w-64">
-                                        <FileUploader
-                                            entityType="assets"
-                                            entityId={asset.id} // Fix: Must be UUID for DB FK
-                                            onUploadComplete={handleUploadComplete}
-                                        />
-                                    </div>
-                                </div>
                             )}
-                        </div>
                     </div>
                 </div>
-            </DialogContent>
-        </Dialog>
+            </div>
+        </DialogContent>
+        </Dialog >
     );
 }
