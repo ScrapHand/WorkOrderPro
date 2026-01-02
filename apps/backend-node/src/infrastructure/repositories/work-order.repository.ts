@@ -2,6 +2,7 @@ export interface IWorkOrderRepository {
     create(data: any): Promise<any>;
     findAll(tenantId: string): Promise<any[]>;
     findById(id: string, tenantId: string): Promise<any | null>;
+    delete(id: string, tenantId: string): Promise<void>;
 }
 
 import { PrismaClient } from '@prisma/client';
@@ -25,6 +26,14 @@ export class PostgresWorkOrderRepository implements IWorkOrderRepository {
         return this.prisma.workOrder.findFirst({
             where: { id, tenantId, deletedAt: null },
             include: { asset: true }
+        });
+    }
+
+    async delete(id: string, tenantId: string): Promise<void> {
+        // Soft Delete
+        await this.prisma.workOrder.updateMany({
+            where: { id, tenantId },
+            data: { deletedAt: new Date() }
         });
     }
 }

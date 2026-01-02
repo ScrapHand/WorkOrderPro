@@ -5,7 +5,7 @@ import { UploadService } from "@/services/upload.service";
 import { UploadCloud, Check, X, Loader2 } from "lucide-react";
 
 interface FileUploaderProps {
-    entityType: 'assets' | 'work-orders' | 'tenant';
+    entityType: 'assets' | 'work-orders' | 'tenant' | 'inventory';
     entityId: string;
     onUploadComplete?: (attachment: any) => void;
 }

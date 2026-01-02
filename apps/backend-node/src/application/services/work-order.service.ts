@@ -32,4 +32,8 @@ export class WorkOrderService {
     async getWorkOrderById(id: string, tenantId: string) {
         return this.woRepo.findById(id, tenantId);
     }
+
+    async deleteWorkOrder(id: string, tenantId: string) {
+        return this.woRepo.delete(id, tenantId);
+    }
 }

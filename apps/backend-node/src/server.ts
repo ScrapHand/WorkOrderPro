@@ -171,6 +171,7 @@ const woRouter = express.Router();
 woRouter.post('/', woController.create);
 woRouter.get('/', woController.getAll);
 woRouter.get('/:id', woController.getById);
+woRouter.delete('/:id', woController.delete);
 apiRouter.use('/work-orders', woRouter);
 
 // Upload Routes

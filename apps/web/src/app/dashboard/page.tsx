@@ -66,7 +66,7 @@ export default function DashboardPage() {
 
                 <div className="block">
                     <Card className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => {
-                        // Placeholder for "My Schedule" or similar
+                        router.push("/dashboard/work-orders?assignee=me");
                     }}>
                         <CardContent className="flex items-center justify-between p-8">
                             <div className="space-y-2">

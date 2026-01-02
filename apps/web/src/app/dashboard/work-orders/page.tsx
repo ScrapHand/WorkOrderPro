@@ -1,11 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
-import { Plus, ArrowUpRight, Search, Filter } from "lucide-react";
+import { Plus, ArrowUpRight, Search, Filter, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { RoleGuard } from "@/components/auth/role-guard";
+import { UserRole } from "@/lib/auth/types";
 import {
     Table,
     TableBody,
@@ -29,19 +33,43 @@ const RimeBadge = ({ score }: { score: number }) => {
     );
 };
 
-export default function WorkOrderList() {
+import { Suspense } from "react";
+
+function WorkOrderListContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const predefinedFilter = searchParams.get("assignee");
+    const queryClient = useQueryClient();
+
     const { data: orders, isLoading } = useQuery({
         queryKey: ["workOrders"],
         queryFn: AssetService.getWorkOrders,
-        refetchInterval: 30000, // [UX] Auto-refresh every 30s
+        refetchInterval: 30000,
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: AssetService.deleteWorkOrder,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+            toast.success("Work Order deleted");
+        },
+        onError: () => toast.error("Failed to delete Work Order")
+    });
+
+    const filteredOrders = orders?.filter(wo => {
+        if (predefinedFilter === 'me') {
+            return wo.status !== 'DONE';
+        }
+        return true;
     });
 
     return (
         <div className="space-y-6">
             <header className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Work Orders</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                        {predefinedFilter === 'me' ? "My Schedule" : "Work Orders"}
+                    </h1>
                     <p className="text-muted-foreground">Manage active tasks and maintenance history.</p>
                 </div>
                 <Link href="/dashboard/work-orders/new">
@@ -51,11 +79,17 @@ export default function WorkOrderList() {
                 </Link>
             </header>
 
+            {/* Filter Bar */}
             <div className="flex items-center gap-4 bg-white p-3 rounded-xl border shadow-sm">
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Filter by ID, title, or asset..." className="pl-9 h-10 border-none focus-visible:ring-0" />
                 </div>
+                {predefinedFilter === 'me' && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        Filtering: My Tasks
+                    </Badge>
+                )}
                 <div className="flex-1" />
                 <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-transparent hover:border-border transition-all">
                     <Filter className="h-4 w-4" /> Filters
@@ -72,23 +106,24 @@ export default function WorkOrderList() {
                             <TableHead>Priority</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Created</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
                             [1, 2, 3].map(i => (
                                 <TableRow key={i}>
-                                    <TableCell colSpan={6} className="h-16 bg-muted/5 animate-pulse" />
+                                    <TableCell colSpan={7} className="h-16 bg-muted/5 animate-pulse" />
                                 </TableRow>
                             ))
-                        ) : orders?.length === 0 ? (
+                        ) : filteredOrders?.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-64 text-center text-muted-foreground italic">
+                                <TableCell colSpan={7} className="h-64 text-center text-muted-foreground italic">
                                     No work orders found.
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            orders?.map(wo => (
+                            filteredOrders?.map(wo => (
                                 <TableRow
                                     key={wo.id}
                                     className="group cursor-pointer hover:bg-blue-50/30 transition-colors"
@@ -117,6 +152,23 @@ export default function WorkOrderList() {
                                     <TableCell className="text-right text-muted-foreground tabular-nums text-sm">
                                         {new Date(wo.createdAt).toLocaleDateString()}
                                     </TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                        <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-red-50"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm("Are you sure you want to delete this Work Order?")) {
+                                                        deleteMutation.mutate(wo.id);
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </RoleGuard>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         )}
@@ -124,6 +176,14 @@ export default function WorkOrderList() {
                 </Table>
             </div>
         </div>
+    );
+}
+
+export default function WorkOrderList() {
+    return (
+        <Suspense fallback={<div className="p-8">Loading Work Orders...</div>}>
+            <WorkOrderListContent />
+        </Suspense>
     );
 }
 

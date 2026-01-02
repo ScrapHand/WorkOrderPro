@@ -4,6 +4,8 @@ import { Search, Bell, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth, useLogout } from "@/hooks/use-auth";
+import Link from "next/link";
+import { toast } from "sonner";
 import { useTheme } from "@/context/ThemeContext";
 import { UserRole } from "@/lib/auth/types";
 import { useState } from "react";
@@ -66,12 +68,22 @@ export function Header() {
                             <div className="px-2 py-1.5 text-sm font-semibold border-b mb-1">
                                 My Account
                             </div>
-                            <button className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground">
+                            <button
+                                onClick={() => {
+                                    toast.info("Profile management coming soon!");
+                                    setIsMenuOpen(false);
+                                }}
+                                className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                            >
                                 Profile
                             </button>
-                            <button className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground">
+                            <Link
+                                href="/dashboard/admin/company"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                            >
                                 Settings
-                            </button>
+                            </Link>
                             <div className="h-px bg-muted my-1" />
                             <button
                                 onClick={() => logout.mutate()}

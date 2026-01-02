@@ -36,5 +36,9 @@ export const AssetService = {
     getWorkOrderById: async (id: string): Promise<WorkOrder> => {
         const res = await api.get(`/work-orders/${id}`);
         return res.data;
+    },
+
+    deleteWorkOrder: async (id: string): Promise<void> => {
+        await api.delete(`/work-orders/${id}`);
     }
 };
