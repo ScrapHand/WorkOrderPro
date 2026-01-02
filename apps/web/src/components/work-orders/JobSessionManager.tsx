@@ -57,7 +57,10 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
             queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
             onStatusChange();
         },
-        onError: () => toast.error("Failed to start work")
+        onError: (err: any) => {
+            console.error("Start Session Error", err);
+            toast.error(`Failed to start work: ${err.response?.data?.error || err.message}`);
+        }
     });
 
     const stopMutation = useMutation({
@@ -69,7 +72,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
             toast.success("Clocked out successfully");
             queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
         },
-        onError: () => toast.error("Failed to stop work")
+        onError: (err: any) => toast.error(`Failed to stop work: ${err.response?.data?.error || err.message}`)
     });
 
     const pauseMutation = useMutation({
@@ -82,7 +85,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
             queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
             onStatusChange();
         },
-        onError: () => toast.error("Failed to pause job")
+        onError: (err: any) => toast.error(`Failed to pause job: ${err.response?.data?.error || err.message}`)
     });
 
     const completeMutation = useMutation({
@@ -98,7 +101,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
             queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
             onStatusChange();
         },
-        onError: () => toast.error("Failed to complete job")
+        onError: (err: any) => toast.error(`Failed to complete job: ${err.response?.data?.error || err.message}`)
     });
 
     // --- Computeds ---
