@@ -2,82 +2,128 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
-import { Plus, ArrowUpRight } from "lucide-react";
+import { Plus, ArrowUpRight, Search, Filter } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const RimeBadge = ({ score }: { score: number }) => {
-    let color = "bg-green-100 text-green-800";
-    if (score >= 70) color = "bg-red-100 text-red-800"; // Critical (10) * Critical (7+)
-    else if (score >= 40) color = "bg-orange-100 text-orange-800"; // Med/High
-    else if (score >= 20) color = "bg-yellow-100 text-yellow-800";
+    let color = "bg-green-100 text-green-800 border-green-200";
+    if (score >= 70) color = "bg-red-100 text-red-800 border-red-200";
+    else if (score >= 40) color = "bg-orange-100 text-orange-800 border-orange-200";
+    else if (score >= 20) color = "bg-yellow-100 text-yellow-800 border-yellow-200";
 
     return (
-        <span className={`px-2 py-1 rounded font-bold ${color}`}>
+        <span className={`px-2 py-0.5 rounded border font-bold text-xs ${color}`}>
             {score}
         </span>
     );
 };
 
 export default function WorkOrderList() {
+    const router = useRouter();
     const { data: orders, isLoading } = useQuery({
         queryKey: ["workOrders"],
-        queryFn: AssetService.getWorkOrders
+        queryFn: AssetService.getWorkOrders,
+        refetchInterval: 30000, // [UX] Auto-refresh every 30s
     });
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Work Orders</h1>
+        <div className="space-y-6">
+            <header className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Work Orders</h1>
+                    <p className="text-muted-foreground">Manage active tasks and maintenance history.</p>
+                </div>
                 <Link href="/dashboard/work-orders/new">
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-700">
+                    <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
                         <Plus className="w-4 h-4" /> New Work Order
                     </button>
                 </Link>
+            </header>
+
+            <div className="flex items-center gap-4 bg-white p-3 rounded-xl border shadow-sm">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Filter by ID, title, or asset..." className="pl-9 h-10 border-none focus-visible:ring-0" />
+                </div>
+                <div className="flex-1" />
+                <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-transparent hover:border-border transition-all">
+                    <Filter className="h-4 w-4" /> Filters
+                </button>
             </div>
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RIME</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {isLoading && <tr><td colSpan={6} className="p-4 text-center">Loading...</td></tr>}
-
-                        {orders?.map(wo => (
-                            <tr key={wo.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <RimeBadge score={wo.rimeScore} />
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                                    {wo.title}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                                    {wo.asset?.name || "Unknown Asset"}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {wo.priority}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                        {wo.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {new Date(wo.createdAt).toLocaleDateString()}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {orders?.length === 0 && <div className="p-6 text-center text-gray-500">No open work orders.</div>}
+            <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
+                <Table>
+                    <TableHeader className="bg-gray-50/50">
+                        <TableRow>
+                            <TableHead className="w-[80px]">RIME</TableHead>
+                            <TableHead>Work Order</TableHead>
+                            <TableHead>Asset</TableHead>
+                            <TableHead>Priority</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Created</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            [1, 2, 3].map(i => (
+                                <TableRow key={i}>
+                                    <TableCell colSpan={6} className="h-16 bg-muted/5 animate-pulse" />
+                                </TableRow>
+                            ))
+                        ) : orders?.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-64 text-center text-muted-foreground italic">
+                                    No work orders found.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            orders?.map(wo => (
+                                <TableRow
+                                    key={wo.id}
+                                    className="group cursor-pointer hover:bg-blue-50/30 transition-colors"
+                                    onClick={() => router.push(`/dashboard/work-orders/${wo.id}`)}
+                                >
+                                    <TableCell>
+                                        <RimeBadge score={wo.rimeScore} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{wo.title}</div>
+                                        <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">WO-{wo.id.slice(0, 8)}</div>
+                                    </TableCell>
+                                    <TableCell className="text-gray-600">
+                                        {wo.asset?.name || "Global"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${wo.priority === 'CRITICAL' ? 'text-red-600' : 'text-gray-500'}`}>
+                                            {wo.priority}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 px-2 py-0 h-5">
+                                            {wo.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right text-muted-foreground tabular-nums text-sm">
+                                        {new Date(wo.createdAt).toLocaleDateString()}
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
             </div>
         </div>
     );
 }
+

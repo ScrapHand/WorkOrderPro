@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
             {/* Big Action Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Link href="/work-orders/new" className="block group">
+                <Link href="/dashboard/work-orders/new" className="block group">
                     <Card className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer border-0">
                         <CardContent className="flex items-center justify-between p-8">
                             <div className="space-y-2">
@@ -116,7 +116,7 @@ export default function DashboardPage() {
                                 <CardContent>
                                     <div className="flex justify-end pt-2">
                                         <Button variant="outline" size="sm" asChild className="h-8 text-xs w-full">
-                                            <Link href={`/work-orders/${task.id}`}>View Details</Link>
+                                            <Link href={`/dashboard/work-orders/${task.id}`}>View Details</Link>
                                         </Button>
                                     </div>
                                 </CardContent>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
 
                 <div className="flex justify-center pt-4">
                     <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-                        <a href="https://workorderpro.vercel.app/acme/work-orders">View All History &rarr;</a>
+                        <Link href="/dashboard/work-orders">View All History &rarr;</Link>
                     </Button>
                 </div>
             </div>

@@ -48,4 +48,21 @@ export class WorkOrderController {
             res.status(500).json({ error: error.message });
         }
     };
+
+    getById = async (req: Request, res: Response) => {
+        try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
+            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+
+            const wo = await this.woService.getWorkOrderById(req.params.id, tenant.id);
+            if (!wo) return res.status(404).json({ error: 'Work order not found' });
+
+            res.json(wo);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    };
 }

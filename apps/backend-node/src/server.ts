@@ -91,6 +91,11 @@ import { UserService } from './application/services/user.service';
 import { UserController } from './infrastructure/http/controllers/user.controller';
 import { AdminController } from './infrastructure/http/controllers/admin.controller';
 import { DebugController } from './infrastructure/http/controllers/debug.controller';
+import { PostgresInventoryRepository } from './infrastructure/repositories/postgres-inventory.repository';
+import { InventoryService } from './application/services/inventory.service';
+import { InventoryController } from './infrastructure/http/controllers/inventory.controller';
+import { ReportService } from './application/services/report.service';
+import { ReportController } from './infrastructure/http/controllers/report.controller';
 
 import { AuthController } from './infrastructure/http/controllers/auth.controller'; // [FIX] Import Auth
 
@@ -111,6 +116,13 @@ const userService = new UserService(prisma);
 const userController = new UserController(userService);
 const adminController = new AdminController(prisma);
 const debugController = new DebugController(prisma);
+
+const inventoryRepo = new PostgresInventoryRepository(prisma);
+const inventoryService = new InventoryService(inventoryRepo);
+const inventoryController = new InventoryController(inventoryService, prisma);
+
+const reportService = new ReportService(prisma);
+const reportController = new ReportController(reportService, prisma);
 
 const authController = new AuthController(userService); // [PHASE 23] Real Auth
 
@@ -144,6 +156,8 @@ apiRouter.use('/assets', assetRouter);
 const userRouter = express.Router();
 userRouter.post('/', userController.create); // Create User
 userRouter.get('/', userController.getAll); // List Users
+userRouter.patch('/:id', userController.update);
+userRouter.delete('/:id', userController.delete);
 apiRouter.use('/users', userRouter);
 
 // Admin Routes (Tenants)
@@ -156,6 +170,7 @@ apiRouter.use('/tenant', adminRouter);
 const woRouter = express.Router();
 woRouter.post('/', woController.create);
 woRouter.get('/', woController.getAll);
+woRouter.get('/:id', woController.getById);
 apiRouter.use('/work-orders', woRouter);
 
 // Upload Routes
@@ -163,6 +178,20 @@ const uploadRouter = express.Router();
 uploadRouter.post('/presign', uploadController.presign);
 uploadRouter.post('/confirm', uploadController.createAttachment);
 apiRouter.use('/upload', uploadRouter);
+
+// Inventory Routes
+const inventoryRouter = express.Router();
+inventoryRouter.post('/', inventoryController.create);
+inventoryRouter.get('/', inventoryController.list);
+inventoryRouter.put('/:id', inventoryController.update);
+inventoryRouter.delete('/:id', inventoryController.delete);
+apiRouter.use('/inventory', inventoryRouter);
+
+// Report Routes
+const reportRouter = express.Router();
+reportRouter.get('/work-orders', reportController.getWorkOrderSummary);
+reportRouter.get('/inventory', reportController.getInventorySnapshot);
+apiRouter.use('/reports', reportRouter);
 
 // Debug Routes
 const debugRouter = express.Router();

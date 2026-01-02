@@ -31,6 +31,10 @@ export class AdminController {
                 data.rbacConfig = rbac;
             }
 
+            if (req.body.notifications) {
+                data.notificationConfig = req.body.notifications;
+            }
+
             if (req.body.secrets) {
                 // [SECURITY] We might want to encrypt here, but for now we store as JSON.
                 // In a real app, use AES-256 before saving to DB.
@@ -84,6 +88,11 @@ export class AdminController {
                     logoUrl: tenant.logoUrl
                 },
                 rbac: t.rbacConfig || {},
+                notifications: t.notificationConfig || {
+                    enabled: true,
+                    soundUrl: null,
+                    volume: 0.5
+                },
                 secrets: maskedSecrets
             });
         } catch (error: any) {

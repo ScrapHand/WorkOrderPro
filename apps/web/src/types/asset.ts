@@ -7,6 +7,12 @@ export interface Asset {
     parentId: string | null;
     name: string;
     description?: string;
+    imageUrl?: string | null;
+    lotoConfig?: {
+        electrical?: string;
+        pneumatic?: string;
+        hydraulic?: string;
+    } | null;
     status: AssetStatus;
     criticality: AssetCriticality;
     hierarchyPath: string;
@@ -19,5 +25,7 @@ export interface CreateAssetDTO {
     name: string;
     parentId?: string | null;
     description?: string;
+    imageUrl?: string | null;
+    lotoConfig?: any;
     criticality?: AssetCriticality;
 }

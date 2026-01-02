@@ -116,8 +116,13 @@ export default function LoginPage() {
                         </Button>
                     </CardFooter>
                 </form>
-                <div className="p-6 pt-0 text-center text-sm text-muted-foreground">
-                    Don't have an account? Contact Admin.
+                <div className="p-6 pt-0 text-center space-y-2">
+                    <div className="text-sm text-muted-foreground">
+                        Don't have an account? Contact Admin.
+                    </div>
+                    <div className="bg-blue-50 border border-blue-100 p-2 rounded text-[10px] text-blue-600 font-medium">
+                        Tip: Demo Admin password is <span className="font-bold">ScrapHand</span>
+                    </div>
                 </div>
             </Card>
         </div>

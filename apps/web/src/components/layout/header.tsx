@@ -4,23 +4,27 @@ import { Search, Bell, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth, useLogout } from "@/hooks/use-auth";
+import { useTheme } from "@/context/ThemeContext";
 import { UserRole } from "@/lib/auth/types";
 import { useState } from "react";
 
 export function Header() {
     const { data: user } = useAuth();
     const logout = useLogout();
+    const { config } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    // Initial simple header without complex DropdownMenu component (since it's missing)
-    // Using native relative div + absolute state for dropdown
+    const logoUrl = config?.branding?.logoUrl;
+
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-6 shadow-sm">
-            {/* Mobile Menu Trigger (Visible on small screens) */}
-            <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
-            </Button>
+            {/* Mobile Menu Trigger & Logo */}
+            <div className="flex items-center gap-2 md:hidden">
+                <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                </Button>
+                {logoUrl && <img src={logoUrl} alt="Logo" className="h-6 w-auto" />}
+            </div>
 
             {/* Global Search */}
             <div className="w-full flex-1 md:w-auto md:flex-none">

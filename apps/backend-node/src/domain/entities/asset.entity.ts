@@ -8,6 +8,8 @@ export class Asset {
         public hierarchyPath: string,
         public parentId?: string | null,
         public description?: string | null,
+        public imageUrl?: string | null,
+        public lotoConfig?: any | null,
         public createdAt?: Date,
         public updatedAt?: Date,
         public deletedAt?: Date | null,

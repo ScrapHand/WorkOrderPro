@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { AssetService } from '../../../application/services/asset.service';
+import { InventoryService } from '../../../application/services/inventory.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
 
-export class AssetController {
+export class InventoryController {
     constructor(
-        private assetService: AssetService,
+        private inventoryService: InventoryService,
         private prisma: PrismaClient
     ) { }
 
@@ -14,56 +14,42 @@ export class AssetController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            // [FIX] Resolve Tenant Slug to UUID
             const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
-            const { name, parentId, description, criticality, imageUrl, lotoConfig } = req.body;
-
-            const asset = await this.assetService.createAsset(
-                tenant.id,
-                name,
-                parentId || null,
-                description,
-                criticality,
-                imageUrl,
-                lotoConfig
-            );
-
-            res.status(201).json(asset);
+            const item = await this.inventoryService.createItem(tenant.id, req.body);
+            res.status(201).json(item);
         } catch (error: any) {
-            console.error('Create Asset Error:', error);
             res.status(500).json({ error: error.message });
         }
     };
 
-    getTree = async (req: Request, res: Response) => {
+    list = async (req: Request, res: Response) => {
         try {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            // [FIX] Resolve Tenant Slug to UUID
+            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+
+            const items = await this.inventoryService.listItems(tenant.id);
+            res.json(items);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    update = async (req: Request, res: Response) => {
+        try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
             const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
             const { id } = req.params;
-            const tree = await this.assetService.getAssetTree(id, tenant.id); // [FIX] Use UUID
-            res.json(tree);
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
-        }
-    };
-
-    getAll = async (req: Request, res: Response) => {
-        try {
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
-
-            const assets = await this.assetService.getAllAssets(tenant.id);
-            res.json(assets);
+            const item = await this.inventoryService.updateItem(id, tenant.id, req.body);
+            res.json(item);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
         }
@@ -78,17 +64,7 @@ export class AssetController {
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
             const { id } = req.params;
-            const asset = await this.prisma.asset.findFirst({
-                where: { id, tenantId: tenant.id }
-            });
-
-            if (!asset) return res.status(404).json({ error: 'Asset not found' });
-
-            await this.prisma.asset.update({
-                where: { id },
-                data: { deletedAt: new Date() }
-            });
-
+            await this.inventoryService.deleteItem(id, tenant.id);
             res.status(204).send();
         } catch (error: any) {
             res.status(500).json({ error: error.message });

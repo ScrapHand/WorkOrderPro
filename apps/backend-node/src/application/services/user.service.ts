@@ -8,7 +8,8 @@ export class UserService {
         tenantId: string,
         email: string,
         role: string,
-        plainPassword?: string
+        plainPassword?: string,
+        username?: string
     ): Promise<User> {
         // Default password if not provided
         const passwordToHash = plainPassword || 'temp1234';
@@ -19,8 +20,23 @@ export class UserService {
                 tenantId,
                 email,
                 role,
-                passwordHash
+                passwordHash,
+                username
             }
+        });
+    }
+
+    async updateUser(id: string, data: Partial<User>): Promise<User> {
+        const { passwordHash, ...rest } = data;
+        return this.prisma.user.update({
+            where: { id },
+            data: rest
+        });
+    }
+
+    async deleteUser(id: string): Promise<User> {
+        return this.prisma.user.delete({
+            where: { id }
         });
     }
 
@@ -35,7 +51,6 @@ export class UserService {
         return this.prisma.user.findMany({
             where: { tenantId },
             orderBy: { createdAt: 'desc' },
-            // Exclude passwordHash in a real mapper, checking if controller does it
         });
     }
 

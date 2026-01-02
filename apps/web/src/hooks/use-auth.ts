@@ -69,7 +69,7 @@ export function useLogin() {
                 });
 
                 if (user.role === UserRole.TECHNICIAN) {
-                    router.push("/work-orders/my-tasks");
+                    router.push("/dashboard/work-orders");
                 } else {
                     router.push("/dashboard");
                 }

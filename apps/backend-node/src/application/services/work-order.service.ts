@@ -29,4 +29,7 @@ export class WorkOrderService {
     async getWorkOrders(tenantId: string) {
         return this.woRepo.findAll(tenantId);
     }
+    async getWorkOrderById(id: string, tenantId: string) {
+        return this.woRepo.findById(id, tenantId);
+    }
 }

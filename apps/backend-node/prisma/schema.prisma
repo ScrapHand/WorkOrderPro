@@ -19,6 +19,7 @@ model Tenant {
   brandingConfig Json?    @map("branding_config") // { primary, secondary, font, logo }
   rbacConfig     Json?    @map("rbac_config")     // { "ROLE": { "feature": boolean } }
   secretsConfig  Json?    @map("secrets_config")  // { "STRIPE_KEY": "...", "OPENAI_KEY": "..." }
+  notificationConfig Json? @map("notification_config")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -27,12 +28,14 @@ model Tenant {
   workOrders WorkOrder[]
   attachments Attachment[]
   users     User[]
+  inventoryItems InventoryItem[]
 }
 
 model User {
   id           String   @id @default(uuid())
   tenantId     String   @map("tenant_id")
   email        String   @unique
+  username     String?  @map("user_name")
   passwordHash String   @map("password_hash")
   role         String   @default("VIEWER") // ADMIN, TECHNICIAN, VIEWER
   
@@ -50,9 +53,12 @@ model Asset {
   parentId      String?  @map("parent_id")
   name          String
   description   String?
+  imageUrl      String?  @map("image_url")
   status        String   @default("OPERATIONAL") // Enum: OPERATIONAL, DOWN, MAINTENANCE
   criticality   String?  @map("criticality") // Nullable for Recursive Inheritance
   hierarchyPath String   @default("/") @map("hierarchy_path") // optimization for search
+  lotoConfig    Json?    @map("loto_config") // { electrical: url, pneumatic: url, hydraulic: url }
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   deletedAt     DateTime? // Soft Delete cursor
@@ -92,6 +98,24 @@ model WorkOrder {
   @@index([tenantId])
   @@index([assetId])
   @@index([rimeScore])
+}
+
+model InventoryItem {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  name         String
+  locationId   String?  @map("location_id")
+  quantity     Int      @default(0)
+  threshold    Int      @default(5)
+  supplierInfo Json?    @map("supplier_info") // { name, contact }
+  imageUrl     String?  @map("image_url")
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
 }
 
 model Attachment {

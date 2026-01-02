@@ -8,7 +8,7 @@ import { AlertCircle, CheckCircle, ChevronRight, ClipboardList, AlertTriangle } 
 import { Button } from "@/components/ui/button";
 import { workOrderSchema, type WorkOrderCreate } from "@/lib/schemas/work-order";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
+import { api } from "@/lib/api";
 
 // Mock Assets for MVP
 const MOCK_ASSETS = [
@@ -22,6 +22,7 @@ export default function CreateWorkOrderWizard() {
     const [step, setStep] = useState(1);
     const queryClient = useQueryClient();
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [showDescription, setShowDescription] = useState(false); // [UX] Optional Description
 
     const form = useForm<WorkOrderCreate>({
         resolver: zodResolver(workOrderSchema),
@@ -35,29 +36,29 @@ export default function CreateWorkOrderWizard() {
 
     const mutation = useMutation({
         mutationFn: async (data: WorkOrderCreate) => {
-            // In real life: POST to /api/v2/work-orders
-            await axios.post("http://localhost:8000/api/v2/work-orders", data);
-
-            // Simulating network delay for effect (optional)
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            return data;
+            // [FIX] Use API Client for Headers/Proxy/Auth
+            const res = await api.post("/work-orders", data);
+            return res.data;
         },
         onMutate: async (newWo) => {
-            // Optimistic update
             await queryClient.cancelQueries({ queryKey: ["work-orders"] });
-            queryClient.setQueryData(["work-orders"], (old: any) => [...(old || []), { ...newWo, id: "temp-" + Date.now(), status: "new" }]);
+            // Optimistic update
+            queryClient.setQueryData(["work-orders"], (old: any) => [...(old || []), { ...newWo, id: "temp-" + Date.now(), status: "OPEN" }]);
         },
         onSuccess: () => {
             reset();
-            setStep(1); // Reset to start or go to success screen
-            alert("Work Order Created Optimistically!");
+            setStep(1);
+            alert("Work Order Created Successfully!");
+            setShowDescription(false);
         },
-        onError: () => {
-            setSubmitError("We're having trouble reaching the server. We'll keep trying in the background.");
+        onError: (err: any) => {
+            console.error("Submission Error:", err);
+            setSubmitError(err.response?.data?.error || "Failed to create work order. Please try again.");
         }
     });
 
     const onSubmit = (data: WorkOrderCreate) => {
+        setSubmitError(null);
         mutation.mutate(data);
     };
 
@@ -92,7 +93,7 @@ export default function CreateWorkOrderWizard() {
                                             key={asset.id}
                                             type="button"
                                             onClick={() => {
-                                                setValue("assetId", asset.id); // In real app use real UUID
+                                                setValue("assetId", asset.id);
                                                 nextStep();
                                             }}
                                             className="p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 hover:ring-2 hover:ring-blue-200 transition-all text-left flex flex-col gap-2 h-32 justify-between"
@@ -128,14 +129,35 @@ export default function CreateWorkOrderWizard() {
                                     {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
                                 </div>
 
+                                {/* Optional Description Toggle */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Detailed Description</label>
-                                    <textarea
-                                        {...register("description")}
-                                        rows={5}
-                                        placeholder="Describe what happened..."
-                                        className="w-full p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
-                                    />
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium text-gray-700">Detailed Description</label>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-blue-600 h-auto p-0 hover:bg-transparent"
+                                            onClick={() => setShowDescription(!showDescription)}
+                                        >
+                                            {showDescription ? "- Remove" : "+ Add Optional"}
+                                        </Button>
+                                    </div>
+
+                                    {showDescription && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: "auto" }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                        >
+                                            <textarea
+                                                {...register("description")}
+                                                rows={5}
+                                                placeholder="Describe what happened..."
+                                                className="w-full p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            />
+                                        </motion.div>
+                                    )}
                                     {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
                                 </div>
 
@@ -214,8 +236,8 @@ export default function CreateWorkOrderWizard() {
                                     </div>
                                 )}
 
-                                <Button type="submit" size="lg" className="w-full bg-green-600 hover:bg-green-700">
-                                    Create Work Order
+                                <Button type="submit" size="lg" disabled={mutation.isPending} className="w-full bg-green-600 hover:bg-green-700">
+                                    {mutation.isPending ? "Creating..." : "Create Work Order"}
                                 </Button>
                                 <Button type="button" variant="ghost" className="w-full" onClick={prevStep}>Back</Button>
                             </motion.div>

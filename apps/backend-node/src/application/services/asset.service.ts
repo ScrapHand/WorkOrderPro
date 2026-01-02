@@ -10,7 +10,9 @@ export class AssetService {
         name: string,
         parentId: string | null,
         description?: string,
-        criticality: 'A' | 'B' | 'C' = 'C'
+        criticality: 'A' | 'B' | 'C' = 'C',
+        imageUrl?: string | null,
+        lotoConfig?: any | null
     ): Promise<Asset> {
         // [DOMAIN LOGIC] Hierarchy Path Calculation
         let hierarchyPath = '/';
@@ -28,7 +30,9 @@ export class AssetService {
             criticality,
             hierarchyPath,
             parentId,
-            description
+            description,
+            imageUrl,
+            lotoConfig
         );
 
         await this.assetRepo.create(newAsset);

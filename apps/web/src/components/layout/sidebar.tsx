@@ -18,6 +18,7 @@ import {
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
 import { useLogout } from "@/hooks/use-auth";
+import { useTheme } from "@/context/ThemeContext";
 
 const sidebarLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -39,13 +40,21 @@ const adminLinks = [
 export function Sidebar() {
     const pathname = usePathname();
     const logout = useLogout();
+    const { config } = useTheme(); // Use Theme Context for Logo
+
+    const logoUrl = config?.branding?.logoUrl;
 
     return (
         <div className="flex h-full w-full flex-col border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             {/* Branding */}
             <div className="flex h-14 items-center border-b px-6">
-                <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-                    <span className="text-primary">WorkOrder</span>Pro
+                <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl">
+                    {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" className="h-8 w-auto object-contain" />
+                    ) : (
+                        <span className="text-primary">WorkOrder</span>
+                    )}
+                    {(!logoUrl || logoUrl === "") && <span>Pro</span>}
                 </Link>
             </div>
 
@@ -92,7 +101,7 @@ export function Sidebar() {
 
             {/* Sticky Footer / Big Button */}
             <div className="border-t p-4 space-y-2">
-                <Link href="/work-orders/new">
+                <Link href="/dashboard/work-orders/new">
                     <Button size="lg" className="w-full gap-2 shadow-lg">
                         <PlusCircle className="h-5 w-5" /> Create Work Order
                     </Button>

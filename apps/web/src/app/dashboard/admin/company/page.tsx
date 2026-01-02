@@ -158,9 +158,64 @@ export default function CompanyBuilderPage() {
                     </CardContent>
                 </Card>
 
-                <div className="flex justify-end">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Notifications</CardTitle>
+                        <CardDescription>Customize how your team is alerted to new work orders.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label>Audible Alerts</Label>
+                                <p className="text-xs text-muted-foreground">Play a sound when a critical work order is created.</p>
+                            </div>
+                            <input
+                                type="checkbox"
+                                className="toggle h-6 w-11 rounded-full bg-muted appearance-none checked:bg-primary transition-colors cursor-pointer"
+                                checked={config?.notifications?.enabled ?? true}
+                                onChange={(e) => {
+                                    api.patch("/tenant/config", {
+                                        notifications: { ...config?.notifications, enabled: e.target.checked }
+                                    }).then(() => refreshConfig());
+                                }}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Notification Sound (.mp3)</Label>
+                            <div className="flex items-center gap-4">
+                                {config?.notifications?.soundUrl && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => new Audio(config.notifications.soundUrl).play()}
+                                    >
+                                        Test Sound
+                                    </Button>
+                                )}
+                                <div className="flex-1">
+                                    <FileUploader
+                                        entityType="tenant"
+                                        entityId={config?.slug || "notifications"}
+                                        onUploadComplete={(att) => {
+                                            toast.success("Sound updated!");
+                                            api.patch("/tenant/config", {
+                                                notifications: { ...config?.notifications, soundUrl: att.url }
+                                            }).then(() => refreshConfig());
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic">
+                                Tip: System will auto-trim uploads longer than 3s to ensure snappy alerts.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="flex justify-end pt-4">
                     <Button type="submit" disabled={loading}>
-                        {loading ? "Saving..." : "Save Changes"}
+                        {loading ? "Saving..." : "Save Branding Changes"}
                     </Button>
                 </div>
             </form>
