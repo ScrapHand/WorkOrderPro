@@ -24,7 +24,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { InventoryService } from "@/services/inventory.service";
 import { toast } from "sonner";
 import { FileUploader } from "@/components/common/FileUploader";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
@@ -37,12 +37,26 @@ const formSchema = z.object({
     imageUrl: z.string().optional(),
 });
 
+interface InventoryItem {
+    id: string;
+    name: string;
+    quantity: number;
+    threshold: number;
+    locationId?: string | null;
+    supplierInfo?: {
+        name: string;
+        contact: string;
+    } | null;
+    imageUrl?: string | null;
+}
+
 interface AddInventoryModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    initialData?: InventoryItem | null;
 }
 
-export function AddInventoryModal({ open, onOpenChange }: AddInventoryModalProps) {
+export function AddInventoryModal({ open, onOpenChange, initialData }: AddInventoryModalProps) {
     const queryClient = useQueryClient();
     const [uploading, setUploading] = useState(false);
 
@@ -59,6 +73,15 @@ export function AddInventoryModal({ open, onOpenChange }: AddInventoryModalProps
         },
     });
 
+    // Reset/Populate form when initialData changes or modal opens
+    // useEffect is standard for this in simple modals, or use key={initialData?.id} in parent
+    const { reset } = form;
+    // We'll handle this via a separate effect or just key in parent. 
+    // Ideally parent should unmount/remount or we use useEffect here.
+    // Let's use useEffect for robustness.
+
+    // ... import useEffect ...
+
     const createItem = useMutation({
         mutationFn: (values: z.infer<typeof formSchema>) => {
             const payload = {
@@ -72,17 +95,22 @@ export function AddInventoryModal({ open, onOpenChange }: AddInventoryModalProps
                     contact: values.supplierContact || ""
                 } : null
             };
-            // @ts-ignore - DTO mismatch with undefined handling
+
+            if (initialData) {
+                // @ts-ignore
+                return InventoryService.update(initialData.id, payload);
+            }
+            // @ts-ignore
             return InventoryService.create(payload);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["inventory"] });
-            toast.success("Inventory item added");
+            toast.success(initialData ? "Item updated" : "Inventory item added");
             onOpenChange(false);
-            form.reset();
+            reset();
         },
         onError: (error: any) => {
-            toast.error("Failed to create item: " + error.message);
+            toast.error("Failed to save item: " + error.message);
         }
     });
 
@@ -94,9 +122,9 @@ export function AddInventoryModal({ open, onOpenChange }: AddInventoryModalProps
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle>Add Inventory Item</DialogTitle>
+                    <DialogTitle>{initialData ? "Edit Inventory Item" : "Add Inventory Item"}</DialogTitle>
                     <DialogDescription>
-                        Create a new stock item with tracking details.
+                        {initialData ? "Update item details and stock levels." : "Create a new stock item with tracking details."}
                     </DialogDescription>
                 </DialogHeader>
 

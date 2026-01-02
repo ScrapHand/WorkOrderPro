@@ -13,6 +13,7 @@ interface AssetCardProps {
     asset: Asset;
     onViewDocs: (asset: Asset) => void;
     onViewLoto: (asset: Asset) => void;
+    onEdit?: (asset: Asset) => void;
     onDelete?: (id: string) => void;
 }
 
@@ -76,6 +77,11 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onDelete }: AssetCard
                                 <History className="mr-2 h-4 w-4" /> View History
                             </DropdownMenuItem>
                         </Link>
+                        {onEdit && (
+                            <DropdownMenuItem onClick={() => onEdit(asset)}>
+                                <FileText className="mr-2 h-4 w-4" /> Edit Asset
+                            </DropdownMenuItem>
+                        )}
                         {onDelete && (
                             <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(asset.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Decommission

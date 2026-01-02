@@ -68,7 +68,7 @@ export default function AssetsPage() {
                     ) : (
                         <AssetGrid
                             assets={allAssets || []}
-                            isAdmin={user?.role === UserRole.ADMIN}
+                            isAdmin={user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER}
                         />
                     )}
                 </TabsContent>

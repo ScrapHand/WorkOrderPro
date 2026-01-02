@@ -9,6 +9,8 @@ import { AssetService } from "@/services/asset.service";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { CreateAssetModal } from "./CreateAssetModal";
+
 interface AssetGridProps {
     assets: Asset[];
     isAdmin?: boolean;
@@ -17,6 +19,7 @@ interface AssetGridProps {
 export function AssetGrid({ assets, isAdmin }: AssetGridProps) {
     const [selectedDocsAsset, setSelectedDocsAsset] = useState<Asset | null>(null);
     const [selectedLotoAsset, setSelectedLotoAsset] = useState<Asset | null>(null);
+    const [editAsset, setEditAsset] = useState<Asset | null>(null);
     const queryClient = useQueryClient();
 
     const handleDelete = async (id: string) => {
@@ -44,6 +47,7 @@ export function AssetGrid({ assets, isAdmin }: AssetGridProps) {
                             asset={asset}
                             onViewDocs={(a) => setSelectedDocsAsset(a)}
                             onViewLoto={(a) => setSelectedLotoAsset(a)}
+                            onEdit={isAdmin ? (a) => setEditAsset(a) : undefined}
                             onDelete={isAdmin ? handleDelete : undefined}
                         />
                     ))}
@@ -64,6 +68,18 @@ export function AssetGrid({ assets, isAdmin }: AssetGridProps) {
                     open={!!selectedLotoAsset}
                     onOpenChange={(open: boolean) => !open && setSelectedLotoAsset(null)}
                     asset={selectedLotoAsset}
+                />
+            )}
+
+            {editAsset && (
+                <CreateAssetModal
+                    open={!!editAsset}
+                    onOpenChange={(open: boolean) => !open && setEditAsset(null)}
+                    initialData={editAsset}
+                    onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ["assets"] });
+                        setEditAsset(null);
+                    }}
                 />
             )}
         </>

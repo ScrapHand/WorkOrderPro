@@ -39,7 +39,7 @@ export default function ReportsPage() {
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900">Reporting Engine</h1>
                     <p className="text-muted-foreground">Analyze maintenance performance and inventory health.</p>
                 </div>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => window.print()}>
                     <Download className="mr-2 h-4 w-4" /> Export All (PDF)
                 </Button>
             </header>

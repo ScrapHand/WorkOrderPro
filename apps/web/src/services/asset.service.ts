@@ -8,6 +8,11 @@ export const AssetService = {
         return res.data;
     },
 
+    update: async (id: string, data: Partial<CreateAssetDTO>): Promise<Asset> => {
+        const res = await api.put(`/assets/${id}`, data);
+        return res.data;
+    },
+
     getTree: async (rootId: string): Promise<Asset[]> => {
         const res = await api.get(`/assets/${rootId}/tree`);
         return res.data;

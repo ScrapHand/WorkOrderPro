@@ -31,6 +31,7 @@ export default function InventoryPage() {
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState("");
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<any>(null);
 
     const { data: items, isLoading } = useQuery({
         queryKey: ["inventory"],
@@ -137,7 +138,15 @@ export default function InventoryPage() {
                                     <TableCell className="text-right">
                                         {/* Actions */}
                                         <div className="flex justify-end gap-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => {
+                                                    setSelectedItem(item);
+                                                    setIsAddOpen(true);
+                                                }}
+                                            >
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                             <Button
@@ -159,7 +168,14 @@ export default function InventoryPage() {
                 </Table>
             </div>
 
-            <AddInventoryModal open={isAddOpen} onOpenChange={setIsAddOpen} />
+            <AddInventoryModal
+                open={isAddOpen}
+                onOpenChange={(open) => {
+                    setIsAddOpen(open);
+                    if (!open) setSelectedItem(null);
+                }}
+                initialData={selectedItem}
+            />
         </div>
     );
 }
