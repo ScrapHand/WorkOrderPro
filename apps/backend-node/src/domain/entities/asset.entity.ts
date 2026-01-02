@@ -10,6 +10,7 @@ export class Asset {
         public description?: string | null,
         public imageUrl?: string | null,
         public lotoConfig?: any | null,
+        public documents?: any | null, // [FIX] Added documents field
         public createdAt?: Date,
         public updatedAt?: Date,
         public deletedAt?: Date | null,

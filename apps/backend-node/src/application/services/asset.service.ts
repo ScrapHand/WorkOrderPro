@@ -32,7 +32,9 @@ export class AssetService {
             parentId,
             description,
             imageUrl,
-            lotoConfig
+            imageUrl,
+            lotoConfig,
+            null // documents
         );
 
         await this.assetRepo.create(newAsset);
