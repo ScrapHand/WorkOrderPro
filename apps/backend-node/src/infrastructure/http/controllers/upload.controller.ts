@@ -93,6 +93,11 @@ export class UploadController {
             const key = req.query.key as string;
             if (!key) return res.status(400).json({ error: 'Missing key' });
 
+            // [FIX] Allow Cross-Origin usage (e.g. <img> tags on different domains)
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            // Note: global CORS might override ACAO, but CORP is critical for CORB.
+
             // Security Check: Key must belong to tenant
             // Key format: tenants/{tid}/...
             // We'll resolve the tenant ID and check if the key starts with it.
