@@ -188,7 +188,11 @@ export default function CompanyBuilderPage() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => new Audio(config.notifications.soundUrl).play()}
+                                        onClick={() => {
+                                            if (config?.notifications?.soundUrl) {
+                                                new Audio(config.notifications.soundUrl).play();
+                                            }
+                                        }}
                                     >
                                         Test Sound
                                     </Button>
