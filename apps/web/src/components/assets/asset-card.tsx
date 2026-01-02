@@ -13,11 +13,12 @@ interface AssetCardProps {
     asset: Asset;
     onViewDocs: (asset: Asset) => void;
     onViewLoto: (asset: Asset) => void;
+    onViewSpecs: (asset: Asset) => void;
     onEdit?: (asset: Asset) => void;
     onDelete?: (id: string) => void;
 }
 
-export function AssetCard({ asset, onViewDocs, onViewLoto, onEdit, onDelete }: AssetCardProps) {
+export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, onDelete }: AssetCardProps) {
     const isCritical = asset.criticality === "A";
 
     return (
@@ -78,6 +79,9 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onEdit, onDelete }: A
                 </Button>
                 <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => onViewLoto(asset)}>
                     <Lock className="mr-2 h-3 w-3" /> LOTO
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => onViewSpecs(asset)}>
+                    <FileText className="mr-2 h-3 w-3" /> Specs
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

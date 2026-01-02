@@ -87,6 +87,7 @@ model Asset {
   hierarchyPath String   @default("/") @map("hierarchy_path") // optimization for search
   lotoConfig    Json?    @map("loto_config") // { electrical: url, pneumatic: url, hydraulic: url }
   documents     Json?    @map("documents")   // [{ name: "Manual", url: "..." }]
+  specs         Json?    @map("specs")       // { "Height": "10m", "Power": "220V" }
   metadata      Json?    @map("metadata")    // { position: { x: 0, y: 0 } }
   
   createdAt     DateTime @default(now())

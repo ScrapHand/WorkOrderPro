@@ -11,6 +11,7 @@ export class Asset {
         public imageUrl?: string | null,
         public lotoConfig?: any | null,
         public documents?: any | null, // [FIX] Added documents field
+        public specs?: Record<string, string> | null,
         public createdAt?: Date,
         public updatedAt?: Date,
         public deletedAt?: Date | null,

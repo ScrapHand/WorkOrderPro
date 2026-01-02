@@ -7,6 +7,7 @@ import { AssetCard } from "./asset-card";
 import { useState } from "react";
 import { AssetDocsModal } from "./AssetDocsModal"; // We will create this next
 import { AssetLotoModal } from "./AssetLotoModal"; // We will create this next
+import { AssetSpecsModal } from "./AssetSpecsModal"; // [NEW]
 import { AssetService } from "@/services/asset.service";
 // import { CreateAssetModal } from "./CreateAssetModal"; // Removed as we lift state
 
@@ -19,10 +20,12 @@ interface AssetGridProps {
 export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
     const [selectedDocsAssetId, setSelectedDocsAssetId] = useState<string | null>(null);
     const [selectedLotoAssetId, setSelectedLotoAssetId] = useState<string | null>(null);
+    const [selectedSpecsAssetId, setSelectedSpecsAssetId] = useState<string | null>(null);
 
     // Derive current asset from list to ensure fresh data after refetch
     const selectedDocsAsset = assets.find(a => a.id === selectedDocsAssetId);
     const selectedLotoAsset = assets.find(a => a.id === selectedLotoAssetId);
+    const selectedSpecsAsset = assets.find(a => a.id === selectedSpecsAssetId);
 
     const queryClient = useQueryClient();
 
@@ -51,6 +54,7 @@ export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
                             asset={asset}
                             onViewDocs={(a) => setSelectedDocsAssetId(a.id)}
                             onViewLoto={(a) => setSelectedLotoAssetId(a.id)}
+                            onViewSpecs={(a) => setSelectedSpecsAssetId(a.id)}
                             onEdit={isAdmin && onEdit ? onEdit : undefined}
                             onDelete={isAdmin ? handleDelete : undefined}
                         />
@@ -72,6 +76,15 @@ export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
                     open={!!selectedLotoAssetId}
                     onOpenChange={(open: boolean) => !open && setSelectedLotoAssetId(null)}
                     asset={selectedLotoAsset}
+                />
+            )}
+
+            {selectedSpecsAsset && (
+                <AssetSpecsModal
+                    open={!!selectedSpecsAssetId}
+                    onOpenChange={(open: boolean) => !open && setSelectedSpecsAssetId(null)}
+                    asset={selectedSpecsAsset}
+                    onSuccess={() => queryClient.invalidateQueries({ queryKey: ["assets"] })}
                 />
             )}
         </>
