@@ -1,3 +1,4 @@
+"use client";
 import { useQuery } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
 import { AssetTree } from "@/components/assets/AssetTree";
