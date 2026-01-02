@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 8080;
 // [ARCH] 1. Proxy Trust (Render Requirement)
 // Trust loopback and link-local. For Render, we often need to trust the load balancer.
 // parse '1' or true. true means trust everything (safe-ish behind Render's firewall)
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // [ARCH] 2. Security Middleware
 app.use(helmet());
@@ -213,19 +213,21 @@ apiRouter.use('/tenant', adminRouter);
 
 // Work Order Routes
 const woRouter = express.Router();
-woRouter.post('/', woController.create);
-woRouter.get('/', woController.getAll);
-woRouter.get('/:id', woController.getById);
-woRouter.delete('/:id', woController.delete);
 
-// Session Routes
-// Session Routes - Protected
-woRouter.get('/my-active', requireAuth, sessionController.myActive); // Specific route FIRST
+// Session Routes - Protected (Must be before /:id)
+woRouter.get('/my-active', requireAuth, sessionController.myActive);
+woRouter.get('/:workOrderId/sessions', requireAuth, sessionController.getSessions);
 woRouter.post('/:workOrderId/session/start', requireAuth, sessionController.start);
 woRouter.post('/:workOrderId/session/stop', requireAuth, sessionController.stop);
 woRouter.post('/:workOrderId/pause', requireAuth, sessionController.pause);
 woRouter.post('/:workOrderId/complete', requireAuth, sessionController.complete);
-woRouter.get('/:workOrderId/sessions', requireAuth, sessionController.getSessions);
+
+// General Routes
+woRouter.post('/', woController.create);
+woRouter.get('/', woController.getAll);
+woRouter.get('/:id', woController.getById); // Catch-all ID route last
+woRouter.delete('/:id', woController.delete);
+
 apiRouter.use('/work-orders', woRouter);
 
 // Upload Routes
