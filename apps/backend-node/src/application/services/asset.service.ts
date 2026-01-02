@@ -32,7 +32,7 @@ export class AssetService {
             parentId,
             description,
             imageUrl,
-            imageUrl,
+
             lotoConfig,
             null // documents
         );
