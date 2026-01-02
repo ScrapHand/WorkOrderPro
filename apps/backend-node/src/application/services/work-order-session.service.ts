@@ -96,12 +96,31 @@ export class WorkOrderSessionService {
     }
 
     async getSessions(tenantId: string, workOrderId: string): Promise<any[]> {
-        // We need user names, so we'll do a direct prisma query here or extend repo.
-        // For expediency, direct prisma query via service (acceptable for read-model)
         return this.prisma.workOrderSession.findMany({
             where: { tenantId, workOrderId },
             include: { user: { select: { username: true, email: true } } },
             orderBy: { startTime: 'desc' }
         });
+    }
+
+    async getActiveWorkOrdersForUser(tenantId: string, userId: string): Promise<any[]> {
+        // Direct Prisma Query for Rich Data (Session + WorkOrder)
+        const sessions = await this.prisma.workOrderSession.findMany({
+            where: {
+                tenantId,
+                userId,
+                endTime: null
+            },
+            include: {
+                workOrder: true
+            },
+            orderBy: { startTime: 'desc' }
+        });
+
+        // Return flattened structure or just sessions with included WO
+        return sessions.map(s => ({
+            ...s,
+            workOrder: (s as any).workOrder
+        }));
     }
 }

@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { tenantMiddleware, getCurrentTenant } from './infrastructure/middleware/tenant.middleware';
+import { requireAuth } from './infrastructure/middleware/auth.middleware';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -200,11 +201,13 @@ woRouter.get('/:id', woController.getById);
 woRouter.delete('/:id', woController.delete);
 
 // Session Routes
-woRouter.post('/:workOrderId/session/start', sessionController.start);
-woRouter.post('/:workOrderId/session/stop', sessionController.stop);
-woRouter.post('/:workOrderId/pause', sessionController.pause);
-woRouter.post('/:workOrderId/complete', sessionController.complete);
-woRouter.get('/:workOrderId/sessions', sessionController.getSessions);
+// Session Routes - Protected
+woRouter.get('/my-active', requireAuth, sessionController.myActive); // Specific route FIRST
+woRouter.post('/:workOrderId/session/start', requireAuth, sessionController.start);
+woRouter.post('/:workOrderId/session/stop', requireAuth, sessionController.stop);
+woRouter.post('/:workOrderId/pause', requireAuth, sessionController.pause);
+woRouter.post('/:workOrderId/complete', requireAuth, sessionController.complete);
+woRouter.get('/:workOrderId/sessions', requireAuth, sessionController.getSessions);
 apiRouter.use('/work-orders', woRouter);
 
 // Upload Routes

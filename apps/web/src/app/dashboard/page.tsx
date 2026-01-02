@@ -28,10 +28,16 @@ export default function DashboardPage() {
     const { data: myTasks, isLoading } = useQuery({
         queryKey: ["my-tasks"],
         queryFn: async () => {
-            // Backend filter for assigned_to_me (requires backend support or filter client side)
-            // Assuming GET /work-orders/ returns all, we filter client side for now or use ?assigned_to=me if backend supports
-            const res = await api.get("/work-orders/");
-            return res.data as WorkOrder[];
+            // New Endpoint: Jobs I am currently clocked into
+            const res = await api.get("/work-orders/my-active");
+            // The backend returns Session[] with nested WorkOrder.
+            // We need to map it to flatten the WorkOrder properties for the UI.
+            // Backend maps: { ...session, workOrder: wo }
+            return res.data.map((item: any) => ({
+                ...item.workOrder,
+                sessionId: item.id,
+                startTime: item.startTime
+            })) as WorkOrder[];
         }
     });
 
@@ -43,11 +49,7 @@ export default function DashboardPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Technician Dashboard</h1>
                     <p className="text-muted-foreground">Welcome back, get ready to fix things.</p>
                 </div>
-                <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
-                    <Button variant="destructive" size="sm">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete Old Records
-                    </Button>
-                </RoleGuard>
+
             </div>
 
             {/* Big Action Buttons */}
@@ -127,7 +129,7 @@ export default function DashboardPage() {
                     <Card className="border-dashed shadow-none">
                         <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
                             <ClipboardList className="h-12 w-12 opacity-20 mb-4" />
-                            <p>No active tasks assigned to you.</p>
+                            <p>You are not clocked into any jobs.</p>
                             <Button variant="link" className="mt-2 text-primary" asChild>
                                 <Link href="/dashboard/work-orders/new">Create your first task</Link>
                             </Button>
