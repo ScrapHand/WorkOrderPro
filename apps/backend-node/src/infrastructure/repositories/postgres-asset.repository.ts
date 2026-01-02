@@ -35,9 +35,9 @@ export class PostgresAssetRepository implements IAssetRepository {
                 name: asset.name,
                 description: asset.description,
                 imageUrl: asset.imageUrl,
-                lotoConfig: asset.lotoConfig,
-                documents: asset.documents,
-                specs: asset.specs, // [FIX] Persist specs
+                lotoConfig: asset.lotoConfig ?? undefined,
+                documents: asset.documents ?? undefined,
+                specs: asset.specs as any, // [FIX] Cast to any for Prisma Json compat
                 status: asset.status,
                 criticality: asset.criticality,
                 hierarchyPath: asset.hierarchyPath
@@ -54,9 +54,9 @@ export class PostgresAssetRepository implements IAssetRepository {
                 criticality: asset.criticality,
                 hierarchyPath: asset.hierarchyPath,
                 imageUrl: asset.imageUrl,
-                lotoConfig: asset.lotoConfig,
-                documents: asset.documents,
-                specs: asset.specs, // [FIX] Persist specs
+                lotoConfig: asset.lotoConfig ?? undefined,
+                documents: asset.documents ?? undefined,
+                specs: asset.specs as any, // [FIX] Cast to any
                 deletedAt: asset.deletedAt
             }
         });
