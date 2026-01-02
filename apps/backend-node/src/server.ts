@@ -17,16 +17,31 @@ const PORT = process.env.PORT || 8080;
 // [ARCH] 1. Proxy Trust (Render Requirement)
 // Crucial for X-Forwarded-Proto to work, enabling Secure cookies.
 // '1' trusts the first hop (the Render Load Balancer)
-app.set('trust proxy', process.env.TRUST_PROXY || 1); // [PHASE 22] Calibrate to Render Standard
+// [ARCH] 1. Proxy Trust (Render Requirement)
+// Trust loopback and link-local. For Render, we often need to trust the load balancer.
+// parse '1' or true. true means trust everything (safe-ish behind Render's firewall)
+app.set('trust proxy', 1);
 
 // [ARCH] 2. Security Middleware
 app.use(helmet());
 app.use(cookieParser());
 app.use(express.json());
 
+// [DEBUG] Log Protocol and Headers for Auth Debugging
+app.use((req, res, next) => {
+    if (req.path.includes('/auth') || req.path.includes('/work-orders')) {
+        console.log(`[Request] ${req.method} ${req.path}`);
+        console.log(`   Secure: ${req.secure}`);
+        console.log(`   Protocol: ${req.protocol}`);
+        console.log(`   X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
+        console.log(`   SessionID: ${req.sessionID}`);
+    }
+    next();
+});
+
 // [ARCH] 3. CORS & Auth
 // Must allow credentials for cross-site cookies.
-app.use(cors({
+const corsOptions = {
     origin: [
         'http://localhost:3000',
         'https://workorderpro.vercel.app',
@@ -35,7 +50,10 @@ app.use(cors({
         /https:\/\/.*\.vercel\.app$/ // Allow preview deployments
     ],
     credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable Pre-Flight with same config
 
 // [ARCH] 4. Session Persistence (Postgres)
 // Replaces MemoryStore to survive Render restarts/re-deploys.
