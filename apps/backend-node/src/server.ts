@@ -240,7 +240,7 @@ import { PartService } from './application/services/part.service';
 import { PartController } from './infrastructure/http/controllers/part.controller';
 
 const partService = new PartService(prisma);
-const partController = new PartController(partService);
+const partController = new PartController(partService, prisma);
 
 const partRouter = express.Router();
 partRouter.post('/', partController.create);
