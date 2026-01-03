@@ -4,7 +4,7 @@ import { Asset } from "@/types/asset";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Lock, History, MoreVertical, Trash2 } from "lucide-react";
+import { FileText, Lock, History, MoreVertical, Trash2, ClipboardList } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import Link from "next/link";
@@ -73,40 +73,42 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, 
                 {/* Cleaned up Location info as requested */}
             </CardContent>
 
-            <CardFooter className="p-4 pt-0 flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => onViewDocs(asset)}>
-                    <FileText className="mr-2 h-3 w-3" /> Docs
+            <CardFooter className="p-4 pt-0 grid grid-cols-4 gap-2">
+                <Button variant="outline" size="sm" className="h-8 text-[10px] px-1 col-span-1" onClick={() => onViewDocs(asset)} title="Documents">
+                    <FileText className="mr-1 h-3 w-3" /> Docs
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => onViewLoto(asset)}>
-                    <Lock className="mr-2 h-3 w-3" /> LOTO
+                <Button variant="outline" size="sm" className="h-8 text-[10px] px-1 col-span-1" onClick={() => onViewLoto(asset)} title="Lockout/Tagout">
+                    <Lock className="mr-1 h-3 w-3" /> LOTO
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => onViewSpecs(asset)}>
-                    <FileText className="mr-2 h-3 w-3" /> Specs
+                <Button variant="outline" size="sm" className="h-8 text-[10px] px-1 col-span-1" onClick={() => onViewSpecs(asset)} title="Specifications">
+                    <ClipboardList className="mr-1 h-3 w-3" /> Specs
                 </Button>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <Link href={`/dashboard/work-orders?assetId=${asset.id}`}>
-                            <DropdownMenuItem>
-                                <History className="mr-2 h-4 w-4" /> View History
-                            </DropdownMenuItem>
-                        </Link>
-                        {onEdit && (
-                            <DropdownMenuItem onClick={() => onEdit(asset)}>
-                                <FileText className="mr-2 h-4 w-4" /> Edit Asset
-                            </DropdownMenuItem>
-                        )}
-                        {onDelete && (
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(asset.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Decommission
-                            </DropdownMenuItem>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="col-span-1 flex justify-end">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 hover:bg-slate-100">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <Link href={`/dashboard/work-orders?assetId=${asset.id}`}>
+                                <DropdownMenuItem>
+                                    <History className="mr-2 h-4 w-4" /> View History
+                                </DropdownMenuItem>
+                            </Link>
+                            {onEdit && (
+                                <DropdownMenuItem onClick={() => onEdit(asset)}>
+                                    <FileText className="mr-2 h-4 w-4" /> Edit Asset
+                                </DropdownMenuItem>
+                            )}
+                            {onDelete && (
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(asset.id)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Decommission
+                                </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </CardFooter>
         </Card>
     );

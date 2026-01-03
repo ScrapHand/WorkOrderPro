@@ -22,12 +22,12 @@ import { UserRole } from "@/lib/auth/types";
 import { useLogout } from "@/hooks/use-auth";
 import { useTheme } from "@/context/ThemeContext";
 
-const sidebarLinks = [
+const getSidebarLinks = (term?: any) => [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Work Orders", href: "/dashboard/work-orders", icon: ClipboardList },
-    { name: "Archived Jobs", href: "/dashboard/work-orders/archive", icon: Archive }, // [NEW] Archive
-    { name: "Assets", href: "/dashboard/assets", icon: Box },
-    { name: "Hierarchy Tree", href: "/dashboard/assets/tree", icon: Network }, // Renamed from Asset Tree and Icon updated
+    { name: term?.workOrders || "Work Orders", href: "/dashboard/work-orders", icon: ClipboardList },
+    { name: `Archived ${term?.workOrders || "Jobs"}`, href: "/dashboard/work-orders/archive", icon: Archive },
+    { name: term?.assets || "Assets", href: "/dashboard/assets", icon: Box },
+    { name: `${term?.assets || "Asset"} Hierarchy`, href: "/dashboard/assets/tree", icon: Network },
     { name: "Inventory", href: "/dashboard/inventory", icon: Wrench },
     { name: "Reports", href: "/dashboard/reports", icon: ClipboardList },
 ];
@@ -47,6 +47,8 @@ export function Sidebar() {
 
     const logoUrl = config?.branding?.logoUrl;
 
+    const links = getSidebarLinks(config?.branding?.terminology);
+
     return (
         <div className="flex h-full w-full flex-col border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             {/* Branding */}
@@ -65,7 +67,7 @@ export function Sidebar() {
             {/* Navigation */}
             <div className="flex-1 overflow-auto py-6 px-4">
                 <nav className="flex flex-col gap-2">
-                    {sidebarLinks.map((link) => (
+                    {links.map((link) => (
                         <Link key={link.href} href={link.href}>
                             <Button
                                 variant={pathname === link.href ? "default" : "ghost"}

@@ -10,6 +10,11 @@ type BrandingConfig = {
     logoUrl?: string;
     font?: string;
     appName?: string;
+    terminology?: {
+        assets?: string; // e.g. "Machines"
+        workOrders?: string; // e.g. "Jobs"
+        technicians?: string; // e.g. "Engineers"
+    };
 };
 
 type TenantConfig = {

@@ -18,6 +18,11 @@ type CompanyFormValues = {
         secondaryColor: string;
         logoUrl: string;
         appName: string;
+        terminology: {
+            assets: string;
+            workOrders: string;
+            technicians: string;
+        };
     };
 };
 
@@ -31,6 +36,12 @@ export default function CompanyBuilderPage() {
                 primaryColor: "#2563eb",
                 secondaryColor: "#1e293b",
                 logoUrl: "",
+                appName: "",
+                terminology: {
+                    assets: "",
+                    workOrders: "",
+                    technicians: "",
+                }
             }
         }
     });
@@ -43,6 +54,12 @@ export default function CompanyBuilderPage() {
                     primaryColor: config.branding.primaryColor || "#2563eb",
                     secondaryColor: config.branding.secondaryColor || "#1e293b",
                     logoUrl: config.branding.logoUrl || "",
+                    appName: config.branding.appName || "",
+                    terminology: {
+                        assets: config.branding.terminology?.assets || "",
+                        workOrders: config.branding.terminology?.workOrders || "",
+                        technicians: config.branding.terminology?.technicians || "",
+                    }
                 }
             });
         }
@@ -60,36 +77,6 @@ export default function CompanyBuilderPage() {
             toast.error("Failed to update settings: " + (error.response?.data?.error || error.message));
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleLogoUpload = async (file: File) => {
-        try {
-            toast.info("Uploading logo...");
-            const entityId = config?.slug || "tenant-logo"; // Fallback, though we usually have slug
-
-            // 1. Get Presigned URL
-            const { url, key } = await UploadService.getPresignedUrl("tenant", entityId, file);
-
-            // 2. Upload to S3
-            await UploadService.uploadToS3(url, file);
-
-            // 3. Confirm (create attachment record)
-            const attachment = await UploadService.confirmUpload({
-                entityType: "tenant",
-                entityId: entityId, // Actually we might need the real ID, but controller resolves it from token if tenant context
-                key,
-                fileName: file.name,
-                mimeType: file.type,
-                size: file.size
-            });
-
-            // 4. Update Form with new URL
-            setValue("branding.logoUrl", attachment.url); // Assuming attachment returns 'url'
-            toast.success("Logo uploaded!");
-        } catch (error) {
-            console.error(error);
-            toast.error("Logo upload failed");
         }
     };
 
@@ -114,6 +101,34 @@ export default function CompanyBuilderPage() {
                                 placeholder="e.g. ScrapHand OS"
                             />
                             <p className="text-[0.8rem] text-muted-foreground">This title will verify in the sidebar and header.</p>
+                        </div>
+
+                        {/* Color Presets */}
+                        <div className="space-y-2">
+                            <Label>Theme Presets</Label>
+                            <div className="flex gap-2">
+                                {[
+                                    { name: "Default Blue", p: "#2563eb", s: "#1e293b" },
+                                    { name: "Forest", p: "#166534", s: "#14532d" },
+                                    { name: "Midnight", p: "#1e3a8a", s: "#0f172a" },
+                                    { name: "Royal", p: "#7c3aed", s: "#4c1d95" },
+                                    { name: "Crimson", p: "#dc2626", s: "#7f1d1d" },
+                                ].map(theme => (
+                                    <Button
+                                        key={theme.name}
+                                        type="button"
+                                        variant="outline"
+                                        className="h-8 text-xs gap-2"
+                                        onClick={() => {
+                                            setValue("branding.primaryColor", theme.p);
+                                            setValue("branding.secondaryColor", theme.s);
+                                        }}
+                                    >
+                                        <div className="w-3 h-3 rounded-full" style={{ background: theme.p }} />
+                                        {theme.name}
+                                    </Button>
+                                ))}
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -143,6 +158,28 @@ export default function CompanyBuilderPage() {
                                         {...register("branding.secondaryColor")}
                                         placeholder="#1e293b"
                                     />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Terminology Editor */}
+                        <div className="pt-4 border-t space-y-4">
+                            <div>
+                                <h3 className="text-sm font-medium">Custom Terminology</h3>
+                                <p className="text-xs text-muted-foreground">Rename core system terms to match your industry (e.g. Work Order -> Ticket).</p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Assets</Label>
+                                    <Input {...register("branding.terminology.assets")} placeholder="Default: Assets" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Work Orders</Label>
+                                    <Input {...register("branding.terminology.workOrders")} placeholder="Default: Work Orders" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Technicians</Label>
+                                    <Input {...register("branding.terminology.technicians")} placeholder="Default: Technicians" />
                                 </div>
                             </div>
                         </div>
