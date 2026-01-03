@@ -43,6 +43,18 @@ type ThemeContextType = {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+// Helper to get luminance from hex
+function getLuminance(hex: string) {
+    const c = hex.substring(1);      // strip #
+    const rgb = parseInt(c, 16);   // convert rrggbb to decimal
+    const r = (rgb >> 16) & 0xff;  // extract red
+    const g = (rgb >> 8) & 0xff;   // extract green
+    const b = (rgb >> 0) & 0xff;   // extract blue
+
+    // sRGB luminance formula
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: config, refetch } = useQuery<TenantConfig>({
         queryKey: ["tenantConfig"],
@@ -59,10 +71,23 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
             const root = document.documentElement;
             const b = config.branding;
 
+            // 1. Auto-detect Dark Mode based on Background Color
+            if (b.backgroundColor) {
+                const lum = getLuminance(b.backgroundColor);
+                // If luminance is low (< 128), it's dark
+                if (lum < 100) {
+                    root.classList.add("dark");
+                } else {
+                    root.classList.remove("dark");
+                }
+            }
+
+            // 2. Apply CSS Variables
             if (b.primaryColor) {
                 root.style.setProperty("--primary", b.primaryColor);
-                // Simple darkening for hover - in a real app use a color lib
-                root.style.setProperty("--primary-foreground", "#ffffff");
+                // Ensure text on primary button is readable (Auto-Contrast)
+                const primLum = getLuminance(b.primaryColor);
+                root.style.setProperty("--primary-foreground", primLum < 128 ? "#ffffff" : "#000000");
             }
             if (b.secondaryColor) {
                 root.style.setProperty("--secondary", b.secondaryColor);
