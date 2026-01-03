@@ -166,7 +166,7 @@ export default function CompanyBuilderPage() {
                         <div className="pt-4 border-t space-y-4">
                             <div>
                                 <h3 className="text-sm font-medium">Custom Terminology</h3>
-                                <p className="text-xs text-muted-foreground">Rename core system terms to match your industry (e.g. Work Order -> Ticket).</p>
+                                <p className="text-xs text-muted-foreground">Rename core system terms to match your industry (e.g. Work Order &rarr; Ticket).</p>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
