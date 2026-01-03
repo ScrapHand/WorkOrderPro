@@ -55,6 +55,36 @@ function getLuminance(hex: string) {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+// Convert Hex to HSL string for CSS
+function hexToHsl(hex: string) {
+    let c = hex.substring(1);
+    if (c.length === 3) c = c.split('').map(i => i + i).join('');
+    const rgb = parseInt(c, 16);
+    let r = (rgb >> 16) & 0xff;
+    let g = (rgb >> 8) & 0xff;
+    let b = (rgb >> 0) & 0xff;
+
+    r /= 255, g /= 255, b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s, l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+
+    // Return CSS string: hsl(h s% l%)
+    return `hsl(${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
+}
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: config, refetch } = useQuery<TenantConfig>({
         queryKey: ["tenantConfig"],
@@ -71,11 +101,15 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
             const root = document.documentElement;
             const b = config.branding;
 
+            const setVar = (name: string, val: string) => {
+                root.style.setProperty(name, val);
+                document.body.style.setProperty(name, val); // Fallback for body overrides
+            };
+
             // 1. Auto-detect Dark Mode based on Background Color
             if (b.backgroundColor) {
                 const lum = getLuminance(b.backgroundColor);
-                // If luminance is low (< 128), it's dark
-                if (lum < 100) {
+                if (lum < 0.2) { // Adjusted threshold for better dark mode detection (approx < 50/255)
                     root.classList.add("dark");
                 } else {
                     root.classList.remove("dark");
@@ -84,26 +118,27 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
             // 2. Apply CSS Variables
             if (b.primaryColor) {
-                root.style.setProperty("--primary", b.primaryColor);
-                // Ensure text on primary button is readable (Auto-Contrast)
+                setVar("--primary", hexToHsl(b.primaryColor));
+
+                // Auto-Contrast for Foreground
                 const primLum = getLuminance(b.primaryColor);
-                root.style.setProperty("--primary-foreground", primLum < 128 ? "#ffffff" : "#000000");
+                setVar("--primary-foreground", primLum < 128 ? "#ffffff" : "#0f172a"); // White or Dark Slate
             }
             if (b.secondaryColor) {
-                root.style.setProperty("--secondary", b.secondaryColor);
-                root.style.setProperty("--secondary-foreground", "#ffffff");
+                setVar("--secondary", hexToHsl(b.secondaryColor));
+                setVar("--secondary-foreground", "#ffffff");
             }
             if (b.textColor) {
-                root.style.setProperty("--foreground", b.textColor);
+                setVar("--foreground", hexToHsl(b.textColor));
             }
             if (b.backgroundColor) {
-                root.style.setProperty("--background", b.backgroundColor);
+                setVar("--background", hexToHsl(b.backgroundColor));
             }
             if (b.mutedColor) {
-                root.style.setProperty("--muted", b.mutedColor);
+                setVar("--muted", hexToHsl(b.mutedColor));
             }
             if (b.font) {
-                root.style.setProperty("--font-sans", b.font);
+                setVar("--font-sans", b.font);
             }
         }
     }, [config]);
