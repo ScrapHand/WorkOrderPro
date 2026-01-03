@@ -47,12 +47,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 function getLuminance(hex: string) {
     const c = hex.substring(1);      // strip #
     const rgb = parseInt(c, 16);   // convert rrggbb to decimal
-    const r = (rgb >> 16) & 0xff;  // extract red
-    const g = (rgb >> 8) & 0xff;   // extract green
-    const b = (rgb >> 0) & 0xff;   // extract blue
+    // Normalize to 0-1 range
+    const rNorm = ((rgb >> 16) & 0xff) / 255.0;
+    const gNorm = ((rgb >> 8) & 0xff) / 255.0;
+    const bNorm = ((rgb >> 0) & 0xff) / 255.0;
 
     // sRGB luminance formula
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return 0.2126 * rNorm + 0.7152 * gNorm + 0.0722 * bNorm;
 }
 
 // Convert Hex to HSL string for CSS
@@ -122,7 +123,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
                 // Auto-Contrast for Foreground
                 const primLum = getLuminance(b.primaryColor);
-                setVar("--primary-foreground", primLum < 128 ? "#ffffff" : "#0f172a"); // White or Dark Slate
+                setVar("--primary-foreground", primLum < 0.5 ? "#ffffff" : "#0f172a"); // White or Dark Slate
             }
             if (b.secondaryColor) {
                 setVar("--secondary", hexToHsl(b.secondaryColor));
