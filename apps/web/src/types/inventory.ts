@@ -1,24 +1,24 @@
-export interface InventoryItem {
+
+export interface Part {
     id: string;
     tenantId: string;
     name: string;
+    sku?: string;
+    description?: string;
+    cost: number;
     quantity: number;
-    threshold: number;
-    locationId?: string | null;
-    imageUrl?: string | null;
-    supplierInfo?: {
-        name: string;
-        contact: string;
-    } | null;
+    minQuantity: number;
+    binLocation?: string;
+    imageUrl?: string;
     createdAt: string;
     updatedAt: string;
 }
 
-export interface CreateInventoryItemDTO {
+export interface CreatePartDTO {
     name: string;
+    sku?: string;
+    cost: number;
     quantity: number;
-    threshold: number;
-    locationId?: string;
-    imageUrl?: string;
-    supplierInfo?: any;
+    minQuantity?: number;
+    binLocation?: string;
 }

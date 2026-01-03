@@ -1,23 +1,20 @@
+
 import { api } from "@/lib/api";
-import { InventoryItem, CreateInventoryItemDTO } from "@/types/inventory";
+import { Part, CreatePartDTO } from "@/types/inventory";
 
 export const InventoryService = {
-    list: async (): Promise<InventoryItem[]> => {
-        const res = await api.get("/inventory");
-        return res.data;
+    getAll: async (): Promise<Part[]> => {
+        const { data } = await api.get<Part[]>("/parts");
+        return data;
     },
 
-    create: async (data: CreateInventoryItemDTO): Promise<InventoryItem> => {
-        const res = await api.post("/inventory", data);
-        return res.data;
+    create: async (part: CreatePartDTO): Promise<Part> => {
+        const { data } = await api.post<Part>("/parts", part);
+        return data;
     },
 
-    update: async (id: string, data: Partial<CreateInventoryItemDTO>): Promise<InventoryItem> => {
-        const res = await api.put(`/inventory/${id}`, data);
-        return res.data;
-    },
-
-    delete: async (id: string): Promise<void> => {
-        await api.delete(`/inventory/${id}`);
+    update: async (id: string, part: Partial<Part>): Promise<Part> => {
+        const { data } = await api.patch<Part>(`/parts/${id}`, part);
+        return data;
     }
 };

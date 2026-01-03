@@ -1,182 +1,135 @@
+
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { InventoryService } from "@/services/inventory.service";
-import { useState } from "react";
-import {
-    Search,
-    Plus,
-    AlertTriangle,
-    MoreVertical,
-    Edit,
-    Trash2,
-    History,
-    Package
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { AddInventoryModal } from "@/components/inventory/AddInventoryModal";
+import { useQuery } from '@tanstack/react-query';
+import { InventoryService } from '@/services/inventory.service';
+import { Plus, Search, AlertTriangle, Package } from 'lucide-react';
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { AddInventoryModal } from '@/components/inventory/AddInventoryModal';
 
 export default function InventoryPage() {
-    const queryClient = useQueryClient();
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isAddOpen, setIsAddOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState<any>(null);
+    const [search, setSearch] = useState("");
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-    const { data: items, isLoading } = useQuery({
-        queryKey: ["inventory"],
-        queryFn: InventoryService.list
+    const { data: parts, isLoading } = useQuery({
+        queryKey: ["parts"],
+        queryFn: InventoryService.getAll
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: InventoryService.delete,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["inventory"] });
-            toast.success("Item deleted");
-        }
-    });
+    const filteredParts = parts?.filter(p =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.sku?.toLowerCase().includes(search.toLowerCase())
+    ) || [];
 
-    const filteredItems = items?.filter(item =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const lowStockCount = parts?.filter(p => p.quantity <= p.minQuantity).length || 0;
+    const totalValue = parts?.reduce((acc, p) => acc + (p.cost * p.quantity), 0) || 0;
 
     return (
         <div className="space-y-6">
-            <header className="flex justify-between items-center">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Inventory</h1>
-                    <p className="text-muted-foreground">Manage spare parts, consumables, and stock levels.</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
+                    <p className="text-gray-500">Manage spare parts and stock levels.</p>
                 </div>
-                <Button onClick={() => setIsAddOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Item
+                <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
+                    <Plus className="w-4 h-4" /> Add Part
                 </Button>
-            </header>
-
-            {/* Existing Search Bar ... */}
-
-            <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
-                <Table>
-                    <TableHeader className="bg-muted/50">
-                        <TableRow>
-                            <TableHead className="w-[80px]">Image</TableHead>
-                            <TableHead>Item Name</TableHead>
-                            <TableHead>Location</TableHead> {/* New Column */}
-                            <TableHead>Supplier</TableHead> {/* New Column */}
-                            <TableHead>Quantity</TableHead>
-                            <TableHead>Threshold</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {/* ... loading state ... */}
-
-                        {/* ... empty state ... */}
-
-                        {filteredItems?.map((item) => {
-                            const isLow = item.quantity <= item.threshold;
-                            const isOut = item.quantity === 0;
-
-                            return (
-                                <TableRow key={item.id} className="group hover:bg-muted/30">
-                                    <TableCell>
-                                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center overflow-hidden border">
-                                            {item.imageUrl ? (
-                                                <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <Package className="h-5 w-5 text-muted-foreground/30" />
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="font-medium">{item.name}</div>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {item.locationId || "-"}
-                                    </TableCell>
-                                    <TableCell className="text-sm">
-                                        {item.supplierInfo ? (
-                                            <div className="flex flex-col">
-                                                <span>{item.supplierInfo.name}</span>
-                                                <span className="text-[10px] text-muted-foreground">{item.supplierInfo.contact}</span>
-                                            </div>
-                                        ) : "-"}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className={`font-mono font-bold ${isLow ? 'text-red-600' : ''}`}>
-                                            {item.quantity}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {item.threshold}
-                                    </TableCell>
-                                    <TableCell>
-                                        {isOut ? (
-                                            <Badge variant="destructive" className="gap-1">
-                                                Out of Stock
-                                            </Badge>
-                                        ) : isLow ? (
-                                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 gap-1">
-                                                <AlertTriangle className="h-3 w-3" /> Low Stock
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
-                                                Healthy
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {/* Actions */}
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={() => {
-                                                    setSelectedItem(item);
-                                                    setIsAddOpen(true);
-                                                }}
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-destructive hover:bg-red-50"
-                                                onClick={() => {
-                                                    if (confirm("Confirm deletion?")) deleteMutation.mutate(item.id);
-                                                }}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
             </div>
 
-            <AddInventoryModal
-                open={isAddOpen}
-                onOpenChange={(open) => {
-                    setIsAddOpen(open);
-                    if (!open) setSelectedItem(null);
-                }}
-                initialData={selectedItem}
-            />
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="p-4 flex items-center gap-4">
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                        <Package className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500">Total Items</p>
+                        <p className="text-2xl font-bold">{parts?.length || 0}</p>
+                    </div>
+                </Card>
+                <Card className="p-4 flex items-center gap-4">
+                    <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
+                        <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500">Low Stock</p>
+                        <p className="text-2xl font-bold">{lowStockCount}</p>
+                    </div>
+                </Card>
+                <Card className="p-4 flex items-center gap-4">
+                    <div className="p-3 bg-green-50 text-green-600 rounded-lg">
+                        <span className="text-xl font-bold">$</span>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500">Total Value</p>
+                        <p className="text-2xl font-bold">${totalValue.toLocaleString()}</p>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Search & Toolbar */}
+            <div className="flex gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                        placeholder="Search parts by name or SKU..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
+            </div>
+
+            {/* Parts Table */}
+            <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-700 font-medium border-b">
+                        <tr>
+                            <th className="px-6 py-3">Part Name</th>
+                            <th className="px-6 py-3">SKU</th>
+                            <th className="px-6 py-3">Bin Loc</th>
+                            <th className="px-6 py-3 text-right">Cost</th>
+                            <th className="px-6 py-3 text-center">Qty</th>
+                            <th className="px-6 py-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                        {isLoading ? (
+                            <tr><td colSpan={6} className="p-8 text-center text-gray-500">Loading inventory...</td></tr>
+                        ) : filteredParts.length === 0 ? (
+                            <tr><td colSpan={6} className="p-8 text-center text-gray-500">No parts found.</td></tr>
+                        ) : (
+                            filteredParts.map(part => (
+                                <tr key={part.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-6 py-4 font-medium text-gray-900">{part.name}</td>
+                                    <td className="px-6 py-4 text-gray-500 font-mono text-xs">{part.sku || '-'}</td>
+                                    <td className="px-6 py-4 text-gray-500">{part.binLocation || '-'}</td>
+                                    <td className="px-6 py-4 text-right">${part.cost.toFixed(2)}</td>
+                                    <td className="px-6 py-4 text-center font-bold">
+                                        {part.quantity}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {part.quantity <= part.minQuantity ? (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                Low Stock
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                In Stock
+                                            </span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <AddInventoryModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
         </div>
     );
 }
-

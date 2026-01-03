@@ -235,14 +235,18 @@ uploadRouter.post('/confirm', uploadController.createAttachment);
 uploadRouter.get('/proxy', uploadController.proxy); // [NEW] S3 Proxy
 apiRouter.use('/upload', uploadRouter);
 
-// Inventory Routes
-// Inventory Routes (Temporarily Disabled)
-// const inventoryRouter = express.Router();
-// inventoryRouter.post('/', inventoryController.create);
-// inventoryRouter.get('/', inventoryController.list);
-// inventoryRouter.put('/:id', inventoryController.update);
-// inventoryRouter.delete('/:id', inventoryController.delete);
-// apiRouter.use('/inventory', inventoryRouter);
+// Inventory/Parts Module
+import { PartService } from './application/services/part.service';
+import { PartController } from './infrastructure/http/controllers/part.controller';
+
+const partService = new PartService(prisma);
+const partController = new PartController(partService);
+
+const partRouter = express.Router();
+partRouter.post('/', partController.create);
+partRouter.get('/', partController.getAll);
+partRouter.patch('/:id', partController.update);
+apiRouter.use('/parts', partRouter);
 
 // Report Routes
 const reportRouter = express.Router();
