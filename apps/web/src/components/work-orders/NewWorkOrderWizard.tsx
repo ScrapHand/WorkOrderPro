@@ -3,16 +3,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
-import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
-import { Asset } from "@/types/asset";
-import { CreateWorkOrderDTO, WorkOrderPriority } from "@/types/work-order";
-import { CheckCircle, AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { FileUploader } from "@/components/common/FileUploader";
-
-import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { AssetService } from "@/services/asset.service";
 import { UserService } from "@/services/user.service";
 import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
 import { Asset } from "@/types/asset";
@@ -24,6 +14,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+
 
 export function NewWorkOrderWizard() {
     const router = useRouter();

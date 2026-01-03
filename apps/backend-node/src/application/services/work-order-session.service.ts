@@ -88,7 +88,7 @@ export class WorkOrderSessionService {
         await this.prisma.workOrder.update({
             where: { id: workOrderId },
             data: {
-                status: 'COMPLETED',
+                status: 'DONE',
                 completedAt: new Date(),
                 completionNotes: notes
             }

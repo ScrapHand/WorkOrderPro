@@ -119,6 +119,9 @@ model WorkOrder {
   status      String   @default("OPEN") // Enum: OPEN, IN_PROGRESS, DONE
   rimeScore   Int      @map("rime_score") // Calculated: Asset Criticality * Priority
   
+  completedAt     DateTime? @map("completed_at")
+  completionNotes String?   @map("completion_notes")
+  
   assignedUserId String?  @map("assigned_user_id")
   assignedUser   User?    @relation("AssignedWorkOrders", fields: [assignedUserId], references: [id])
 
