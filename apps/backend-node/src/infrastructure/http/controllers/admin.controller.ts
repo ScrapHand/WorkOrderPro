@@ -80,9 +80,9 @@ export class AdminController {
             // Robust Merging of Branding
             const dbBranding = t.brandingConfig || {};
             const mergedBranding = {
+                ...dbBranding,
                 primaryColor: dbBranding.primaryColor || tenant.brandColor,
                 logoUrl: dbBranding.logoUrl || tenant.logoUrl,
-                secondaryColor: dbBranding.secondaryColor
             };
 
             console.log("AdminController.getConfig: Merged Branding:", mergedBranding);
