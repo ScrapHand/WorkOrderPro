@@ -38,19 +38,19 @@ export class ReportService {
     }
 
     async getInventorySnapshot(tenantId: string) {
-        const items = await this.prisma.inventoryItem.findMany({
+        const items = await this.prisma.part.findMany({
             where: { tenantId }
         });
 
         return {
             totalItems: items.length,
-            lowStockItems: items.filter(i => i.quantity <= i.threshold).length,
+            lowStockItems: items.filter(i => i.quantity <= i.minQuantity).length,
             outOfStockItems: items.filter(i => i.quantity === 0).length,
-            totalValue: 0, // Placeholder if price is added later
+            totalValue: items.reduce((acc, curr) => acc + (curr.cost * curr.quantity), 0),
             items: items.map(i => ({
                 name: i.name,
                 quantity: i.quantity,
-                status: i.quantity === 0 ? 'OUT' : i.quantity <= i.threshold ? 'LOW' : 'OK'
+                status: i.quantity === 0 ? 'OUT' : i.quantity <= i.minQuantity ? 'LOW' : 'OK'
             }))
         };
     }
