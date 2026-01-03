@@ -109,7 +109,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
     const myActiveSession = activeSessions.find((s: any) => s.userId === user?.id);
     const totalDuration = sessions?.reduce((acc: number, s: any) => acc + (s.duration || 0), 0) || 0;
 
-    const isCompleted = status === "COMPLETED";
+    const isCompleted = status === "DONE";
 
     if (isCompleted) {
         return (
