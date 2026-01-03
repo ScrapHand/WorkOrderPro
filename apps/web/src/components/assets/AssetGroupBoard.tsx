@@ -119,23 +119,35 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect, onC
                     className="min-w-[300px] w-[300px] bg-muted/30 rounded-xl flex flex-col border border-border/50 shrink-0"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, group.id)}
-                    onMouseDown={e => e.stopPropagation()} // Stop drag-scroll when interacting with column
+                // Removed onMouseDown stopPropagation to allow dragging from empty column space
                 >
                     <div className="p-4 border-b bg-muted/40 rounded-t-xl flex justify-between items-center group-header">
                         <div className="font-semibold truncate" title={group.name}>{group.name}</div>
                         {mode === 'manage' && onEdit && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(group)}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => onEdit(group)}
+                                onMouseDown={(e) => e.stopPropagation()}
+                            >
                                 <GripVertical className="h-4 w-4 text-muted-foreground" />
                             </Button>
                         )}
                         {mode === 'select' && (
-                            <Button variant="ghost" size="sm" className="h-6 text-xs text-primary" onClick={() => onSelect?.(group)}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-xs text-primary"
+                                onClick={() => onSelect?.(group)}
+                                onMouseDown={(e) => e.stopPropagation()}
+                            >
                                 Select Group
                             </Button>
                         )}
                     </div>
 
-                    <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar" onMouseDown={e => e.stopPropagation()}>
+                    <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
                         {groupChildren[group.id]?.map(child => (
                             <motion.div
                                 layoutId={child.id}
@@ -143,6 +155,7 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect, onC
                                 draggable={mode === 'manage'}
                                 onDragStart={(e) => handleDragStart(e as any, child.id)}
                                 onClick={() => mode === 'select' && onSelect?.(child)}
+                                onMouseDown={(e) => e.stopPropagation()} // Stop pan when clicking a card
                                 className={`${mode === 'manage' ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer hover:ring-2 hover:ring-primary'}`}
                             >
                                 <Card className="hover:shadow-md transition-shadow">
@@ -171,6 +184,7 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect, onC
                                 size="sm"
                                 className="w-full text-xs text-muted-foreground dashed border border-transparent hover:border-border"
                                 onClick={() => onCreateChild?.(group.id)}
+                                onMouseDown={(e) => e.stopPropagation()}
                             >
                                 <Plus className="mr-2 h-3 w-3" /> Add Child
                             </Button>
