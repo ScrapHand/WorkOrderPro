@@ -28,8 +28,8 @@ const getSidebarLinks = (term?: any) => [
     { name: `Archived ${term?.workOrders || "Jobs"}`, href: "/dashboard/work-orders/archive", icon: Archive },
     { name: term?.assets || "Assets", href: "/dashboard/assets", icon: Box },
     { name: `${term?.assets || "Asset"} Hierarchy`, href: "/dashboard/assets/tree", icon: Network },
-    { name: "Inventory", href: "/dashboard/inventory", icon: Wrench },
-    { name: "Reports", href: "/dashboard/reports", icon: ClipboardList },
+    { name: term?.inventory || "Inventory", href: "/dashboard/inventory", icon: Wrench },
+    { name: term?.reports || "Reports", href: "/dashboard/reports", icon: ClipboardList },
 ];
 
 const adminLinks = [
@@ -48,11 +48,19 @@ export function Sidebar() {
     const logoUrl = config?.branding?.logoUrl;
 
     const links = getSidebarLinks(config?.branding?.terminology);
+    const b = config?.branding;
 
     return (
-        <div className="flex h-full w-full flex-col border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div
+            className="flex h-full w-full flex-col border-r backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            style={{
+                backgroundColor: b?.mutedColor || undefined,
+                color: b?.textColor || undefined,
+                borderColor: b?.secondaryColor ? `${b.secondaryColor}40` : undefined // 25% opacity
+            }}
+        >
             {/* Branding */}
-            <div className="flex h-14 items-center border-b px-6">
+            <div className="flex h-14 items-center border-b px-6" style={{ borderColor: b?.secondaryColor ? `${b.secondaryColor}40` : undefined }}>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                     {/* Logo or Icon */}
                     {logoUrl ? (

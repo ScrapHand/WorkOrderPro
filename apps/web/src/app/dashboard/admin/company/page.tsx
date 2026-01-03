@@ -10,21 +10,50 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FileUploader } from "@/components/common/FileUploader";
-import { UploadService } from "@/services/upload.service";
 
 type CompanyFormValues = {
     branding: {
         primaryColor: string;
         secondaryColor: string;
+        textColor: string;
+        backgroundColor: string;
+        mutedColor: string;
         logoUrl: string;
         appName: string;
         terminology: {
             assets: string;
             workOrders: string;
             technicians: string;
+            inventory: string;
+            reports: string;
+            customers: string;
         };
     };
 };
+
+// Curated Themes
+const THEMES = [
+    {
+        name: "Default Blue",
+        colors: { p: "#2563eb", s: "#1e293b", t: "#0f172a", b: "#ffffff", m: "#f1f5f9" }
+    },
+    {
+        name: "Forest",
+        colors: { p: "#166534", s: "#14532d", t: "#052e16", b: "#f0fdf4", m: "#dcfce7" }
+    },
+    {
+        name: "Midnight",
+        colors: { p: "#3b82f6", s: "#1e3a8a", t: "#f8fafc", b: "#0f172a", m: "#1e293b" } // Dark Mode
+    },
+    {
+        name: "Royal",
+        colors: { p: "#7c3aed", s: "#4c1d95", t: "#2e1065", b: "#ffffff", m: "#f3e8ff" }
+    },
+    {
+        name: "Crimson",
+        colors: { p: "#dc2626", s: "#7f1d1d", t: "#450a0a", b: "#fff1f2", m: "#ffe4e6" }
+    },
+];
 
 export default function CompanyBuilderPage() {
     const { config, refreshConfig } = useTheme();
@@ -35,12 +64,18 @@ export default function CompanyBuilderPage() {
             branding: {
                 primaryColor: "#2563eb",
                 secondaryColor: "#1e293b",
+                textColor: "#0f172a",
+                backgroundColor: "#ffffff",
+                mutedColor: "#f1f5f9",
                 logoUrl: "",
                 appName: "",
                 terminology: {
                     assets: "",
                     workOrders: "",
                     technicians: "",
+                    inventory: "",
+                    reports: "",
+                    customers: "",
                 }
             }
         }
@@ -49,16 +84,23 @@ export default function CompanyBuilderPage() {
     // Sync form with loaded config
     useEffect(() => {
         if (config?.branding) {
+            const b = config.branding;
             reset({
                 branding: {
-                    primaryColor: config.branding.primaryColor || "#2563eb",
-                    secondaryColor: config.branding.secondaryColor || "#1e293b",
-                    logoUrl: config.branding.logoUrl || "",
-                    appName: config.branding.appName || "",
+                    primaryColor: b.primaryColor || "#2563eb",
+                    secondaryColor: b.secondaryColor || "#1e293b",
+                    textColor: b.textColor || "#0f172a",
+                    backgroundColor: b.backgroundColor || "#ffffff",
+                    mutedColor: b.mutedColor || "#f1f5f9",
+                    logoUrl: b.logoUrl || "",
+                    appName: b.appName || "",
                     terminology: {
-                        assets: config.branding.terminology?.assets || "",
-                        workOrders: config.branding.terminology?.workOrders || "",
-                        technicians: config.branding.terminology?.technicians || "",
+                        assets: b.terminology?.assets || "",
+                        workOrders: b.terminology?.workOrders || "",
+                        technicians: b.terminology?.technicians || "",
+                        inventory: b.terminology?.inventory || "",
+                        reports: b.terminology?.reports || "",
+                        customers: b.terminology?.customers || "",
                     }
                 }
             });
@@ -90,105 +132,81 @@ export default function CompanyBuilderPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Branding</CardTitle>
-                        <CardDescription>Customize the look and feel of your workspace.</CardDescription>
+                        <CardTitle>Branding & Visuals</CardTitle>
+                        <CardDescription>Customize colors, logos, and terminology.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
+
                         <div className="space-y-2">
                             <Label>Application Name</Label>
                             <Input
                                 {...register("branding.appName")}
                                 placeholder="e.g. ScrapHand OS"
                             />
-                            <p className="text-[0.8rem] text-muted-foreground">This title will verify in the sidebar and header.</p>
+                            <p className="text-[0.8rem] text-muted-foreground">Verify in Sidebar header.</p>
                         </div>
 
-                        {/* Color Presets */}
+                        {/* Presets */}
                         <div className="space-y-2">
-                            <Label>Theme Presets</Label>
-                            <div className="flex gap-2">
-                                {[
-                                    { name: "Default Blue", p: "#2563eb", s: "#1e293b" },
-                                    { name: "Forest", p: "#166534", s: "#14532d" },
-                                    { name: "Midnight", p: "#1e3a8a", s: "#0f172a" },
-                                    { name: "Royal", p: "#7c3aed", s: "#4c1d95" },
-                                    { name: "Crimson", p: "#dc2626", s: "#7f1d1d" },
-                                ].map(theme => (
+                            <Label>Quick Themes</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {THEMES.map(theme => (
                                     <Button
                                         key={theme.name}
                                         type="button"
                                         variant="outline"
-                                        className="h-8 text-xs gap-2"
+                                        className="h-9 text-xs gap-2 min-w-[120px]"
                                         onClick={() => {
-                                            setValue("branding.primaryColor", theme.p);
-                                            setValue("branding.secondaryColor", theme.s);
+                                            setValue("branding.primaryColor", theme.colors.p);
+                                            setValue("branding.secondaryColor", theme.colors.s);
+                                            setValue("branding.textColor", theme.colors.t);
+                                            setValue("branding.backgroundColor", theme.colors.b);
+                                            setValue("branding.mutedColor", theme.colors.m);
                                         }}
                                     >
-                                        <div className="w-3 h-3 rounded-full" style={{ background: theme.p }} />
+                                        <div className="flex -space-x-1">
+                                            <div className="w-3 h-3 rounded-full ring-1 ring-white" style={{ background: theme.colors.p }} />
+                                            <div className="w-3 h-3 rounded-full ring-1 ring-white" style={{ background: theme.colors.s }} />
+                                            <div className="w-3 h-3 rounded-full ring-1 ring-white" style={{ background: theme.colors.b }} />
+                                        </div>
                                         {theme.name}
                                     </Button>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Primary Color</Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="color"
-                                        className="w-12 h-10 p-1"
-                                        {...register("branding.primaryColor")}
-                                    />
-                                    <Input
-                                        {...register("branding.primaryColor")}
-                                        placeholder="#2563eb"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Secondary Color</Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="color"
-                                        className="w-12 h-10 p-1"
-                                        {...register("branding.secondaryColor")}
-                                    />
-                                    <Input
-                                        {...register("branding.secondaryColor")}
-                                        placeholder="#1e293b"
-                                    />
-                                </div>
-                            </div>
+                        {/* Detailed Color Picker */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border-t pt-4">
+                            <ColorInput label="Primary Color" name="branding.primaryColor" register={register} desc="Buttons & Highlights" />
+                            <ColorInput label="Secondary Color" name="branding.secondaryColor" register={register} desc="Sidebar & Accents" />
+                            <ColorInput label="Text Color" name="branding.textColor" register={register} desc="Main Body Text" />
+                            <ColorInput label="Background Color" name="branding.backgroundColor" register={register} desc="Page Background" />
+                            <ColorInput label="Muted/Panel Color" name="branding.mutedColor" register={register} desc="Cards & Sidebars" />
                         </div>
 
-                        {/* Terminology Editor */}
+                        {/* Terminology */}
                         <div className="pt-4 border-t space-y-4">
                             <div>
-                                <h3 className="text-sm font-medium">Custom Terminology</h3>
-                                <p className="text-xs text-muted-foreground">Rename core system terms to match your industry (e.g. Work Order &rarr; Ticket).</p>
+                                <h3 className="text-sm font-medium">Domain Terminology</h3>
+                                <p className="text-xs text-muted-foreground">Rename entities to match your internal jargon.</p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Assets</Label>
-                                    <Input {...register("branding.terminology.assets")} placeholder="Default: Assets" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Work Orders</Label>
-                                    <Input {...register("branding.terminology.workOrders")} placeholder="Default: Work Orders" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Technicians</Label>
-                                    <Input {...register("branding.terminology.technicians")} placeholder="Default: Technicians" />
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <InputGroup label="Assets" name="branding.terminology.assets" register={register} placeholder="e.g. Machines" />
+                                <InputGroup label="Work Orders" name="branding.terminology.workOrders" register={register} placeholder="e.g. Jobs" />
+                                <InputGroup label="Technicians" name="branding.terminology.technicians" register={register} placeholder="e.g. Engineers" />
+                                <InputGroup label="Inventory" name="branding.terminology.inventory" register={register} placeholder="e.g. Parts" />
+                                <InputGroup label="Reports" name="branding.terminology.reports" register={register} placeholder="e.g. Analytics" />
+                                <InputGroup label="Customers" name="branding.terminology.customers" register={register} placeholder="e.g. Clients" />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 pt-4 border-t">
                             <Label>Company Logo</Label>
                             <div className="flex items-center gap-4">
                                 {logoUrl && (
-                                    <img src={logoUrl} alt="Logo Preview" className="h-16 w-16 object-contain border rounded" />
+                                    <div className="h-16 w-16 bg-muted rounded border flex items-center justify-center p-2">
+                                        <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
+                                    </div>
                                 )}
                                 <div className="flex-1">
                                     <FileUploader
@@ -202,65 +220,7 @@ export default function CompanyBuilderPage() {
                                 </div>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Notifications</CardTitle>
-                        <CardDescription>Customize how your team is alerted to new work orders.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label>Audible Alerts</Label>
-                                <p className="text-xs text-muted-foreground">Play a sound when a critical work order is created.</p>
-                            </div>
-                            <input
-                                type="checkbox"
-                                className="toggle h-6 w-11 rounded-full bg-muted appearance-none checked:bg-primary transition-colors cursor-pointer"
-                                checked={config?.notifications?.enabled ?? true}
-                                onChange={(e) => {
-                                    api.patch("/tenant/config", {
-                                        notifications: { ...config?.notifications, enabled: e.target.checked }
-                                    }).then(() => refreshConfig());
-                                }}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Notification Sound (.mp3)</Label>
-                            <div className="flex items-center gap-4">
-                                {config?.notifications?.soundUrl && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                            if (config?.notifications?.soundUrl) {
-                                                new Audio(config.notifications.soundUrl).play();
-                                            }
-                                        }}
-                                    >
-                                        Test Sound
-                                    </Button>
-                                )}
-                                <div className="flex-1">
-                                    <FileUploader
-                                        entityType="tenant"
-                                        entityId={config?.slug || "notifications"}
-                                        onUploadComplete={(att) => {
-                                            toast.success("Sound updated!");
-                                            api.patch("/tenant/config", {
-                                                notifications: { ...config?.notifications, soundUrl: att.url }
-                                            }).then(() => refreshConfig());
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground italic">
-                                Tip: System will auto-trim uploads longer than 3s to ensure snappy alerts.
-                            </p>
-                        </div>
                     </CardContent>
                 </Card>
 
@@ -270,6 +230,29 @@ export default function CompanyBuilderPage() {
                     </Button>
                 </div>
             </form>
+        </div>
+    );
+}
+
+// Sub-components for cleaner code
+function ColorInput({ label, name, register, desc }: any) {
+    return (
+        <div className="space-y-2">
+            <Label>{label}</Label>
+            <div className="flex gap-2">
+                <Input type="color" className="w-12 h-10 p-1 cursor-pointer" {...register(name)} />
+                <Input {...register(name)} className="font-mono uppercase" maxLength={7} />
+            </div>
+            <p className="text-[10px] text-muted-foreground">{desc}</p>
+        </div>
+    );
+}
+
+function InputGroup({ label, name, register, placeholder }: any) {
+    return (
+        <div className="space-y-1.5">
+            <Label className="text-xs">{label}</Label>
+            <Input {...register(name)} placeholder={placeholder} className="h-9" />
         </div>
     );
 }

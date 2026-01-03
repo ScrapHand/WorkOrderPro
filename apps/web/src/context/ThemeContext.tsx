@@ -7,6 +7,9 @@ import { api } from "@/lib/api";
 type BrandingConfig = {
     primaryColor?: string;
     secondaryColor?: string;
+    textColor?: string; // [NEW] Foreground/Text
+    backgroundColor?: string; // [NEW] Background/Backdrop
+    mutedColor?: string; // [NEW] Muted/Sidebar
     logoUrl?: string;
     font?: string;
     appName?: string;
@@ -14,6 +17,9 @@ type BrandingConfig = {
         assets?: string; // e.g. "Machines"
         workOrders?: string; // e.g. "Jobs"
         technicians?: string; // e.g. "Engineers"
+        inventory?: string; // [NEW] e.g. "Parts"
+        reports?: string; // [NEW] e.g. "Analytics"
+        customers?: string; // [NEW] e.g. "Clients"
     };
 };
 
@@ -60,6 +66,16 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
             }
             if (b.secondaryColor) {
                 root.style.setProperty("--secondary", b.secondaryColor);
+                root.style.setProperty("--secondary-foreground", "#ffffff");
+            }
+            if (b.textColor) {
+                root.style.setProperty("--foreground", b.textColor);
+            }
+            if (b.backgroundColor) {
+                root.style.setProperty("--background", b.backgroundColor);
+            }
+            if (b.mutedColor) {
+                root.style.setProperty("--muted", b.mutedColor);
             }
             if (b.font) {
                 root.style.setProperty("--font-sans", b.font);
