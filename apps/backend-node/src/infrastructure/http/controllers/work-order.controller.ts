@@ -17,14 +17,15 @@ export class WorkOrderController {
             const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
-            const { assetId, title, priority, description } = req.body;
+            const { assetId, title, priority, description, assignedUserId } = req.body;
 
             const wo = await this.woService.createWorkOrder(
                 tenant.id,
                 assetId,
                 title,
                 priority,
-                description
+                description,
+                assignedUserId
             );
 
             res.status(201).json(wo);

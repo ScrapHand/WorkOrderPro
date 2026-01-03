@@ -8,7 +8,7 @@ export class WorkOrderService {
         private rimeService: RimeService
     ) { }
 
-    async createWorkOrder(tenantId: string, assetId: string, title: string, priority: string, description?: string) {
+    async createWorkOrder(tenantId: string, assetId: string, title: string, priority: string, description?: string, assignedUserId?: string) {
         // [CORE LOGIC] RIME Calculation
         const rimeScore = await this.rimeService.calculateScore(assetId, tenantId, priority);
 
@@ -20,7 +20,8 @@ export class WorkOrderService {
             description,
             priority,
             status: 'OPEN',
-            rimeScore
+            rimeScore,
+            assignedUserId
         };
 
         return this.woRepo.create(workOrder);
