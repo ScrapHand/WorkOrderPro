@@ -15,9 +15,11 @@ interface AssetGroupBoardProps {
     onEdit?: (asset: Asset) => void;
     mode?: 'manage' | 'select';
     onSelect?: (asset: Asset) => void;
+    onCreateGroup?: () => void;
+    onCreateChild?: (parentId: string) => void;
 }
 
-export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect }: AssetGroupBoardProps) {
+export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect, onCreateGroup, onCreateChild }: AssetGroupBoardProps) {
     const queryClient = useQueryClient();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [isDraggingBoard, setIsDraggingBoard] = useState(false);
@@ -52,6 +54,8 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect }: A
 
     // Drag-to-Scroll Handlers
     const handleBoardMouseDown = (e: React.MouseEvent) => {
+
+        // Don't drag if clicking buttons or cards (handled by stopPropagation usually)
         if (!scrollContainerRef.current) return;
         setIsDraggingBoard(true);
         setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
@@ -115,6 +119,7 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect }: A
                     className="min-w-[300px] w-[300px] bg-muted/30 rounded-xl flex flex-col border border-border/50 shrink-0"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, group.id)}
+                    onMouseDown={e => e.stopPropagation()} // Stop drag-scroll when interacting with column
                 >
                     <div className="p-4 border-b bg-muted/40 rounded-t-xl flex justify-between items-center group-header">
                         <div className="font-semibold truncate" title={group.name}>{group.name}</div>
@@ -161,8 +166,13 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect }: A
                     </div>
                     {mode === 'manage' && (
                         <div className="p-3 pt-0">
-                            <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground dashed border border-transparent hover:border-border" disabled>
-                                <Plus className="mr-2 h-3 w-3" /> Add Child (Todo)
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full text-xs text-muted-foreground dashed border border-transparent hover:border-border"
+                                onClick={() => onCreateChild?.(group.id)}
+                            >
+                                <Plus className="mr-2 h-3 w-3" /> Add Child
                             </Button>
                         </div>
                     )}
@@ -171,7 +181,11 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect }: A
 
             {/* Create New Group Column */}
             {mode === 'manage' && (
-                <div className="min-w-[300px] flex items-center justify-center border-2 border-dashed rounded-xl opacity-50 hover:opacity-100 transition-opacity cursor-pointer shrink-0">
+                <div
+                    className="min-w-[300px] flex items-center justify-center border-2 border-dashed rounded-xl opacity-50 hover:opacity-100 transition-opacity cursor-pointer shrink-0"
+                    onClick={() => onCreateGroup?.()}
+                    onMouseDown={e => e.stopPropagation()}
+                >
                     <div className="text-center">
                         <Plus className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
                         <span className="text-muted-foreground font-medium">Add Group</span>

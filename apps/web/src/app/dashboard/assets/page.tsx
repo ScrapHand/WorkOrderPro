@@ -25,6 +25,7 @@ export default function AssetsPage() {
     // Edit & Create State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editAsset, setEditAsset] = useState<Asset | null>(null);
+    const [createParentId, setCreateParentId] = useState<string | null>(null);
 
     const { data: allAssets, isLoading: isAllLoading, refetch: refetchAll } = useQuery({
         queryKey: ["assets"],
@@ -34,6 +35,7 @@ export default function AssetsPage() {
     const handleSuccess = () => {
         refetchAll();
         setEditAsset(null);
+        setCreateParentId(null);
     };
 
     const isAdminOrManager = user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER;
@@ -46,7 +48,7 @@ export default function AssetsPage() {
                     <p className="text-muted-foreground">Manage your physical assets, equipment, and LOTO procedures.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={() => setIsCreateModalOpen(true)}>
+                    <Button onClick={() => { setCreateParentId(null); setIsCreateModalOpen(true); }}>
                         <Plus className="mr-2 h-4 w-4" /> Add Asset
                     </Button>
                 </div>
@@ -88,6 +90,16 @@ export default function AssetsPage() {
                         <AssetGroupBoard
                             assets={allAssets || []}
                             onEdit={setEditAsset}
+                            onCreateGroup={() => {
+                                setCreateParentId(null);
+                                setEditAsset(null);
+                                setIsCreateModalOpen(true);
+                            }}
+                            onCreateChild={(parentId) => {
+                                setCreateParentId(parentId);
+                                setEditAsset(null);
+                                setIsCreateModalOpen(true);
+                            }}
                         />
                     )}
                 </TabsContent>
@@ -118,6 +130,7 @@ export default function AssetsPage() {
                         }
                     }}
                     initialData={editAsset}
+                    parentId={createParentId}
                     onSuccess={handleSuccess}
                 />
             )}
