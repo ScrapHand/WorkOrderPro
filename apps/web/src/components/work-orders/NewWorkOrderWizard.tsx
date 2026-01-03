@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
-import { AssetTree } from "@/components/assets/AssetTree";
+import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
 import { Asset } from "@/types/asset";
 import { CreateWorkOrderDTO, WorkOrderPriority } from "@/types/work-order";
 import { CheckCircle, AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
@@ -23,9 +23,8 @@ export function NewWorkOrderWizard() {
     });
 
     const { data: tree, isLoading: treeLoading } = useQuery({
-        queryKey: ["assetTree", rootId],
-        queryFn: () => AssetService.getTree(rootId),
-        enabled: !!rootId,
+        queryKey: ["assets"], // Changed key to generic assets
+        queryFn: () => AssetService.getAll(),
     });
 
     const mutation = useMutation({
@@ -60,34 +59,32 @@ export function NewWorkOrderWizard() {
             {/* STEP 1: ASSET SELECTION */}
             {step === 1 && (
                 <div className="space-y-4">
-                    <div className="flex gap-2 mb-4">
-                        <input
-                            value={rootId}
-                            onChange={(e) => setRootId(e.target.value)}
-                            className="border p-2 rounded w-full"
-                            placeholder="Enter Root Asset ID to browse..."
-                        />
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="text-sm text-muted-foreground">
+                            Select an asset from the board below. You can drag the background to scroll.
+                        </div>
                     </div>
 
                     {treeLoading ? <Loader2 className="animate-spin" /> : tree ? (
-                        <div className="border rounded h-96 overflow-y-auto">
-                            <AssetTree
+                        <div className="border rounded h-96 overflow-hidden bg-gray-50/50">
+                            {/* Use AssetGroupBoard in Select Mode */}
+                            {/* Note: 'tree' variable here currently holds whatever getTree returns.
+                                 If getTree returns nested, board needs flat. 
+                                 AssetService.getTree actually returns flat array from backend recursive query? 
+                                 Let's check. Yes, findSubtree returns flat array. 
+                                 But for Board we might want ALL assets, not just a subtree of a hardcoded root.
+                                 Let's switch query to getAll for maximum flexibility if rootId isn't critical.
+                             */}
+                            <AssetGroupBoard
                                 assets={tree}
-                                onSelect={setSelectedAsset}
-                                selectedId={selectedAsset?.id}
+                                mode="select"
+                                onSelect={(asset) => {
+                                    setSelectedAsset(asset);
+                                    setStep(2); // Auto-advance on select
+                                }}
                             />
                         </div>
                     ) : <p>Load a tree to select an asset.</p>}
-
-                    <div className="flex justify-end mt-4">
-                        <button
-                            disabled={!isStep1Valid}
-                            onClick={() => setStep(2)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
-                        >
-                            Next <ArrowRight className="w-4 h-4" />
-                        </button>
-                    </div>
                 </div>
             )}
 
