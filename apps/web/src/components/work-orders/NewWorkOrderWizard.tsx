@@ -59,11 +59,7 @@ export function NewWorkOrderWizard() {
             {/* STEP 1: ASSET SELECTION */}
             {step === 1 && (
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="text-sm text-muted-foreground">
-                            Select an asset from the board below. You can drag the background to scroll.
-                        </div>
-                    </div>
+
 
                     {treeLoading ? <Loader2 className="animate-spin" /> : tree ? (
                         <div className="border rounded h-96 overflow-hidden bg-gray-50/50">
