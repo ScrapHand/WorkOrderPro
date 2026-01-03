@@ -27,7 +27,7 @@ export function NewWorkOrderWizard() {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [priority, setPriority] = useState<WorkOrderPriority | null>(null);
-    const [assignedUserId, setAssignedUserId] = useState<string | "">("");
+    const [assignedUserId, setAssignedUserId] = useState<string>("unassigned");
 
     const { data: tree, isLoading: treeLoading } = useQuery({
         queryKey: ["assets"],
@@ -58,7 +58,7 @@ export function NewWorkOrderWizard() {
             description,
             priority,
             // @ts-ignore - DTO needs update or backend handles it
-            assignedUserId: assignedUserId || undefined
+            assignedUserId: assignedUserId === "unassigned" ? undefined : assignedUserId
         });
     };
 
@@ -182,15 +182,17 @@ export function NewWorkOrderWizard() {
                                         <SelectValue placeholder="Select a technician..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Unassigned</SelectItem>
-                                        {users?.map(u => (
-                                            <SelectItem key={u.id} value={u.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <UserIcon className="w-3 h-3 text-gray-400" />
-                                                    <span>{u.username || u.email}</span>
-                                                    <span className="text-xs text-gray-400">({u.role})</span>
-                                                </div>
-                                            </SelectItem>
+                                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                                        {Array.isArray(users) && users.map(u => (
+                                            u?.id ? (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    <div className="flex items-center gap-2">
+                                                        <UserIcon className="w-3 h-3 text-gray-400" />
+                                                        <span>{u.username || u.email || "Unknown"}</span>
+                                                        <span className="text-xs text-gray-400">({u.role})</span>
+                                                    </div>
+                                                </SelectItem>
+                                            ) : null
                                         ))}
                                     </SelectContent>
                                 </Select>
