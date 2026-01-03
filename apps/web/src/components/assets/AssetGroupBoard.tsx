@@ -158,13 +158,33 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect, onC
                                 onMouseDown={(e) => e.stopPropagation()} // Stop pan when clicking a card
                                 className={`${mode === 'manage' ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer hover:ring-2 hover:ring-primary'}`}
                             >
-                                <Card className="hover:shadow-md transition-shadow">
-                                    <CardContent className="p-3">
-                                        <div className="font-medium text-sm">{child.name}</div>
-                                        <div className="text-[10px] text-muted-foreground mt-1 flex justify-between">
-                                            <span>{child.status}</span>
+                                <Card className="hover:shadow-md transition-all hover:border-primary/50 group relative overflow-hidden">
+                                    {child.imageUrl && (
+                                        <div className="h-24 w-full overflow-hidden bg-muted">
+                                            <img src={child.imageUrl} alt={child.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                        </div>
+                                    )}
+                                    <div className={`absolute top-0 left-0 w-1 h-full 
+                                        ${child.criticality === 'A' ? 'bg-red-500' :
+                                            child.criticality === 'B' ? 'bg-orange-500' : 'bg-blue-500'}`}
+                                    />
+                                    <CardContent className="p-3 pl-4">
+                                        <div className="font-medium text-sm truncate" title={child.name}>{child.name}</div>
+
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border
+                                                ${child.status === 'OPERATIONAL' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                    child.status === 'DOWN' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                        'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                                {child.status}
+                                            </div>
                                             {child.criticality && (
-                                                <span className="font-bold">{child.criticality}</span>
+                                                <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded border
+                                                    ${child.criticality === 'A' ? 'bg-red-100 text-red-800 border-red-200' :
+                                                        child.criticality === 'B' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                                                            'bg-blue-100 text-blue-800 border-blue-200'}`}>
+                                                    {child.criticality}
+                                                </div>
                                             )}
                                         </div>
                                     </CardContent>
