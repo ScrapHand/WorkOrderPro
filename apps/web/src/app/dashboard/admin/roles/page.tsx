@@ -180,7 +180,7 @@ function RoleModal({ open, onOpenChange, onSubmit, initialData, title, isSystem 
     const [permissions, setPermissions] = useState<string[]>(initialData?.permissions || []);
 
     // Group permissions
-    const groups = ['work_order', 'asset', 'inventory', 'user', 'report'];
+    const groups = ['work_order', 'asset', 'inventory', 'user', 'tenant', 'report'];
 
     const togglePermission = (key: string) => {
         setPermissions(prev =>

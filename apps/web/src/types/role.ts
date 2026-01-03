@@ -19,11 +19,14 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { key: 'work_order:read', description: 'View work orders', group: 'work_order' },
     { key: 'work_order:write', description: 'Create and edit work orders', group: 'work_order' },
     { key: 'work_order:delete', description: 'Delete work orders', group: 'work_order' },
+    { key: 'work_order:archive', description: 'Access archived jobs', group: 'work_order' },
 
     // Assets
     { key: 'asset:read', description: 'View assets', group: 'asset' },
     { key: 'asset:write', description: 'Create and edit assets', group: 'asset' },
     { key: 'asset:delete', description: 'Delete assets', group: 'asset' },
+    { key: 'asset:specs', description: 'Manage asset specifications', group: 'asset' },
+    { key: 'asset:tree', description: 'Manage asset hierarchy', group: 'asset' },
 
     // Inventory
     { key: 'inventory:read', description: 'View inventory', group: 'inventory' },
@@ -35,6 +38,9 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { key: 'user:write', description: 'Create and edit users', group: 'user' },
     { key: 'user:delete', description: 'Delete users', group: 'user' },
 
+    // Tenant / Company
+    { key: 'tenant:manage', description: 'Manage company branding & settings', group: 'tenant' },
+
     // Reports
-    { key: 'report:read', description: 'View reports', group: 'report' }
+    { key: 'report:read', description: 'View reports', group: 'report' },
 ];

@@ -62,11 +62,11 @@ if (!process.env.DATABASE_URL) {
 
 const DEFAULT_ROLES = {
     ADMIN: [
-        'work_order:read', 'work_order:write', 'work_order:delete',
-        'asset:read', 'asset:write', 'asset:delete',
+        'work_order:read', 'work_order:write', 'work_order:delete', 'work_order:archive',
+        'asset:read', 'asset:write', 'asset:delete', 'asset:specs', 'asset:tree',
         'inventory:read', 'inventory:write', 'inventory:delete',
         'user:read', 'user:write', 'user:delete',
-        'tenant:write', 'report:read'
+        'tenant:write', 'tenant:manage', 'report:read'
     ],
     MANAGER: [
         'work_order:read', 'work_order:write',
