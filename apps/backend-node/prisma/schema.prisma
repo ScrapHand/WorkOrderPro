@@ -28,7 +28,7 @@ model Tenant {
   workOrders WorkOrder[]
   attachments Attachment[]
   users     User[]
-  inventoryItems InventoryItem[]
+  parts     Part[]
   roles     Role[]
   workOrderSessions WorkOrderSession[]
 }
@@ -134,6 +134,7 @@ model WorkOrder {
   asset       Asset    @relation(fields: [assetId], references: [id])
   sessions    WorkOrderSession[]
   attachments Attachment[]
+  parts       WorkOrderPart[]
 
   @@index([tenantId])
   @@index([assetId])
@@ -141,22 +142,58 @@ model WorkOrder {
   @@index([assignedUserId])
 }
 
-model InventoryItem {
+// Replaces InventoryItem
+model Part {
   id           String   @id @default(uuid())
   tenantId     String   @map("tenant_id")
   name         String
-  locationId   String?  @map("location_id")
+  sku          String?
+  description  String?
+  cost         Float    @default(0.0)
   quantity     Int      @default(0)
-  threshold    Int      @default(5)
-  supplierInfo Json?    @map("supplier_info") // { name, contact }
+  minQuantity  Int      @default(5) @map("min_quantity")
+  binLocation  String?  @map("bin_location")
   imageUrl     String?  @map("image_url")
   
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
+  
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  transactions InventoryTransaction[]
+  workOrderParts WorkOrderPart[]
 
   @@index([tenantId])
+}
+
+model WorkOrderPart {
+  id           String   @id @default(uuid())
+  workOrderId  String   @map("work_order_id")
+  partId       String   @map("part_id")
+  quantityUsed Int      @map("quantity_used")
+  costAtTime   Float    @map("cost_at_time") // Snapshot of cost when used
+
+  usedAt       DateTime @default(now())
+
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id])
+  part         Part      @relation(fields: [partId], references: [id])
+
+  @@index([workOrderId])
+  @@index([partId])
+}
+
+model InventoryTransaction {
+  id            String   @id @default(uuid())
+  partId        String   @map("part_id")
+  changeQuantity Int      @map("change_quantity") // +10, -5, etc.
+  type          String   // IN, OUT, AUDIT
+  reason        String?
+  
+  performedAt   DateTime @default(now())
+  performedBy   String?  @map("performed_by") // User ID if available
+
+  part          Part     @relation(fields: [partId], references: [id])
+
+  @@index([partId])
 }
 
 model Attachment {
