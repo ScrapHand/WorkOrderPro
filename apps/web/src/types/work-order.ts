@@ -12,6 +12,8 @@ export interface WorkOrder {
     priority: WorkOrderPriority;
     status: WorkOrderStatus;
     rimeScore: number;
+    work_order_number?: string;
+    completedAt?: string;
     createdAt: string;
     updatedAt: string;
 

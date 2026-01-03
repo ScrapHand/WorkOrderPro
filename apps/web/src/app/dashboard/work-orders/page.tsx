@@ -60,6 +60,7 @@ function WorkOrderListContent() {
             <WorkOrderTable
                 // If filter is 'me', we pass 'me', logic inside table handles it
                 filterMode={predefinedFilter === 'me' ? 'me' : 'all'}
+                enableFilters={true}
             />
         </div>
     );

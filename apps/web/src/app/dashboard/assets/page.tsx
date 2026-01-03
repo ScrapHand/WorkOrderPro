@@ -13,9 +13,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { UserRole } from "@/lib/auth/types";
 import { Asset } from "@/types/asset";
 
+import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
+import { KanbanSquare } from "lucide-react"; // Import icon if available, or LayoutDashboard
+
 export default function AssetsPage() {
     const { data: user } = useAuth();
-    const [view, setView] = useState<"grid" | "tree">("grid");
+    const [view, setView] = useState<"grid" | "tree" | "board">("grid"); // Add 'board'
     // const [rootId, setRootId] = useState("41a408f1-64b1-49a2-b7c1-9f6a458bff78");
     // const [inputVal, setInputVal] = useState(rootId);
 
@@ -49,13 +52,18 @@ export default function AssetsPage() {
                 </div>
             </header>
 
-            <Tabs value={view} onValueChange={(v: string) => setView(v as "grid" | "tree")} className="w-full">
+            <Tabs value={view} onValueChange={(v: string) => setView(v as "grid" | "tree" | "board")} className="w-full">
                 <div className="flex items-center justify-between mb-4">
                     <TabsList>
                         <TabsTrigger value="grid" className="gap-2">
                             <LayoutGrid className="h-4 w-4" /> Grid View
                         </TabsTrigger>
-                        {/* Tree moved to Sidebar */}
+                        <TabsTrigger value="board" className="gap-2">
+                            <KanbanSquare className="h-4 w-4" /> Board View
+                        </TabsTrigger>
+                        <TabsTrigger value="tree" className="gap-2">
+                            <Network className="h-4 w-4" /> Tree View
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -68,6 +76,17 @@ export default function AssetsPage() {
                         <AssetGrid
                             assets={allAssets || []}
                             isAdmin={isAdminOrManager}
+                            onEdit={setEditAsset}
+                        />
+                    )}
+                </TabsContent>
+
+                <TabsContent value="board" className="mt-0">
+                    {isAllLoading ? (
+                        <p>Loading board...</p>
+                    ) : (
+                        <AssetGroupBoard
+                            assets={allAssets || []}
                             onEdit={setEditAsset}
                         />
                     )}

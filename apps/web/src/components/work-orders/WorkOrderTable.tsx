@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
 import { Trash2, Search, Filter } from "lucide-react";
@@ -35,17 +36,32 @@ const RimeBadge = ({ score }: { score: number }) => {
 interface WorkOrderTableProps {
     statusFilter?: string; // Optional filtering (e.g. 'DONE')
     filterMode?: 'me' | 'all';
+    enableFilters?: boolean;
 }
 
-export function WorkOrderTable({ statusFilter, filterMode = 'all' }: WorkOrderTableProps) {
+export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters = false }: WorkOrderTableProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    // Pass status directly to the API if provided
-    // NOTE: If filterMode is 'me', we might handle that client-side or add another API param later.
+    // Filter State
+    const [assetFilter, setAssetFilter] = useState("");
+    const [groupFilter, setGroupFilter] = useState(""); // Root Asset ID
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+
+    // Debounce search term if needed, but for now direct passing is okay for small datasets
+    // For large datasets, useDebounce is better.
+
     const { data: orders, isLoading } = useQuery({
-        queryKey: ["workOrders", statusFilter],
-        queryFn: () => AssetService.getWorkOrders(statusFilter),
+        queryKey: ["workOrders", statusFilter, assetFilter, groupFilter, dateFrom, dateTo],
+        queryFn: () => AssetService.getWorkOrders({
+            status: statusFilter,
+            assetId: assetFilter || undefined,
+            rootAssetId: groupFilter || undefined,
+            from: dateFrom || undefined,
+            to: dateTo || undefined
+        }),
         refetchInterval: 30000,
     });
 
@@ -58,28 +74,76 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all' }: WorkOrderTa
         onError: () => toast.error("Failed to delete Work Order")
     });
 
-    // Client-side filtering for 'me' or search could go here
-    // For 'Archive', statusFilter='DONE' handles the main logic via Backend.
+    // Client-side search filtering
     const filteredOrders = orders?.filter(wo => {
-        // Double check status if needed (though backend filters it)
-        if (statusFilter && wo.status !== statusFilter) return false;
-
-        // 'Me' filter would need userId check, omitted for now or done via specific API endpoint
+        if (searchTerm && !wo.title.toLowerCase().includes(searchTerm.toLowerCase()) && !wo.work_order_number?.includes(searchTerm)) return false;
         return true;
     });
 
     return (
         <div className="space-y-4">
-            {/* Simple Filter Bar */}
-            <div className="flex items-center gap-4 bg-white p-3 rounded-xl border shadow-sm">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search..." className="pl-9 h-10 border-none focus-visible:ring-0" />
+            {/* Filter Bar */}
+            <div className="bg-white p-3 rounded-xl border shadow-sm space-y-3">
+                <div className="flex items-center gap-4">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search Work Orders..."
+                            className="pl-9 h-10 border-none bg-muted/30 focus-visible:ring-0"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    {filterMode === 'me' && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            My Tasks
+                        </Badge>
+                    )}
                 </div>
-                {filterMode === 'me' && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        My Tasks
-                    </Badge>
+
+                {enableFilters && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t">
+                        <Input
+                            placeholder="Asset ID (UUID)"
+                            className="w-[150px] h-8 text-xs"
+                            value={assetFilter}
+                            onChange={e => setAssetFilter(e.target.value)}
+                        />
+                        <Input
+                            placeholder="Group / Root Asset ID"
+                            className="w-[150px] h-8 text-xs"
+                            value={groupFilter}
+                            onChange={e => setGroupFilter(e.target.value)}
+                        />
+                        <div className="flex items-center gap-1 border rounded px-2 bg-muted/10">
+                            <span className="text-xs text-muted-foreground">From:</span>
+                            <input
+                                type="date"
+                                className="h-8 text-xs bg-transparent outline-none"
+                                value={dateFrom}
+                                onChange={e => setDateFrom(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center gap-1 border rounded px-2 bg-muted/10">
+                            <span className="text-xs text-muted-foreground">To:</span>
+                            <input
+                                type="date"
+                                className="h-8 text-xs bg-transparent outline-none"
+                                value={dateTo}
+                                onChange={e => setDateTo(e.target.value)}
+                            />
+                        </div>
+                        {(assetFilter || groupFilter || dateFrom || dateTo) && (
+                            <Button variant="ghost" size="sm" className="h-8 text-xs text-red-500" onClick={() => {
+                                setAssetFilter("");
+                                setGroupFilter("");
+                                setDateFrom("");
+                                setDateTo("");
+                            }}>
+                                Clear
+                            </Button>
+                        )}
+                    </div>
                 )}
             </div>
 

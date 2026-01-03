@@ -12,6 +12,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WorkOrderTable } from "@/components/work-orders/WorkOrderTable";
 
 // Placeholder type
 type WorkOrder = {
@@ -81,68 +83,78 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* My Tasks List */}
-            <div className="space-y-4">
-                <h2 className="text-xl font-semibold tracking-tight">My Active Tasks</h2>
+            {/* Dashboard Tabs */}
+            <Tabs defaultValue="my-tasks" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+                    <TabsTrigger value="my-tasks">My Active Tasks</TabsTrigger>
+                    <TabsTrigger value="active-wo">Active Work Orders</TabsTrigger>
+                </TabsList>
 
-                {isLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[1, 2, 3].map(i => (
-                            <Card key={i} className="h-32 animate-pulse bg-muted/50" />
-                        ))}
-                    </div>
-                ) : myTasks && myTasks.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {myTasks?.slice(0, 6).map(task => (
-                            <Card key={task.id} className="hover:shadow-md transition-shadow cursor-pointer bg-card border-border/60">
-                                <CardHeader className="pb-2">
-                                    <div className="flex justify-between items-start">
-                                        <Badge className={`uppercase text-[10px] px-2 py-0.5 border-none
+                <TabsContent value="my-tasks" className="space-y-4 mt-6">
+                    <h2 className="text-xl font-semibold tracking-tight">My Active Tasks</h2>
+                    {isLoading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[1, 2, 3].map(i => (
+                                <Card key={i} className="h-32 animate-pulse bg-muted/50" />
+                            ))}
+                        </div>
+                    ) : myTasks && myTasks.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {myTasks?.slice(0, 6).map(task => (
+                                <Card key={task.id} className="hover:shadow-md transition-shadow cursor-pointer bg-card border-border/60">
+                                    <CardHeader className="pb-2">
+                                        <div className="flex justify-between items-start">
+                                            <Badge className={`uppercase text-[10px] px-2 py-0.5 border-none
                                             ${task.priority === 'critical' ? 'bg-red-100 text-red-700 hover:bg-red-200' :
-                                                task.priority === 'high' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' :
-                                                    'bg-green-100 text-green-700 hover:bg-green-200'}`}>
-                                            {task.priority || 'NORMAL'}
-                                        </Badge>
-                                        {task.status === 'completed'
-                                            ? <CheckCircle2 className="text-green-500 h-4 w-4" />
-                                            : <Clock className="text-muted-foreground h-4 w-4" />
-                                        }
-                                    </div>
-                                    <CardTitle className="text-base font-medium line-clamp-1 mt-2">
-                                        {task.title}
-                                    </CardTitle>
-                                    <CardDescription className="text-xs font-mono">
-                                        {task.work_order_number || "WO-PENDING"}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex justify-end pt-2">
-                                        <Button variant="outline" size="sm" asChild className="h-8 text-xs w-full">
-                                            <Link href={`/dashboard/work-orders/${task.id}`}>View Details</Link>
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                ) : (
-                    <Card className="border-dashed shadow-none">
-                        <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-                            <ClipboardList className="h-12 w-12 opacity-20 mb-4" />
-                            <p>You are not clocked into any jobs.</p>
-                            <Button variant="link" className="mt-2 text-primary" asChild>
-                                <Link href="/dashboard/work-orders/new">Create your first task</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                )}
+                                                    task.priority === 'high' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' :
+                                                        'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                                                {task.priority || 'NORMAL'}
+                                            </Badge>
+                                            {task.status === 'completed'
+                                                ? <CheckCircle2 className="text-green-500 h-4 w-4" />
+                                                : <Clock className="text-muted-foreground h-4 w-4" />
+                                            }
+                                        </div>
+                                        <CardTitle className="text-base font-medium line-clamp-1 mt-2">
+                                            {task.title}
+                                        </CardTitle>
+                                        <CardDescription className="text-xs font-mono">
+                                            {task.work_order_number || "WO-PENDING"}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex justify-end pt-2">
+                                            <Button variant="outline" size="sm" asChild className="h-8 text-xs w-full">
+                                                <Link href={`/dashboard/work-orders/${task.id}`}>View Details</Link>
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : (
+                        <Card className="border-dashed shadow-none">
+                            <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+                                <ClipboardList className="h-12 w-12 opacity-20 mb-4" />
+                                <p>You are not clocked into any jobs.</p>
+                                <Button variant="link" className="mt-2 text-primary" asChild>
+                                    <Link href="/dashboard/work-orders/new">Create your first task</Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                <div className="flex justify-center pt-4">
-                    <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-                        <Link href="/dashboard/work-orders">View All History &rarr;</Link>
-                    </Button>
-                </div>
-            </div>
+                    <div className="flex justify-center pt-4">
+                        <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+                            <Link href="/dashboard/work-orders">View All History &rarr;</Link>
+                        </Button>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="active-wo" className="mt-6">
+                    <WorkOrderTable statusFilter="OPEN" enableFilters={true} />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

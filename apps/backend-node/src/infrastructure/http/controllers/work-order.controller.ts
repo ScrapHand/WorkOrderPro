@@ -42,8 +42,15 @@ export class WorkOrderController {
             const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
-            const status = req.query.status as string | undefined;
-            const list = await this.woService.getWorkOrders(tenant.id, status);
+            const filters = {
+                status: req.query.status as string | undefined,
+                assetId: req.query.assetId as string | undefined,
+                rootAssetId: req.query.rootAssetId as string | undefined, // For Group/Zone filtering
+                from: req.query.from as string | undefined,
+                to: req.query.to as string | undefined
+            };
+
+            const list = await this.woService.getWorkOrders(tenant.id, filters);
             res.json(list);
         } catch (error: any) {
             res.status(500).json({ error: error.message });

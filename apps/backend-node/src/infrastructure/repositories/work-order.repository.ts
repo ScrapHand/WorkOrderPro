@@ -14,10 +14,40 @@ export class PostgresWorkOrderRepository implements IWorkOrderRepository {
         return this.prisma.workOrder.create({ data });
     }
 
-    async findAll(tenantId: string, status?: string): Promise<any[]> {
+    async findAll(tenantId: string, filters: any = {}): Promise<any[]> {
         const where: any = { tenantId, deletedAt: null };
-        if (status) {
-            where.status = status;
+
+        // Status Filter
+        if (filters.status) {
+            where.status = filters.status;
+        }
+
+        // Asset Filter (Exact Match)
+        if (filters.assetId) {
+            where.assetId = filters.assetId;
+        }
+
+        // Date Range Filter (Created At)
+        if (filters.from || filters.to) {
+            where.createdAt = {};
+            if (filters.from) where.createdAt.gte = new Date(filters.from);
+            if (filters.to) where.createdAt.lte = new Date(filters.to);
+        }
+
+        // Group Filter (Hierarchy Path)
+        if (filters.rootAssetId) {
+            // Fetch root asset to get its path
+            const rootAsset = await this.prisma.asset.findUnique({
+                where: { id: filters.rootAssetId }
+            });
+
+            if (rootAsset?.hierarchyPath) {
+                where.asset = {
+                    hierarchyPath: {
+                        startsWith: rootAsset.hierarchyPath
+                    }
+                };
+            }
         }
 
         return this.prisma.workOrder.findMany({

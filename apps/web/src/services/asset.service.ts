@@ -37,9 +37,12 @@ export const AssetService = {
         return res.data;
     },
 
-    getWorkOrders: async (status?: string): Promise<WorkOrder[]> => {
+    getWorkOrders: async (filters: any = {}): Promise<WorkOrder[]> => {
+        // If string passed (legacy), convert to object
+        const params = typeof filters === 'string' ? { status: filters } : filters;
+
         const res = await api.get("/work-orders", {
-            params: status ? { status } : undefined
+            params
         });
         return res.data;
     },
