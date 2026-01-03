@@ -9,12 +9,16 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/context/ThemeContext";
 
 import { useQueryClient } from "@tanstack/react-query"; // [PHASE 25] State Sync
 
 export default function LoginPage() {
     const router = useRouter();
     const queryClient = useQueryClient(); // [PHASE 25]
+    const { config } = useTheme();
+    const logoUrl = config?.branding?.logoUrl;
+    const appName = config?.branding?.appName || "WorkOrderPro";
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -69,8 +73,13 @@ export default function LoginPage() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
             <Card className="w-full max-w-sm">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold">Sign in to WorkOrderPro</CardTitle>
+                <CardHeader className="space-y-1 text-center">
+                    {logoUrl && (
+                        <div className="flex justify-center mb-6">
+                            <img src={logoUrl} alt={appName} className="h-32 w-auto object-contain" />
+                        </div>
+                    )}
+                    <CardTitle className="text-2xl font-bold">Sign in to {appName}</CardTitle>
                     <CardDescription>
                         Enter your email and password to access your account.
                     </CardDescription>
