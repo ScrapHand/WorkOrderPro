@@ -35,23 +35,27 @@ type CompanyFormValues = {
 const THEMES = [
     {
         name: "Default Blue",
-        colors: { p: "#2563eb", s: "#1e293b", t: "#0f172a", b: "#ffffff", m: "#f1f5f9" }
+        colors: { p: "#2563eb", s: "#1e293b", t: "#0f172a", b: "#ffffff", m: "#f8fafc" }
     },
     {
         name: "Forest",
-        colors: { p: "#166534", s: "#14532d", t: "#052e16", b: "#f0fdf4", m: "#dcfce7" }
+        colors: { p: "#166534", s: "#14532d", t: "#022c22", b: "#f0fdf4", m: "#dcfce7" } // Dark green text on pale green bg
     },
     {
         name: "Midnight",
-        colors: { p: "#3b82f6", s: "#1e3a8a", t: "#f8fafc", b: "#0f172a", m: "#1e293b" } // Dark Mode
+        colors: { p: "#3b82f6", s: "#1e3a8a", t: "#f8fafc", b: "#0f172a", m: "#1e293b" } // White text on dark blue bg
     },
     {
         name: "Royal",
-        colors: { p: "#7c3aed", s: "#4c1d95", t: "#2e1065", b: "#ffffff", m: "#f3e8ff" }
+        colors: { p: "#7c3aed", s: "#4c1d95", t: "#2e1065", b: "#faf5ff", m: "#f3e8ff" } // Dark purple text on lavender bg
     },
     {
         name: "Crimson",
-        colors: { p: "#dc2626", s: "#7f1d1d", t: "#450a0a", b: "#fff1f2", m: "#ffe4e6" }
+        colors: { p: "#dc2626", s: "#7f1d1d", t: "#450a0a", b: "#fff1f2", m: "#ffe4e6" } // Dark red text on pale rose bg
+    },
+    {
+        name: "Slate",
+        colors: { p: "#475569", s: "#1e293b", t: "#f8fafc", b: "#020617", m: "#1e293b" } // Dark Mode Slate
     },
 ];
 
