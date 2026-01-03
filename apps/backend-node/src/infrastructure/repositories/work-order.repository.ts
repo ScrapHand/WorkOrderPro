@@ -52,7 +52,7 @@ export class PostgresWorkOrderRepository implements IWorkOrderRepository {
 
         return this.prisma.workOrder.findMany({
             where,
-            orderBy: { rimeScore: 'desc' }, // Sorted by RIME Descending
+            orderBy: { createdAt: 'desc' }, // Sorted by Date Descending (Newest First)
             include: { asset: true }
         });
     }
