@@ -67,7 +67,7 @@ export function PartSelector({ onSelect }: PartSelectorProps) {
                                         setOpen(false);
                                     }}
                                     onPointerDown={(e) => e.preventDefault()}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer pointer-events-auto"
                                 >
                                     <div className="flex w-full items-center gap-2">
                                         <div className="h-4 w-4 shrink-0">
