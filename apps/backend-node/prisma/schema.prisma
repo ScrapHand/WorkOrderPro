@@ -13,6 +13,10 @@ model Tenant {
   name      String
   plan      String   @default("free")
   
+  // Subscription Limits
+  maxUsers  Int      @default(5)  @map("max_users")
+  maxAdmins Int      @default(1)  @map("max_admins")
+  
   // Branding & Configuration
   logoUrl        String?  @map("logo_url")
   brandColor     String   @default("#2563eb") @map("brand_color")

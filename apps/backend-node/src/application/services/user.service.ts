@@ -15,6 +15,15 @@ export class UserService {
         const passwordToHash = plainPassword || 'temp1234';
         const passwordHash = await bcrypt.hash(passwordToHash, 10);
 
+        // [PROTOCOL] Enforce Subscription Limits
+        const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+        if (!tenant) throw new Error("Tenant not found");
+
+        const currentUsers = await this.prisma.user.count({ where: { tenantId } });
+        if (currentUsers >= tenant.maxUsers) {
+            throw new Error(`Subscription limit reached: Max ${tenant.maxUsers} users.`);
+        }
+
         return this.prisma.user.create({
             data: {
                 tenantId,

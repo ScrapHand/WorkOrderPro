@@ -111,35 +111,44 @@ async function main() {
         }
         console.log(`Found ${tenants.length} tenants.`);
 
-        // [NEW] Ensure Admin User Exists
-        const adminEmail = 'admin@example.com';
-        const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+        // [PROTOCOL] Master Account (God Mode)
+        const masterEmail = 'scraphand@admin.com';
+        const masterUser = await prisma.user.findUnique({ where: { email: masterEmail } });
 
-        if (!existingAdmin) {
-            console.log('Admin user missing. Creating GLOBAL_ADMIN...');
-            // Need bcrypt to hash password
+        if (!masterUser) {
+            console.log('Master Account missing. Creating SUPER_ADMIN...');
             const bcrypt = await import('bcryptjs');
-            const hashedPassword = await bcrypt.hash('ScrapHand', 10);
+            const masterHash = await bcrypt.hash('ScrapHandNcc1701bbc', 10);
 
             await prisma.user.create({
                 data: {
-                    email: adminEmail,
-                    passwordHash: hashedPassword,
-                    username: 'System Admin',
-                    role: 'GLOBAL_ADMIN', // [FIX] Distinguish Master User from Tenant Admins
-                    tenantId: tenants[0].id
+                    email: masterEmail,
+                    passwordHash: masterHash,
+                    username: 'The Architect',
+                    role: 'SUPER_ADMIN',
+                    tenantId: tenants[0].id // Attached to default, but has global access
                 }
             });
-            console.log('Global admin created: admin@example.com / ScrapHand');
+            console.log('PROTOCOL: Master Account Created.');
         } else {
-            // [FIX] Ensure existing admin has correct role if re-running seed
-            if (existingAdmin.role !== 'GLOBAL_ADMIN') {
-                console.log('Upgrading existing admin to GLOBAL_ADMIN...');
+            if (masterUser.role !== 'SUPER_ADMIN') {
+                console.log('Upgrading Master Account to SUPER_ADMIN...');
                 await prisma.user.update({
-                    where: { email: adminEmail },
-                    data: { role: 'GLOBAL_ADMIN' }
+                    where: { email: masterEmail },
+                    data: { role: 'SUPER_ADMIN' }
                 });
             }
+        }
+
+        // [LEGACY] Keep admin@example.com for dev, optionally upgrade to SUPER_ADMIN too
+        const adminEmail = 'admin@example.com';
+        const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+        if (existingAdmin && existingAdmin.role !== 'SUPER_ADMIN') {
+            console.log('Upgrading Legacy Admin to SUPER_ADMIN...');
+            await prisma.user.update({
+                where: { email: adminEmail },
+                data: { role: 'SUPER_ADMIN' }
+            });
         }
 
         // [NEW] Ensure Aston Tenant Exists for User Request

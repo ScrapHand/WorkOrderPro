@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
-import { useLogout } from "@/hooks/use-auth";
+import { useLogout, useUser } from "@/hooks/use-auth";
 import { useTheme } from "@/context/ThemeContext";
 
 // Helper to prefix links
@@ -54,12 +54,26 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     const params = useParams();
     const tenantSlug = (params?.tenantSlug as string) || 'default';
     const logout = useLogout();
+    const { data: user } = useUser(); // [PROTOCOL] Get Real User for Granular Permissions
     const { config } = useTheme();
 
     const logoUrl = config?.branding?.logoUrl;
 
     const links = getSidebarLinks(config?.branding?.terminology, tenantSlug);
-    const adminLinks = adminLinksPrefix(tenantSlug);
+
+    // [PROTOCOL] Invisible UI Logic
+    const allAdminLinks = adminLinksPrefix(tenantSlug);
+    const adminLinks = allAdminLinks.filter(link => {
+        // 1. Common Admin Links (Everyone with ADMIN role sees this)
+        if (["User Management", "Company Actions"].includes(link.name)) return true;
+
+        // 2. Super Admin Links (Hidden from Tenant Admins)
+        if (["Role Management", "Secrets & Config", "System Doctor"].includes(link.name)) {
+            return user?.role === UserRole.SUPER_ADMIN;
+        }
+
+        return false;
+    });
     const b = config?.branding;
 
     const handleLinkClick = () => {
@@ -107,7 +121,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     ))}
 
                     {/* Admin Section */}
-                    <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                    <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.GLOBAL_ADMIN, UserRole.ADMIN, UserRole.MANAGER]}>
                         <div className="mt-6 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4">
                             Administration
                         </div>
