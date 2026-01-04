@@ -45,9 +45,10 @@ export function PartSelector({ onSelect }: PartSelectorProps) {
                     aria-expanded={open}
                     className="w-full justify-between"
                 >
-                    {value
-                        ? safeParts.find((part) => part.id === value)?.name
-                        : "Search for a part..."}
+                    <div className="flex items-center gap-2">
+                        <PackageSearch className="h-4 w-4 opacity-50" />
+                        <span>Search parts to add...</span>
+                    </div>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
@@ -62,7 +63,8 @@ export function PartSelector({ onSelect }: PartSelectorProps) {
                                     key={part.id}
                                     value={part.name}
                                     onSelect={(currentValue: string) => {
-                                        setValue(part.id === value ? "" : part.id);
+                                        // Reset component state to allow selecting another
+                                        setValue("");
                                         setOpen(false);
                                         onSelect(part);
                                     }}

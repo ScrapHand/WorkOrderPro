@@ -90,7 +90,7 @@ export function useLogout() {
 
     return useMutation({
         mutationFn: async () => {
-            // await api.post("/logout"); 
+            await api.post("/auth/logout");
         },
         onSuccess: () => {
             queryClient.setQueryData(["user"], null);

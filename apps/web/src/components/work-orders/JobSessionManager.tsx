@@ -321,7 +321,13 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
                                     </div>
                                 ))}
                             </div>
-                            <PartSelector onSelect={handleAddPart} />
+                            <div className="space-y-4">
+                                <div className="flex gap-2">
+                                    <div className="flex-1">
+                                        <PartSelector onSelect={handleAddPart} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Photo Upload UI */}
