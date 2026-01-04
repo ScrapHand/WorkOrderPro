@@ -50,7 +50,8 @@ export class AuthController {
                 id: user.id,
                 email: user.email,
                 role: user.role,
-                tenantId: user.tenantId
+                tenantId: user.tenantId,
+                tenantSlug: (user as any).tenant?.slug
             };
 
             req.session.save((err) => {

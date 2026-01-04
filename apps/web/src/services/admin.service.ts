@@ -6,6 +6,7 @@ export interface CreateUserDTO {
     role: UserRole;
     password?: string;
     username?: string;
+    tenantSlug?: string;
 }
 
 export interface BrandingDTO {

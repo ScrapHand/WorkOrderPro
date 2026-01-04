@@ -4,27 +4,42 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminService } from "@/services/admin.service";
 import { UserRole } from "@/lib/auth/types";
 import { useState } from "react";
-import { Plus, Loader2, User as UserIcon } from "lucide-react";
+import { Plus, Loader2, User as UserIcon, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { TenantService } from "@/services/tenant.service";
+import { useParams } from "next/navigation";
 
 export default function AdminUsersPage() {
     const queryClient = useQueryClient();
     const [isFormOpen, setIsFormOpen] = useState(false);
+
+    const { data: currentUser } = useAuth();
+    const params = useParams();
+    const currentSlug = params?.tenantSlug as string;
+    const isGlobalAdmin = currentUser?.tenantSlug === 'default' && currentUser?.role === UserRole.ADMIN;
 
     // Form State
     const [formData, setFormData] = useState({
         email: "",
         username: "",
         password: "",
-        role: UserRole.VIEWER
+        role: UserRole.VIEWER,
+        tenantSlug: currentSlug || ""
     });
 
     const [editingUser, setEditingUser] = useState<any>(null);
 
     const { data: users, isLoading } = useQuery({
-        queryKey: ["admin", "users"],
+        queryKey: ["admin", "users", currentSlug],
         queryFn: AdminService.getUsers
+    });
+
+    const { data: tenants } = useQuery({
+        queryKey: ["tenants"],
+        queryFn: TenantService.getAll,
+        enabled: isGlobalAdmin
     });
 
     const createUser = useMutation({
@@ -32,7 +47,7 @@ export default function AdminUsersPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
             setIsFormOpen(false);
-            setFormData({ email: "", username: "", password: "", role: UserRole.VIEWER });
+            setFormData({ email: "", username: "", password: "", role: UserRole.VIEWER, tenantSlug: currentSlug || "" });
         }
     });
 
@@ -126,6 +141,27 @@ export default function AdminUsersPage() {
                                 </select>
                             </div>
                         </div>
+
+                        {isGlobalAdmin && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium flex items-center gap-2">
+                                    <Building2 className="h-4 w-4 text-blue-500" />
+                                    Target Organization
+                                </label>
+                                <select
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    value={formData.tenantSlug}
+                                    onChange={(e) => setFormData({ ...formData, tenantSlug: e.target.value })}
+                                >
+                                    <option value="">-- Select Organization --</option>
+                                    {tenants?.map(t => (
+                                        <option key={t.id} value={t.slug}>{t.name} ({t.slug})</option>
+                                    ))}
+                                </select>
+                                <p className="text-[10px] text-muted-foreground">Select which organization this user will belong to.</p>
+                            </div>
+                        )}
+
                         <div className="flex justify-end pt-2">
                             <Button type="submit" disabled={createUser.isPending}>
                                 {createUser.isPending ? "Creating..." : "Create User"}

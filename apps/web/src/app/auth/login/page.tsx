@@ -20,6 +20,7 @@ export default function LoginPage() {
     const logoUrl = config?.branding?.logoUrl;
     const appName = config?.branding?.appName || "WorkOrderPro";
     const [email, setEmail] = useState("");
+    const [tenantSlug, setTenantSlug] = useState(typeof window !== 'undefined' ? localStorage.getItem("tenant_slug") || "" : "");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [debugInfo, setDebugInfo] = useState<string>("");
@@ -37,12 +38,16 @@ export default function LoginPage() {
 
             const payload = {
                 email: email,
-                password: password
+                password: password,
+                tenant_slug: tenantSlug.toLowerCase().trim()
             };
 
             // Use the centralized API client (cookies handled automatically)
+            // Send X-Tenant-Slug header as requested to "prime" the context
             // @ts-ignore
-            const { data } = await import("@/lib/api").then(m => m.api.post("/auth/login", payload));
+            const { data } = await import("@/lib/api").then(m => m.api.post("/auth/login", payload, {
+                headers: { 'X-Tenant-Slug': tenantSlug.toLowerCase().trim() || 'default' }
+            }));
 
             console.log("Login Success:", data);
 
@@ -93,6 +98,17 @@ export default function LoginPage() {
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="tenant">Company Code</Label>
+                            <Input
+                                id="tenant"
+                                type="text"
+                                placeholder="e.g. aston"
+                                required
+                                value={tenantSlug}
+                                onChange={(e) => setTenantSlug(e.target.value)}
+                            />
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input

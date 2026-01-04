@@ -7,13 +7,23 @@ export class UserController {
 
     create = async (req: Request, res: Response) => {
         try {
+            const sessionUser = (req.session as any).user;
             const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const { email, role, password, username, tenantSlug: bodyTenantSlug } = req.body;
 
-            const tenantId = await this.userService.resolveTenantId(tenantCtx.slug);
-            if (!tenantId) return res.status(404).json({ error: 'Tenant not found' });
+            // 1. Determine Target Tenant
+            let targetSlug = tenantCtx?.slug || 'default';
 
-            const { email, role, password, username } = req.body;
+            // Global Admin Override: If user is ADMIN of 'default' tenant, they can specify target
+            if (sessionUser?.tenantSlug === 'default' && sessionUser?.role === 'ADMIN' && bodyTenantSlug) {
+                targetSlug = bodyTenantSlug;
+            } else if (tenantCtx?.slug !== 'default' && bodyTenantSlug && bodyTenantSlug !== tenantCtx?.slug) {
+                // Security: Non-global admins cannot create users for other tenants
+                return res.status(403).json({ error: 'Permission denied: Cannot create user for another tenant' });
+            }
+
+            const tenantId = await this.userService.resolveTenantId(targetSlug);
+            if (!tenantId) return res.status(404).json({ error: 'Target tenant not found' });
 
             // Basic validation
             if (!email) return res.status(400).json({ error: 'Email is required' });

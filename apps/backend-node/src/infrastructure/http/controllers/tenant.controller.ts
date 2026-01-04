@@ -6,6 +6,13 @@ export class TenantController {
 
     getAll = async (req: Request, res: Response) => {
         try {
+            const sessionUser = (req.session as any).user;
+
+            // Security: Only admins of 'default' tenant can list all tenants
+            if (sessionUser?.tenantSlug !== 'default' || sessionUser?.role !== 'ADMIN') {
+                return res.status(403).json({ error: 'Access denied: Global admin privileges required' });
+            }
+
             const tenants = await this.service.findAll();
             res.json(tenants);
         } catch (error) {
