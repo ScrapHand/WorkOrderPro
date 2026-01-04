@@ -15,10 +15,11 @@ export class PartController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
-            const part = await this.partService.create(tenant.id, req.body);
+            const part = await this.partService.create(tenantId, req.body);
             res.status(201).json(part);
         } catch (error) {
             console.error(error);
@@ -31,10 +32,11 @@ export class PartController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
-            const parts = await this.partService.getAll(tenant.id);
+            const parts = await this.partService.getAll(tenantId);
             res.json(parts);
         } catch (error) {
             console.error(error);
@@ -47,10 +49,11 @@ export class PartController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
-            const part = await this.partService.update(req.params.id, tenant.id, req.body);
+            const part = await this.partService.update(req.params.id, tenantId, req.body);
             res.json(part);
         } catch (error) {
             console.error(error);
@@ -63,10 +66,11 @@ export class PartController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
-            await this.partService.delete(req.params.id, tenant.id);
+            await this.partService.delete(req.params.id, tenantId);
             res.status(204).send();
         } catch (error) {
             console.error(error);

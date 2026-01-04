@@ -14,14 +14,15 @@ export class WorkOrderController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const { assetId, title, priority, description, assignedUserId } = req.body;
             console.log('[WorkOrderController] Create Request:', { assetId, title, priority, assignedUserId });
 
             const wo = await this.woService.createWorkOrder(
-                tenant.id,
+                tenantId,
                 assetId,
                 title,
                 priority,
@@ -41,8 +42,9 @@ export class WorkOrderController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const filters = {
                 status: req.query.status as string | undefined,
@@ -53,7 +55,7 @@ export class WorkOrderController {
                 to: req.query.to as string | undefined
             };
 
-            const list = await this.woService.getWorkOrders(tenant.id, filters);
+            const list = await this.woService.getWorkOrders(tenantId, filters);
             res.json(list);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -65,10 +67,11 @@ export class WorkOrderController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
-            const wo = await this.woService.getWorkOrderById(req.params.id, tenant.id);
+            const wo = await this.woService.getWorkOrderById(req.params.id, tenantId);
             if (!wo) return res.status(404).json({ error: 'Work order not found' });
 
             res.json(wo);
@@ -82,13 +85,14 @@ export class WorkOrderController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const { id } = req.params;
             const updates = req.body;
 
-            const wo = await this.woService.updateWorkOrder(id, tenant.id, updates);
+            const wo = await this.woService.updateWorkOrder(id, tenantId, updates);
             res.json(wo);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -100,10 +104,11 @@ export class WorkOrderController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
-            await this.woService.deleteWorkOrder(req.params.id, tenant.id);
+            await this.woService.deleteWorkOrder(req.params.id, tenantId);
             res.status(204).send();
         } catch (error: any) {
             res.status(500).json({ error: error.message });

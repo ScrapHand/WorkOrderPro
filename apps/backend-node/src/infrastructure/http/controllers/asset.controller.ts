@@ -14,14 +14,14 @@ export class AssetController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            // [FIX] Resolve Tenant Slug to UUID
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const { name, parentId, description, criticality, imageUrl, lotoConfig } = req.body;
 
             const asset = await this.assetService.createAsset(
-                tenant.id,
+                tenantId,
                 name,
                 parentId || null,
                 description,
@@ -42,8 +42,9 @@ export class AssetController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const { id } = req.params;
             const data = req.body;
@@ -55,7 +56,7 @@ export class AssetController {
             delete data.updatedAt;
 
             const updated = await this.prisma.asset.update({
-                where: { id, tenantId: tenant.id },
+                where: { id, tenantId },
                 data
             });
 
@@ -71,12 +72,12 @@ export class AssetController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            // [FIX] Resolve Tenant Slug to UUID
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const { id } = req.params;
-            const tree = await this.assetService.getAssetTree(id, tenant.id); // [FIX] Use UUID
+            const tree = await this.assetService.getAssetTree(id, tenantId);
             res.json(tree);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -88,10 +89,11 @@ export class AssetController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
-            const assets = await this.assetService.getAllAssets(tenant.id);
+            const assets = await this.assetService.getAllAssets(tenantId);
             res.json(assets);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -103,12 +105,13 @@ export class AssetController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const { id } = req.params;
             const asset = await this.prisma.asset.findFirst({
-                where: { id, tenantId: tenant.id }
+                where: { id, tenantId }
             });
 
             if (!asset) return res.status(404).json({ error: 'Asset not found' });
@@ -129,8 +132,9 @@ export class AssetController {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const resolvedTenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!resolvedTenant) return res.status(404).json({ error: 'Tenant not found' });
+            // [OPTIMIZATION] Use ID from middleware
+            const tenantId = tenantCtx.id;
+            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const { layout, scope } = req.body;
             const user = (req.session as any).user;
@@ -151,7 +155,7 @@ export class AssetController {
                 await Promise.all(
                     Object.entries(layout).map(([assetId, pos]) =>
                         this.prisma.asset.update({
-                            where: { id: assetId, tenantId: resolvedTenant.id },
+                            where: { id: assetId, tenantId: tenantId },
                             data: { metadata: { position: pos } } as any
                         })
                     )
