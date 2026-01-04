@@ -105,6 +105,7 @@ export class WorkOrderSessionService {
                 // Record usage
                 await tx.workOrderPart.create({
                     data: {
+                        tenantId,
                         workOrderId,
                         partId: item.partId,
                         quantityUsed: item.quantity,
