@@ -29,6 +29,20 @@ export const tenantMiddleware = (req: Request, res: Response, next: NextFunction
         slug: slug.toLowerCase().trim()
     };
 
+    // [SECURITY] [PHASE 25] Strict Tenant Validation
+    // If a user is logged in, their session tenant must match the requested slug
+    // unless they are a GLOBAL_ADMIN.
+    const sessionUser = (req.session as any)?.user;
+    if (sessionUser && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN') {
+        const sessionTenantSlug = sessionUser.tenantSlug;
+        if (sessionTenantSlug && sessionTenantSlug !== context.slug) {
+            return res.status(403).json({
+                error: 'Cross-tenant access forbidden',
+                message: `Your account belongs to ${sessionTenantSlug}, but you tried to access ${context.slug}.`
+            });
+        }
+    }
+
     // 4. Run next() within the AsyncLocalStorage context
     tenantStorage.run(context, () => {
         next();

@@ -8,10 +8,18 @@ export class AuthController {
     login = async (req: Request, res: Response) => {
         try {
             const { email, password } = req.body;
+            const tenantSlug = req.get('x-tenant-slug') || 'default';
+
+            // Resolve Tenant Metadata
+            const tenantId = await this.userService.resolveTenantId(tenantSlug);
+            if (!tenantId) {
+                return res.status(404).json({ error: 'Target tenant not found' });
+            }
+
             // console.log('Login Attempt:', email); // Clean logs
 
-            // 1. Try to find the user
-            let user = await this.userService.findByEmail(email);
+            // 1. Try to find the user ONLY within this tenant
+            let user = await this.userService.findByEmail(email, tenantId);
 
             // 2. [JIT Seeding/Self-Healing] Ensure Demo User has correct credentials
             if (email === 'demo@demo.com') {

@@ -74,9 +74,13 @@ export class UserService {
         });
     }
 
-    async findByEmail(email: string): Promise<User | null> {
-        return this.prisma.user.findUnique({
-            where: { email },
+    async findByEmail(email: string, tenantId?: string): Promise<User | null> {
+        const where: any = { email };
+        if (tenantId) {
+            where.tenantId = tenantId;
+        }
+        return this.prisma.user.findFirst({
+            where,
             include: { tenant: true }
         });
     }
