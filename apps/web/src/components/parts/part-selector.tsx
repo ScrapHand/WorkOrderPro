@@ -61,8 +61,8 @@ export function PartSelector({ onSelect }: PartSelectorProps) {
                             {safeParts.map((part) => (
                                 <CommandItem
                                     key={part.id}
-                                    value={part.name}
-                                    onSelect={(currentValue: string) => {
+                                    value={`${part.name} ${part.sku || ""}`.trim()} // Standard search string
+                                    onSelect={() => {
                                         // Reset component state to allow selecting another
                                         setValue("");
                                         setOpen(false);

@@ -39,11 +39,64 @@ export class TenantService {
                 }
             });
 
-            // 3. Seed Default Roles (Basic)
-            // (Optional: Rely on separate seeding or do minimal here)
+            // 3. Seed Default Roles
+            await this.seedDefaultRoles(tx, tenant.id);
 
             return tenant;
         });
+    }
+
+    private async seedDefaultRoles(tx: any, tenantId: string) {
+        const defaultRoles = [
+            {
+                name: 'ADMIN',
+                description: 'Full system access',
+                permissions: ['*'],
+                isSystem: true
+            },
+            {
+                name: 'TECHNICIAN',
+                description: 'Assigned work orders and asset lockout',
+                permissions: [
+                    'work_order:read',
+                    'work_order:write',
+                    'asset:read',
+                    'upload:write'
+                ],
+                isSystem: true
+            },
+            {
+                name: 'MANAGER',
+                description: 'Planning and scheduling power user',
+                permissions: [
+                    'work_order:read',
+                    'work_order:write',
+                    'work_order:delete',
+                    'asset:read',
+                    'asset:write',
+                    'part:read',
+                    'part:write'
+                ],
+                isSystem: true
+            }
+        ];
+
+        for (const role of defaultRoles) {
+            await tx.role.upsert({
+                where: {
+                    tenantId_name: {
+                        tenantId,
+                        name: role.name
+                    }
+                },
+                update: {},
+                create: {
+                    tenantId,
+                    ...role,
+                    permissions: JSON.stringify(role.permissions)
+                }
+            });
+        }
     }
 
     async seedAstonManorDemo(tenantId: string) {
@@ -51,6 +104,9 @@ export class TenantService {
         if (!tenant) throw new Error('Tenant not found');
 
         await this.prisma.$transaction(async (tx) => {
+            // 0. Ensure Roles
+            await this.seedDefaultRoles(tx, tenantId);
+
             // Helper to create asset
             const createAsset = async (name: string, type: string, parentId: string | null = null, description: string = '') => {
                 const asset = await tx.asset.create({
