@@ -20,7 +20,21 @@ export default function LoginPage() {
     const logoUrl = config?.branding?.logoUrl;
     const appName = config?.branding?.appName || "WorkOrderPro";
     const [email, setEmail] = useState("");
-    const [tenantSlug, setTenantSlug] = useState(typeof window !== 'undefined' ? localStorage.getItem("tenant_slug") || "" : "");
+
+
+    // [FIX] Initialize from URL first, then LocalStorage
+    const getInitialSlug = () => {
+        if (typeof window !== 'undefined') {
+            const pathParts = window.location.pathname.split('/');
+            if (pathParts.length >= 2 && pathParts[1] && pathParts[1] !== 'auth') {
+                return pathParts[1];
+            }
+            return localStorage.getItem("tenant_slug") || "";
+        }
+        return "";
+    };
+
+    const [tenantSlug, setTenantSlug] = useState(getInitialSlug());
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [debugInfo, setDebugInfo] = useState<string>("");
