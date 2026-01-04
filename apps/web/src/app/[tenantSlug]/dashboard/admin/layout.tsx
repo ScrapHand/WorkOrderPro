@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { UserRole } from "@/lib/auth/types";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
