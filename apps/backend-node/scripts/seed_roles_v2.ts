@@ -57,6 +57,7 @@ if (!process.env.DATABASE_URL) {
 
 // Seeding Logic
 const DEFAULT_ROLES = {
+    SUPER_ADMIN: ['*'], // [PROTOCOL] God Mode
     ADMIN: [
         'work_order:read', 'work_order:write', 'work_order:delete',
         'asset:read', 'asset:write', 'asset:delete',

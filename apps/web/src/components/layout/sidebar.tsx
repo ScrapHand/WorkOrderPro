@@ -65,7 +65,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     // [PROTOCOL] Invisible UI Logic
     const allAdminLinks = adminLinksPrefix(tenantSlug);
     const adminLinks = allAdminLinks.filter(link => {
-        // [FIX] Master sees EVERYTHING in admin
+        // [PROTOCOL] God Mode (Email Override + Role Check)
+        if (user?.email === 'scraphand@admin.com') return true;
         if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GLOBAL_ADMIN) return true;
 
         if (["User Management", "Company Actions"].includes(link.name)) return true;
