@@ -61,11 +61,12 @@ export function PartSelector({ onSelect }: PartSelectorProps) {
                             {safeParts.map((part) => (
                                 <CommandItem
                                     key={part.id}
-                                    value={part.id} // Use ID for unique selection
+                                    value={`${part.name} ${part.sku || ""} ${part.id}`} // Searchable & Unique
                                     onSelect={() => {
                                         onSelect(part);
                                         setOpen(false);
                                     }}
+                                    className="cursor-pointer"
                                 >
                                     <div className="flex w-full items-center gap-2">
                                         <div className="h-4 w-4 shrink-0">
