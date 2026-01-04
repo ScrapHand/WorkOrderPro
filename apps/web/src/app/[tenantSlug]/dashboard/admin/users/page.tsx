@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminService } from "@/services/admin.service";
-import { UserRole } from "@/lib/auth/types";
+import { User, UserRole } from "@/lib/auth/types";
 import { useState } from "react";
 import { Plus, Loader2, User as UserIcon, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";

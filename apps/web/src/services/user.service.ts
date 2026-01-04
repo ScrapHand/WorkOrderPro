@@ -1,12 +1,5 @@
 import { api } from "@/lib/api";
-
-export interface User {
-    id: string;
-    email: string;
-    username: string | null;
-    role: string;
-    createdAt: string;
-}
+import { User } from "@/lib/auth/types";
 
 export const UserService = {
     getAll: async (): Promise<User[]> => {

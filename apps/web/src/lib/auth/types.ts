@@ -12,4 +12,5 @@ export interface User {
     full_name: string;
     role: UserRole;
     is_active: boolean;
+    tenantSlug?: string;
 }
