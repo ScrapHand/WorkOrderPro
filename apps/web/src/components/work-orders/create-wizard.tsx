@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation"; // Added useParams
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { workOrderSchema, type WorkOrderCreate } from "@/lib/schemas/work-order";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
+import { toast } from "sonner"; // Added toast
 
 import { AssetService } from "@/services/asset.service";
 
@@ -17,8 +18,11 @@ export default function CreateWorkOrderWizard() {
     const [step, setStep] = useState(1);
     const queryClient = useQueryClient();
     const router = useRouter();
+    const params = useParams(); // Added hook usage
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [showDescription, setShowDescription] = useState(false); // [UX] Optional Description
+
+    // ... rest of the file ...
 
     const { data: assets, isLoading: isLoadingAssets } = useQuery({
         queryKey: ["assets", "list"],
@@ -50,10 +54,13 @@ export default function CreateWorkOrderWizard() {
             reset();
             setStep(1);
             setShowDescription(false);
+            toast.success("Work Order created successfully");
+            const tenantSlug = (params?.tenantSlug as string) || 'default';
+            // Use data.id if available for direct navigation
             if (data?.id) {
-                router.push(`/dashboard/work-orders/${data.id}`);
+                router.push(`/${tenantSlug}/dashboard/work-orders/${data.id}`);
             } else {
-                router.push("/dashboard/work-orders");
+                router.push(`/${tenantSlug}/dashboard/work-orders`);
             }
         },
         onError: (err: any) => {
