@@ -7,19 +7,31 @@ export class AuthController {
 
     login = async (req: Request, res: Response) => {
         try {
-            const { email, password } = req.body;
-            const tenantSlug = req.get('x-tenant-slug') || 'default';
+            const { email, password, tenant_slug } = req.body;
+            // console.log('Login Attempt:', email, 'Target Tenant:', tenant_slug);
 
-            // Resolve Tenant Metadata
-            const tenantId = await this.userService.resolveTenantId(tenantSlug);
-            if (!tenantId) {
-                return res.status(404).json({ error: 'Target tenant not found' });
+            // 1. Find user by email (Global lookup temporarily to identify tenant)
+            let user = await this.userService.findByEmail(email);
+
+            if (!user) {
+                return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            // console.log('Login Attempt:', email); // Clean logs
+            // 2. [STRICT TENANT CHECK] If not a Global Admin, they MUST belong to the requested tenant
+            const actualTenantSlug = (user as any).tenant?.slug;
+            const requestedSlug = (tenant_slug || 'default').toLowerCase().trim();
 
-            // 1. Try to find the user ONLY within this tenant
-            let user = await this.userService.findByEmail(email, tenantId);
+            if (user.role !== 'SYSTEM_ADMIN' && user.role !== 'GLOBAL_ADMIN') {
+                if (actualTenantSlug !== requestedSlug) {
+                    console.warn(`[AUTH] Blocked cross-tenant login: ${email} (belongs to ${actualTenantSlug}) tried to log into ${requestedSlug}`);
+                    return res.status(403).json({
+                        error: 'Access denied',
+                        message: 'Your account does not belong to this company.'
+                    });
+                }
+            }
+
+
 
             // 2. [JIT Seeding/Self-Healing] Ensure Demo User has correct credentials
             if (email === 'demo@demo.com') {

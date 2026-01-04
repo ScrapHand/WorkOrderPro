@@ -21,8 +21,10 @@ export const api = axios.create({
 
 // Request Interceptor: Inject Tenant Slug & Log
 api.interceptors.request.use((config) => {
-    // Dynamic Slug Injection
-    config.headers['X-Tenant-Slug'] = getTenantSlug();
+    // [FIX] Only inject if not already present (allows overrides for Login)
+    if (!config.headers['X-Tenant-Slug']) {
+        config.headers['X-Tenant-Slug'] = getTenantSlug();
+    }
 
     // [DEBUG] Log Request - Reduced Noise
     // console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.data || '');
