@@ -69,15 +69,16 @@ export function useLogin() {
                     staleTime: 0 // Ensure fresh
                 });
 
+                const slug = tenantSlug || "default";
                 if (user.role === UserRole.TECHNICIAN) {
-                    router.push("/dashboard/work-orders");
+                    router.push(`/${slug}/dashboard/work-orders`);
                 } else {
-                    router.push("/dashboard");
+                    router.push(`/${slug}/dashboard`);
                 }
             } catch (error) {
                 // Fallback if user fetch fails (weird edge case)
                 console.error("Failed to fetch user after login", error);
-                router.push("/dashboard");
+                router.push(`/${tenantSlug || "default"}/dashboard`);
             }
         },
     });

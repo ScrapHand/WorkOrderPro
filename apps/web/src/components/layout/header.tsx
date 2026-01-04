@@ -5,17 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth, useLogout } from "@/hooks/use-auth";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTheme } from "@/context/ThemeContext";
 import { UserRole } from "@/lib/auth/types";
 import { useState } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sidebar } from "@/components/layout/sidebar";
+
 export function Header() {
     const { data: user } = useAuth();
     const logout = useLogout();
     const { config } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const params = useParams();
+    const tenantSlug = (params?.tenantSlug as string) || 'default';
 
     const logoUrl = config?.branding?.logoUrl;
 
@@ -23,9 +30,16 @@ export function Header() {
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-6 shadow-sm">
             {/* Mobile Menu Trigger & Logo */}
             <div className="flex items-center gap-2 md:hidden">
-                <Button variant="ghost" size="icon">
-                    <Menu className="h-5 w-5" />
-                </Button>
+                <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+                    <SheetTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <Menu className="h-5 w-5" />
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="p-0 w-[280px]">
+                        <Sidebar onNavigate={() => setIsMobileOpen(false)} />
+                    </SheetContent>
+                </Sheet>
                 {logoUrl && <img src={logoUrl} alt="Logo" className="h-6 w-auto" />}
             </div>
 
@@ -82,7 +96,7 @@ export function Header() {
                                 Profile
                             </button>
                             <Link
-                                href="/dashboard/admin/company"
+                                href={`/${tenantSlug}/dashboard/admin/company`}
                                 onClick={() => setIsMenuOpen(false)}
                                 className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                             >

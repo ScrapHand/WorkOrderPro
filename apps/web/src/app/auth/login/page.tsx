@@ -58,7 +58,8 @@ export default function LoginPage() {
             // The Set-Cookie header from the response is handled by the browser automatically.
 
             toast.success("Login successful");
-            router.push("/dashboard");
+            const slug = localStorage.getItem("tenant_slug") || "default";
+            router.push(`/${slug}/dashboard`);
 
         } catch (error: any) {
             console.error("Login Error:", error);

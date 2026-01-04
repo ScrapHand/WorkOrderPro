@@ -8,17 +8,18 @@ import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
 import { Asset } from "@/types/asset";
 import { CreateWorkOrderDTO, WorkOrderPriority } from "@/types/work-order";
 import { CheckCircle, AlertTriangle, ArrowRight, Loader2, Gauge, HardHat, Zap, AlertOctagon, User as UserIcon, Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+
 import { FileUploader } from "@/components/common/FileUploader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-
-
 export function NewWorkOrderWizard() {
     const router = useRouter();
+    const params = useParams();
+    const tenantSlug = (params?.tenantSlug as string) || 'default';
     const [step, setStep] = useState(1);
     const [createdWorkOrderId, setCreatedWorkOrderId] = useState<string | null>(null);
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -41,11 +42,16 @@ export function NewWorkOrderWizard() {
 
     const mutation = useMutation({
         mutationFn: AssetService.createWorkOrder,
+        onMutate: (variables) => {
+            console.log('[Wizard] Submitting Work Order:', variables);
+        },
         onSuccess: (data) => {
+            console.log('[Wizard] Success:', data);
             setCreatedWorkOrderId(data.id);
             setStep(4); // Move to upload/success step
         },
         onError: (err: any) => {
+            console.error('[Wizard] Error:', err);
             alert(`Error: ${err.message}`);
         }
     });
@@ -267,7 +273,7 @@ export function NewWorkOrderWizard() {
 
                         <div className="pt-6">
                             <Button
-                                onClick={() => router.push('/dashboard/work-orders')}
+                                onClick={() => router.push(`/${tenantSlug}/dashboard/work-orders`)}
                                 size="lg"
                                 className="w-full max-w-xs"
                             >

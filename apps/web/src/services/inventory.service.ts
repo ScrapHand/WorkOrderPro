@@ -16,5 +16,9 @@ export const InventoryService = {
     update: async (id: string, part: Partial<Part>): Promise<Part> => {
         const { data } = await api.patch<Part>(`/parts/${id}`, part);
         return data;
+    },
+
+    delete: async (id: string): Promise<void> => {
+        await api.delete(`/parts/${id}`);
     }
 };

@@ -57,4 +57,20 @@ export class PartController {
             res.status(500).json({ error: 'Failed to update part' });
         }
     };
+
+    delete = async (req: Request, res: Response) => {
+        try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
+            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+
+            await this.partService.delete(req.params.id, tenant.id);
+            res.status(204).send();
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Failed to delete part' });
+        }
+    };
 }

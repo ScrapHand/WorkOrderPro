@@ -1,23 +1,42 @@
-
 "use client";
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryService } from '@/services/inventory.service';
-import { Plus, Search, AlertTriangle, Package } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Package, Trash2, Edit } from 'lucide-react';
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AddInventoryModal } from '@/components/inventory/AddInventoryModal';
+import { toast } from 'sonner';
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function InventoryPage() {
     const [search, setSearch] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const queryClient = useQueryClient();
 
     const { data: parts, isLoading } = useQuery({
         queryKey: ["parts"],
         queryFn: InventoryService.getAll
     });
+
+    const deletePart = useMutation({
+        mutationFn: InventoryService.delete,
+        onSuccess: () => {
+            toast.success("Part deleted successfully");
+            queryClient.invalidateQueries({ queryKey: ["parts"] });
+        },
+        onError: () => {
+            toast.error("Failed to delete part");
+        }
+    });
+
+    const handleDelete = async (id: string) => {
+        if (confirm("Are you sure you want to delete this part? This action cannot be undone.")) {
+            deletePart.mutate(id);
+        }
+    };
 
     const filteredParts = parts?.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -27,6 +46,13 @@ export default function InventoryPage() {
     const lowStockCount = parts?.filter(p => p.quantity <= p.minQuantity).length || 0;
     const totalValue = parts?.reduce((acc, p) => acc + (p.cost * p.quantity), 0) || 0;
 
+    const [editingPart, setEditingPart] = useState<any>(null); // Quick fix type, better to import Part
+
+    const handleEdit = (part: any) => {
+        setEditingPart(part);
+        setIsAddModalOpen(true);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -34,7 +60,7 @@ export default function InventoryPage() {
                     <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
                     <p className="text-gray-500">Manage spare parts and stock levels.</p>
                 </div>
-                <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
+                <Button onClick={() => { setEditingPart(null); setIsAddModalOpen(true); }} className="gap-2">
                     <Plus className="w-4 h-4" /> Add Part
                 </Button>
             </div>
@@ -89,29 +115,46 @@ export default function InventoryPage() {
                     <thead className="bg-gray-50 text-gray-700 font-medium border-b">
                         <tr>
                             <th className="px-6 py-3">Part Name</th>
-                            <th className="px-6 py-3">SKU</th>
-                            <th className="px-6 py-3">Bin Loc</th>
-                            <th className="px-6 py-3 text-right">Cost</th>
+                            <th className="px-6 py-3 hidden md:table-cell">SKU</th>
+                            <th className="px-6 py-3 hidden md:table-cell">Bin Loc</th>
+                            <th className="px-6 py-3 text-right hidden lg:table-cell">Cost</th>
                             <th className="px-6 py-3 text-center">Qty</th>
-                            <th className="px-6 py-3">Status</th>
+                            <th className="px-6 py-3 hidden sm:table-cell">Status</th>
+                            <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y">
                         {isLoading ? (
-                            <tr><td colSpan={6} className="p-8 text-center text-gray-500">Loading inventory...</td></tr>
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <tr key={i}>
+                                    <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                                    <td className="px-6 py-4 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
+                                    <td className="px-6 py-4 hidden md:table-cell"><Skeleton className="h-4 w-16" /></td>
+                                    <td className="px-6 py-4 hidden lg:table-cell"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                                    <td className="px-6 py-4 flex justify-center"><Skeleton className="h-4 w-8" /></td>
+                                    <td className="px-6 py-4 hidden sm:table-cell"><Skeleton className="h-6 w-24 rounded-full" /></td>
+                                    <td className="px-6 py-4"><Skeleton className="h-8 w-16 ml-auto" /></td>
+                                </tr>
+                            ))
                         ) : filteredParts.length === 0 ? (
-                            <tr><td colSpan={6} className="p-8 text-center text-gray-500">No parts found.</td></tr>
+                            <tr><td colSpan={7} className="p-8 text-center text-gray-500">No parts found.</td></tr>
                         ) : (
                             filteredParts.map(part => (
                                 <tr key={part.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 font-medium text-gray-900">{part.name}</td>
-                                    <td className="px-6 py-4 text-gray-500 font-mono text-xs">{part.sku || '-'}</td>
-                                    <td className="px-6 py-4 text-gray-500">{part.binLocation || '-'}</td>
-                                    <td className="px-6 py-4 text-right">${part.cost.toFixed(2)}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-900">
+                                        <div>{part.name}</div>
+                                        <div className="md:hidden text-xs text-gray-500 mt-1">
+                                            {part.sku && <span>SKU: {part.sku}</span>}
+                                            {part.binLocation && <span className="ml-2">Bin: {part.binLocation}</span>}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500 font-mono text-xs hidden md:table-cell">{part.sku || '-'}</td>
+                                    <td className="px-6 py-4 text-gray-500 hidden md:table-cell">{part.binLocation || '-'}</td>
+                                    <td className="px-6 py-4 text-right hidden lg:table-cell">${part.cost.toFixed(2)}</td>
                                     <td className="px-6 py-4 text-center font-bold">
                                         {part.quantity}
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-4 hidden sm:table-cell">
                                         {part.quantity <= part.minQuantity ? (
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                                 Low Stock
@@ -122,6 +165,27 @@ export default function InventoryPage() {
                                             </span>
                                         )}
                                     </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                onClick={() => handleEdit(part)}
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => handleDelete(part.id)}
+                                                disabled={deletePart.isPending}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))
                         )}
@@ -129,7 +193,11 @@ export default function InventoryPage() {
                 </table>
             </div>
 
-            <AddInventoryModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
+            <AddInventoryModal
+                open={isAddModalOpen}
+                onOpenChange={setIsAddModalOpen}
+                partToEdit={editingPart}
+            />
         </div>
     );
 }

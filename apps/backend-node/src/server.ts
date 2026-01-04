@@ -66,7 +66,7 @@ app.use(session({
             connectionString: process.env.DATABASE_URL,
             ssl: { rejectUnauthorized: false } // Render requires SSL
         },
-        createTableIfMissing: false, // [FIX] Managed by Prisma now to avoid IDX conflict
+        createTableIfMissing: true, // [FIX] Ensure table exists for dev consistency
         errorLog: console.error // [PHASE 18] Log connection errors
     }),
     secret: process.env.SESSION_SECRET || 'dev_secret_key_change_in_prod',
@@ -76,9 +76,9 @@ app.use(session({
     proxy: true, // [CRITICAL] Trust the proxy for secure cookies
     cookie: {
         path: '/',
-        secure: true,        // Production is always HTTPS (Vercel)
+        secure: process.env.NODE_ENV === 'production', // [FIX] HTTPS only in prod
         httpOnly: true,
-        sameSite: 'lax',     // [FIX] Proxied via Vercel Rewrites = First Party
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // [FIX] 'none' for cross-site (frontend domain != backend domain in prod), 'lax' for local
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
     } as any
 }));
@@ -246,6 +246,7 @@ const partRouter = express.Router();
 partRouter.post('/', partController.create);
 partRouter.get('/', partController.getAll);
 partRouter.patch('/:id', partController.update);
+partRouter.delete('/:id', partController.delete);
 apiRouter.use('/parts', partRouter);
 
 // Report Routes
@@ -258,6 +259,17 @@ apiRouter.use('/reports', reportRouter);
 const debugRouter = express.Router();
 debugRouter.get('/tenant', debugController.getTenantStatus);
 apiRouter.use('/debug', debugRouter);
+
+// Analytics Routes
+import { AnalyticsService } from './application/services/analytics.service';
+import { AnalyticsController } from './infrastructure/http/controllers/analytics.controller';
+
+const analyticsService = new AnalyticsService(prisma);
+const analyticsController = new AnalyticsController(analyticsService);
+
+const analyticsRouter = express.Router();
+analyticsRouter.get('/stats', analyticsController.getStats);
+apiRouter.use('/analytics', analyticsRouter);
 
 // Mount API v1
 app.use('/api/v1', apiRouter); // [FIX] Use v1 prefix

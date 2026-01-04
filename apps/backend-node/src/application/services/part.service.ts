@@ -37,4 +37,10 @@ export class PartService {
             data
         });
     }
+
+    async delete(id: string, tenantId: string) {
+        return this.prisma.part.delete({
+            where: { id }
+        });
+    }
 }

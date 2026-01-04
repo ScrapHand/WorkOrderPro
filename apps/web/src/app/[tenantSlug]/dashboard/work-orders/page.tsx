@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
 import { Plus, ArrowUpRight, Search, Filter, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -39,6 +39,8 @@ import { WorkOrderTable } from "@/components/work-orders/WorkOrderTable";
 
 function WorkOrderListContent() {
     const searchParams = useSearchParams();
+    const params = useParams();
+    const tenantSlug = (params?.tenantSlug as string) || 'default';
     const predefinedFilter = searchParams.get("assignee");
 
     return (
@@ -50,7 +52,7 @@ function WorkOrderListContent() {
                     </h1>
                     <p className="text-muted-foreground">Manage active tasks and maintenance history.</p>
                 </div>
-                <Link href="/dashboard/work-orders/new">
+                <Link href={`/${tenantSlug}/dashboard/work-orders/new`}>
                     <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
                         <Plus className="w-4 h-4" /> New Work Order
                     </button>

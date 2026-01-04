@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { UserService } from '../../../application/services/user.service';
 import bcrypt from 'bcryptjs';
 
@@ -76,7 +75,7 @@ export class AuthController {
     logout = async (req: Request, res: Response) => {
         req.session.destroy((err) => {
             if (err) return res.status(500).json({ error: 'Logout failed' });
-            res.clearCookie('wop_session');
+            res.clearCookie('wop_sid');
             res.json({ success: true, message: 'Logged out' });
         });
     };

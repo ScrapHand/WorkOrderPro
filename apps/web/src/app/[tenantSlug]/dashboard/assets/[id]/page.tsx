@@ -11,6 +11,7 @@ import { AssetTree } from "@/components/assets/AssetTree";
 export default function AssetDetailsPage() {
     const params = useParams();
     const id = params?.id as string;
+    const tenantSlug = (params?.tenantSlug as string) || 'default';
 
     const { data: tree, isLoading } = useQuery({
         queryKey: ["asset", id, "tree"],
@@ -30,7 +31,7 @@ export default function AssetDetailsPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <Link href="/dashboard/assets">
+                <Link href={`/${tenantSlug}/dashboard/assets`}>
                     <Button variant="ghost" size="icon">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>

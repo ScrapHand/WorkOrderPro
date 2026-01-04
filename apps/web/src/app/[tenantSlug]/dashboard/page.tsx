@@ -9,7 +9,7 @@ import { Badge } from "lucide-react"; // Wait, Shadcn Badge is a component, not 
 // Let's create Badge component in this same step if possible or just inline it for speed.
 import { PlusCircle, ClipboardList, CheckCircle2, Clock, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +26,8 @@ type WorkOrder = {
 
 export default function DashboardPage() {
     const router = useRouter();
+    const params = useParams();
+    const tenantSlug = (params?.tenantSlug as string) || 'default';
 
     const { data: myTasks, isLoading } = useQuery({
         queryKey: ["my-tasks"],
@@ -56,7 +58,7 @@ export default function DashboardPage() {
 
             {/* Big Action Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Link href="/dashboard/work-orders/new" className="block group">
+                <Link href={`/${tenantSlug}/dashboard/work-orders/new`} className="block group">
                     <Card className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer border-0">
                         <CardContent className="flex items-center justify-between p-8">
                             <div className="space-y-2">
@@ -70,7 +72,7 @@ export default function DashboardPage() {
 
                 <div className="block">
                     <Card className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => {
-                        router.push("/dashboard/work-orders?assignee=me");
+                        router.push(`/${tenantSlug}/dashboard/work-orders?assignee=me`);
                     }}>
                         <CardContent className="flex items-center justify-between p-8">
                             <div className="space-y-2">
@@ -125,7 +127,7 @@ export default function DashboardPage() {
                                     <CardContent>
                                         <div className="flex justify-end pt-2">
                                             <Button variant="outline" size="sm" asChild className="h-8 text-xs w-full">
-                                                <Link href={`/dashboard/work-orders/${task.id}`}>View Details</Link>
+                                                <Link href={`/${tenantSlug}/dashboard/work-orders/${task.id}`}>View Details</Link>
                                             </Button>
                                         </div>
                                     </CardContent>
@@ -138,7 +140,7 @@ export default function DashboardPage() {
                                 <ClipboardList className="h-12 w-12 opacity-20 mb-4" />
                                 <p>You are not clocked into any jobs.</p>
                                 <Button variant="link" className="mt-2 text-primary" asChild>
-                                    <Link href="/dashboard/work-orders/new">Create your first task</Link>
+                                    <Link href={`/${tenantSlug}/dashboard/work-orders/new`}>Create your first task</Link>
                                 </Button>
                             </CardContent>
                         </Card>
@@ -146,7 +148,7 @@ export default function DashboardPage() {
 
                     <div className="flex justify-center pt-4">
                         <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-                            <Link href="/dashboard/work-orders">View All History &rarr;</Link>
+                            <Link href={`/${tenantSlug}/dashboard/work-orders`}>View All History &rarr;</Link>
                         </Button>
                     </div>
                 </TabsContent>

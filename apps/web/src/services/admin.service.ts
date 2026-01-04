@@ -34,7 +34,23 @@ export const AdminService = {
     },
 
     updateBranding: async (data: BrandingDTO): Promise<any> => {
-        const res = await api.patch("/tenant/branding", data);
+        const payload = {
+            branding: {
+                primaryColor: data.brandColor,
+                logoUrl: data.logoUrl
+            }
+        };
+        const res = await api.patch("/tenant/config", payload);
+        return res.data;
+    },
+
+    getConfig: async (): Promise<any> => {
+        const res = await api.get("/tenant/config");
+        return res.data;
+    },
+
+    updateSecrets: async (secrets: Record<string, string>): Promise<any> => {
+        const res = await api.patch("/tenant/config", { secrets });
         return res.data;
     }
 };

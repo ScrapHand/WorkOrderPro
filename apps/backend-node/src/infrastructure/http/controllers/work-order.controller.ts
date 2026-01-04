@@ -18,6 +18,7 @@ export class WorkOrderController {
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
             const { assetId, title, priority, description, assignedUserId } = req.body;
+            console.log('[WorkOrderController] Create Request:', { assetId, title, priority, assignedUserId });
 
             const wo = await this.woService.createWorkOrder(
                 tenant.id,
