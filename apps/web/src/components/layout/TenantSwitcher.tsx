@@ -33,7 +33,7 @@ export function TenantSwitcher() {
     const { data: tenants, isLoading } = useQuery<Tenant[]>({
         queryKey: ["tenants"],
         queryFn: async () => {
-            const res = await api.get("/tenants");
+            const res = await api.get("/tenant"); // [FIX] Backend route is singular '/tenant'
             return res.data;
         },
         enabled: isMaster // Only fetch if master
