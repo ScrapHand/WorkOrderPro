@@ -204,10 +204,22 @@ roleRouter.get('/:id', roleController.getById);
 apiRouter.use('/roles', roleRouter);
 
 // Admin Routes (Tenants)
+import { TenantService } from './application/services/tenant.service';
+import { TenantController } from './infrastructure/http/controllers/tenant.controller';
+
+const tenantService = new TenantService(prisma);
+const tenantController = new TenantController(tenantService);
+
 const adminRouter = express.Router();
 adminRouter.patch('/config', adminController.updateConfig);
 adminRouter.get('/config', adminController.getConfig);
-apiRouter.use('/tenant', adminRouter);
+
+// [NEW] Tenant Management Routes
+adminRouter.get('/', tenantController.getAll);
+adminRouter.post('/', tenantController.create);
+adminRouter.post('/:id/seed', tenantController.seedDemo);
+
+apiRouter.use('/tenant', adminRouter); // Note: mounted at /api/v1/tenant
 
 // Work Order Routes
 const woRouter = express.Router();
