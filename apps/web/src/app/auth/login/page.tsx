@@ -22,19 +22,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
 
 
-    // [FIX] Initialize from URL first, then LocalStorage
-    const getInitialSlug = () => {
-        if (typeof window !== 'undefined') {
-            const pathParts = window.location.pathname.split('/');
-            if (pathParts.length >= 2 && pathParts[1] && pathParts[1] !== 'auth') {
-                return pathParts[1];
-            }
-            return localStorage.getItem("tenant_slug") || "";
-        }
-        return "";
-    };
-
-    const [tenantSlug, setTenantSlug] = useState(getInitialSlug());
+    // [AUTO-DETECT] Removed manual tenant input
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [debugInfo, setDebugInfo] = useState<string>("");
@@ -53,14 +41,14 @@ export default function LoginPage() {
             const payload = {
                 email: email,
                 password: password,
-                tenant_slug: tenantSlug.toLowerCase().trim()
+                // tenant_slug: Removed (Auto Detect)
             };
 
             // Use the centralized API client (cookies handled automatically)
             // Send X-Tenant-Slug header as requested to "prime" the context
             // @ts-ignore
             const { data } = await import("@/lib/api").then(m => m.api.post("/auth/login", payload, {
-                headers: { 'X-Tenant-Slug': tenantSlug.toLowerCase().trim() || 'default' }
+                headers: { 'X-Tenant-Slug': 'default' } // Placeholder, backend ignores for login
             }));
 
             console.log("Login Success:", data);
@@ -112,17 +100,7 @@ export default function LoginPage() {
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="tenant">Company Code</Label>
-                            <Input
-                                id="tenant"
-                                type="text"
-                                placeholder="e.g. aston"
-                                required
-                                value={tenantSlug}
-                                onChange={(e) => setTenantSlug(e.target.value)}
-                            />
-                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input

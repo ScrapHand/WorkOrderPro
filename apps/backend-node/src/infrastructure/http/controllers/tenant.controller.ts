@@ -8,8 +8,11 @@ export class TenantController {
         try {
             const sessionUser = (req.session as any).user;
 
-            // Security: Only admins of 'default' tenant can list all tenants
-            if (sessionUser?.tenantSlug !== 'default' || sessionUser?.role !== 'ADMIN') {
+            // Security: SUPER_ADMIN, GLOBAL_ADMIN, or Default Admin
+            const isMaster = ['SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(sessionUser?.role);
+            const isDefaultAdmin = sessionUser?.tenantSlug === 'default' && sessionUser?.role === 'ADMIN';
+
+            if (!isMaster && !isDefaultAdmin) {
                 return res.status(403).json({ error: 'Access denied: Global admin privileges required' });
             }
 

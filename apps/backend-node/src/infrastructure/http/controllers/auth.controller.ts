@@ -17,19 +17,9 @@ export class AuthController {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            // 2. [STRICT TENANT CHECK] If not a Global Admin, they MUST belong to the requested tenant
-            const actualTenantSlug = (user as any).tenant?.slug;
-            const requestedSlug = (tenant_slug || 'default').toLowerCase().trim();
-
-            if (user.role !== 'SYSTEM_ADMIN' && user.role !== 'GLOBAL_ADMIN') {
-                if (actualTenantSlug !== requestedSlug) {
-                    console.warn(`[AUTH] Blocked cross-tenant login: ${email} (belongs to ${actualTenantSlug}) tried to log into ${requestedSlug}`);
-                    return res.status(403).json({
-                        error: 'Access denied',
-                        message: 'Your account does not belong to this company.'
-                    });
-                }
-            }
+            // [AUTO-DETECT] We trust the Email. 
+            // The session will be locked to user.tenantId from the DB.
+            // We ignore req.body.tenant_slug because we want to redirect them to their ACTUAL tenant.
 
 
 

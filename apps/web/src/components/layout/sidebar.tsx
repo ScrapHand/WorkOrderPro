@@ -22,6 +22,7 @@ import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
 import { useLogout, useUser } from "@/hooks/use-auth";
 import { useTheme } from "@/context/ThemeContext";
+import { TenantSwitcher } from "@/components/layout/TenantSwitcher";
 
 // Helper to prefix links
 const getSidebarLinks = (term: any, slug: string) => {
@@ -101,6 +102,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     <span className="truncate">{config?.branding?.appName || "WorkOrderPro"}</span>
                 </Link>
             </div>
+
+            {/* Tenant Switcher (Master Only) */}
+            <TenantSwitcher />
 
             {/* Navigation */}
             <div className="flex-1 overflow-auto py-6 px-4">
