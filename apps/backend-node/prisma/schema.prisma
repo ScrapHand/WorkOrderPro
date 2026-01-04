@@ -31,6 +31,7 @@ model Tenant {
   parts     Part[]
   roles     Role[]
   workOrderSessions WorkOrderSession[]
+  workOrderParts    WorkOrderPart[]
 }
 
 model User {
@@ -168,6 +169,7 @@ model Part {
 
 model WorkOrderPart {
   id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
   workOrderId  String   @map("work_order_id")
   partId       String   @map("part_id")
   quantityUsed Int      @map("quantity_used")
@@ -176,9 +178,11 @@ model WorkOrderPart {
 
   usedAt       DateTime @default(now())
 
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
   workOrder    WorkOrder @relation(fields: [workOrderId], references: [id])
   part         Part      @relation(fields: [partId], references: [id])
 
+  @@index([tenantId])
   @@index([workOrderId])
   @@index([partId])
 }

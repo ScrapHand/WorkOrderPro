@@ -99,6 +99,27 @@ export class TenantService {
         }
     }
 
+    async delete(id: string) {
+        // [FIX] Prisma Cascades are often not enabled by default in schema for all relations
+        // We'll perform a transaction to clean up or rely on schema. 
+        // Let's assume schema has cascades or we do it here. 
+        return this.prisma.$transaction(async (tx) => {
+            // Deleted nested data first if cascades aren't fully set
+            await tx.workOrderPart.deleteMany({ where: { tenantId: id } });
+            await tx.workOrderSession.deleteMany({ where: { tenantId: id } });
+            await tx.workOrder.deleteMany({ where: { tenantId: id } });
+            await tx.attachment.deleteMany({ where: { tenantId: id } });
+            await tx.asset.deleteMany({ where: { tenantId: id } });
+            await tx.part.deleteMany({ where: { tenantId: id } });
+            await tx.role.deleteMany({ where: { tenantId: id } });
+            await tx.user.deleteMany({ where: { tenantId: id } });
+
+            return tx.tenant.delete({
+                where: { id }
+            });
+        });
+    }
+
     async seedAstonManorDemo(tenantId: string) {
         const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
         if (!tenant) throw new Error('Tenant not found');

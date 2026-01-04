@@ -79,11 +79,11 @@ app.use(session({
         secure: process.env.NODE_ENV === 'production', // [FIX] HTTPS only in prod
         httpOnly: true,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // [FIX] 'none' for cross-site (frontend domain != backend domain in prod), 'lax' for local
+        partitioned: process.env.NODE_ENV === 'production', // [NEW] CHIPS support for cross-site iframes
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
     } as any
 }));
 
-// [ARCH] 5. Tenant Context
 // [ARCH] 5. Tenant Context
 app.use(tenantMiddleware);
 
@@ -218,6 +218,7 @@ adminRouter.get('/config', adminController.getConfig);
 adminRouter.get('/', tenantController.getAll);
 adminRouter.post('/', tenantController.create);
 adminRouter.post('/:id/seed', tenantController.seedDemo);
+adminRouter.delete('/:id', tenantController.delete); // [NEW] Delete Tenant
 
 apiRouter.use('/tenant', adminRouter); // Note: mounted at /api/v1/tenant
 

@@ -26,5 +26,10 @@ export const TenantService = {
     seedDemo: async (id: string) => {
         const res = await api.post(`/tenant/${id}/seed`);
         return res.data;
+    },
+
+    delete: async (id: string) => {
+        const res = await api.delete(`/tenant/${id}`);
+        return res.data;
     }
 };

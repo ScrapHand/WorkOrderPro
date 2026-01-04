@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, PlayCircle, Plus, Building2 } from "lucide-react";
+import { Loader2, PlayCircle, Plus, Building2, Trash2 } from "lucide-react";
 
 export function TenantManagement() {
     const queryClient = useQueryClient();
@@ -56,6 +56,15 @@ export function TenantManagement() {
         onError: (err: any) => toast.error(`Seed Failed: ${err.message}`)
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: TenantService.delete,
+        onSuccess: () => {
+            toast.success("Tenant deleted successfully");
+            queryClient.invalidateQueries({ queryKey: ["tenants"] });
+        },
+        onError: (err: any) => toast.error(`Delete Failed: ${err.message}`)
+    });
+
     const handleCreate = () => {
         if (!newTenant.slug.match(/^[a-z0-9-]+$/)) {
             toast.error("Slug must be lowercase alphanumeric (hyphens allowed)");
@@ -69,7 +78,7 @@ export function TenantManagement() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Tenant Management</h2>
-                    <p className="text-muted-foreground">Create and manage access for detailed organizations.</p>
+                    <p className="text-muted-foreground">Create and manage access for organizations.</p>
                 </div>
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                     <DialogTrigger asChild>
@@ -126,7 +135,7 @@ export function TenantManagement() {
                             <TableHead>Organization</TableHead>
                             <TableHead>Slug</TableHead>
                             <TableHead>Stats</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -148,7 +157,7 @@ export function TenantManagement() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <code className="bg-muted px-1 py-0.5 rounded">{tenant.slug}</code>
+                                        <code className="bg-muted px-1 py-0.5 rounded text-xs">{tenant.slug}</code>
                                     </TableCell>
                                     <TableCell>
                                         <div className="text-xs text-muted-foreground">
@@ -156,23 +165,43 @@ export function TenantManagement() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => {
-                                                if (confirm(`Populate ${tenant.name} with Aston Manor demo data? This creates Assets, Parts, and Work Orders.`)) {
-                                                    seedMutation.mutate(tenant.id);
-                                                }
-                                            }}
-                                            disabled={seedMutation.isPending || (tenant._count?.assets || 0) > 0}
-                                        >
-                                            {seedMutation.isPending ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                                <PlayCircle className="h-3 w-3 mr-1" />
-                                            )}
-                                            Seed Demo
-                                        </Button>
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    if (confirm(`Populate ${tenant.name} with Aston Manor demo data? This creates Assets, Parts, and Work Orders.`)) {
+                                                        seedMutation.mutate(tenant.id);
+                                                    }
+                                                }}
+                                                disabled={seedMutation.isPending || (tenant._count?.assets || 0) > 0}
+                                            >
+                                                {seedMutation.isPending ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                    <PlayCircle className="h-3 w-3 mr-1" />
+                                                )}
+                                                {seedMutation.isPending ? "Seeding..." : "Seed Demo"}
+                                            </Button>
+
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => {
+                                                    if (confirm(`DANGER: Are you sure you want to delete ${tenant.name}? This will permanently remove ALL users, assets, and work orders for this organization.`)) {
+                                                        deleteMutation.mutate(tenant.id);
+                                                    }
+                                                }}
+                                                disabled={deleteMutation.isPending || tenant.slug === 'default'}
+                                            >
+                                                {deleteMutation.isPending ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-3 w-3" />
+                                                )}
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))

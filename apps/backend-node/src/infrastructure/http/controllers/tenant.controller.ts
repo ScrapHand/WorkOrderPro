@@ -40,4 +40,18 @@ export class TenantController {
             res.status(500).json({ error: 'Failed to seed demo data' });
         }
     }
+
+    delete = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            if (id === 'default') {
+                return res.status(400).json({ error: 'Cannot delete the default tenant' });
+            }
+            await this.service.delete(id);
+            res.json({ message: 'Tenant deleted successfully' });
+        } catch (error) {
+            console.error('Delete Tenant Error:', error);
+            res.status(500).json({ error: 'Failed to delete tenant' });
+        }
+    }
 }
