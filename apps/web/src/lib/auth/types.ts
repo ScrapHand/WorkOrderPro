@@ -1,4 +1,6 @@
 export enum UserRole {
+    GLOBAL_ADMIN = "GLOBAL_ADMIN",
+    SYSTEM_ADMIN = "SYSTEM_ADMIN",
     ADMIN = "ADMIN",
     MANAGER = "MANAGER",
     TECHNICIAN = "TECHNICIAN",

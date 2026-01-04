@@ -116,7 +116,7 @@ async function main() {
         const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
 
         if (!existingAdmin) {
-            console.log('Admin user missing. Creating default admin...');
+            console.log('Admin user missing. Creating GLOBAL_ADMIN...');
             // Need bcrypt to hash password
             const bcrypt = await import('bcryptjs');
             const hashedPassword = await bcrypt.hash('ScrapHand', 10);
@@ -126,11 +126,57 @@ async function main() {
                     email: adminEmail,
                     passwordHash: hashedPassword,
                     username: 'System Admin',
-                    role: 'ADMIN', // Using the Enum directly on User model as fallback/primary
+                    role: 'GLOBAL_ADMIN', // [FIX] Distinguish Master User from Tenant Admins
                     tenantId: tenants[0].id
                 }
             });
-            console.log('Default admin created: admin@example.com / ScrapHand');
+            console.log('Global admin created: admin@example.com / ScrapHand');
+        } else {
+            // [FIX] Ensure existing admin has correct role if re-running seed
+            if (existingAdmin.role !== 'GLOBAL_ADMIN') {
+                console.log('Upgrading existing admin to GLOBAL_ADMIN...');
+                await prisma.user.update({
+                    where: { email: adminEmail },
+                    data: { role: 'GLOBAL_ADMIN' }
+                });
+            }
+        }
+
+        // [NEW] Ensure Aston Tenant Exists for User Request
+        const astonSlug = 'aston';
+        const astonEmail = 'bab@aston.com';
+
+        let astonTenant = await prisma.tenant.findUnique({ where: { slug: astonSlug } });
+        if (!astonTenant) {
+            console.log('Creating Aston Tenant...');
+            astonTenant = await prisma.tenant.create({
+                data: {
+                    name: 'Aston Engineering',
+                    slug: astonSlug,
+                    plan: 'BUSINESS'
+                }
+            });
+            tenants.push(astonTenant);
+        }
+
+        const existingBab = await prisma.user.findUnique({ where: { email: astonEmail } });
+        if (!existingBab) {
+            console.log('Creating Aston Tenant Admin...');
+            const bcrypt = await import('bcryptjs');
+            // User specified password is "password" (implied, or from previous context)
+            // Using 'password' as hash
+            const babHash = await bcrypt.hash('password', 10);
+
+            await prisma.user.create({
+                data: {
+                    email: astonEmail,
+                    passwordHash: babHash,
+                    username: 'Bab Admin',
+                    role: 'ADMIN', // [FIX] Tenant Admin Role
+                    tenantId: astonTenant.id
+                }
+            });
+            console.log('Aston admin created: bab@aston.com / password');
         }
 
         for (const tenant of tenants) {
