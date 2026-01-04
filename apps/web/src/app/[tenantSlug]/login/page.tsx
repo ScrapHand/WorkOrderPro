@@ -66,7 +66,7 @@ export default function TenantLoginPage({ params }: { params: Promise<{ tenantSl
             document.cookie = `access_token=${data.access_token}; path=/; max-age=3600; secure; samesite=strict`;
 
             toast.success("Login successful");
-            router.push("/dashboard");
+            router.push(`/${tenantSlug}/dashboard`);
 
         } catch (error: any) {
             console.error("Login Error:", error);
