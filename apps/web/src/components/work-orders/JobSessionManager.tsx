@@ -21,9 +21,10 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, CheckCircle, Clock } from "lucide-react";
+import { Play, Pause, CheckCircle, Clock, UploadCloud, X, FileImage, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthProvider";
+import { UploadService } from "@/services/upload.service";
 
 import { api } from "@/lib/api";
 
@@ -35,6 +36,20 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
     const { user } = useAuth();
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
     const [completionNotes, setCompletionNotes] = useState("");
+
+    // [NEW] File Upload State
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+    // [NEW] File Handlers
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+        }
+    };
+
+    const removeFile = (index: number) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    };
 
     // --- Queries ---
     const { data: sessions, isLoading } = useQuery({
@@ -90,6 +105,32 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
     const completeMutation = useMutation({
         mutationFn: async () => {
+            // 1. Upload Photos First
+            if (selectedFiles.length > 0) {
+                toast.loading("Uploading photos...");
+                try {
+                    for (const file of selectedFiles) {
+                        const { url, key } = await UploadService.getPresignedUrl('work-orders', id as string, file);
+                        await UploadService.uploadToS3(url, file);
+                        await UploadService.confirmUpload({
+                            entityType: 'work-orders',
+                            entityId: id as string,
+                            key,
+                            fileName: file.name,
+                            mimeType: file.type,
+                            size: file.size
+                        });
+                    }
+                    toast.dismiss();
+                    toast.success("Photos uploaded");
+                } catch (err) {
+                    console.error("Photo upload failed", err);
+                    toast.dismiss();
+                    throw new Error("Failed to upload photos. Please try again or complete without photos.");
+                }
+            }
+
+            // 2. Complete Job
             const res = await api.post(`${SESSION_API(id as string)}/complete`, {
                 notes: completionNotes
             });
@@ -98,10 +139,12 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
         onSuccess: () => {
             toast.success("Job completed!");
             setIsCompleteModalOpen(false);
+            setSelectedFiles([]); // Reset files
+            setCompletionNotes(""); // Reset notes
             queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
             onStatusChange();
         },
-        onError: (err: any) => toast.error(`Failed to complete job: ${err.response?.data?.error || err.message}`)
+        onError: (err: any) => toast.error(`Failed to complete job: ${err.message}`)
     });
 
     // --- Computeds ---
@@ -209,7 +252,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
             {/* Completion Modal */}
             <Dialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Complete Work Order</DialogTitle>
                         <DialogDescription>
@@ -226,8 +269,36 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
                                 rows={4}
                             />
                         </div>
-                        <div className="p-3 bg-yellow-50 border border-yellow-100 rounded text-xs text-yellow-800">
-                            <strong>Note:</strong> Photo upload will be available in the next update. Please attach any photos to the main attachments section for now.
+
+                        {/* Photo Upload UI */}
+                        <div className="space-y-2 pt-2 border-t">
+                            <label className="text-sm font-medium block">Attach Photos</label>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedFiles.map((file, i) => (
+                                    <div key={i} className="relative group">
+                                        <div className="h-16 w-16 rounded-lg border bg-gray-50 flex items-center justify-center overflow-hidden">
+                                            {file.type.startsWith('image/') ? (
+                                                <img src={URL.createObjectURL(file)} alt="preview" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <FileImage className="h-6 w-6 text-gray-400" />
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFile(i)}
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <label className="h-16 w-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
+                                    <UploadCloud className="h-5 w-5 text-gray-400" />
+                                    <span className="text-[9px] text-gray-500 mt-1">Add</span>
+                                    <input type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*" />
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
@@ -235,9 +306,13 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
                         <Button
                             onClick={() => completeMutation.mutate()}
                             disabled={completeMutation.isPending || !completionNotes.trim()}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 min-w-[140px]"
                         >
-                            Sign Off & Complete
+                            {completeMutation.isPending ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Completing...</>
+                            ) : (
+                                "Sign Off & Complete"
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

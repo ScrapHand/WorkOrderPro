@@ -1,290 +1,357 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { AssetService } from "@/services/asset.service";
-import { UserService } from "@/services/user.service";
-import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
-import { Asset } from "@/types/asset";
-import { CreateWorkOrderDTO, WorkOrderPriority } from "@/types/work-order";
-import { CheckCircle, AlertTriangle, ArrowRight, Loader2, Gauge, HardHat, Zap, AlertOctagon, User as UserIcon, Sparkles } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-
-import { FileUploader } from "@/components/common/FileUploader";
-import { Card, CardContent } from "@/components/ui/card";
+import { useRouter, useParams } from "next/navigation";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, CheckCircle, ChevronRight, ClipboardList, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { workOrderSchema, type WorkOrderCreate } from "@/lib/schemas/work-order";
+import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
+
+import { UploadService } from "@/services/upload.service";
+import { UploadCloud, X, FileImage, Loader2, Search } from "lucide-react";
+
+import { AssetService } from "@/services/asset.service";
+import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
 
 export function NewWorkOrderWizard() {
+    const [step, setStep] = useState(1);
+    const queryClient = useQueryClient();
     const router = useRouter();
     const params = useParams();
-    const tenantSlug = (params?.tenantSlug as string) || 'default';
-    const [step, setStep] = useState(1);
-    const [createdWorkOrderId, setCreatedWorkOrderId] = useState<string | null>(null);
-    const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [showDescription, setShowDescription] = useState(false);
 
-    // Form Data
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [priority, setPriority] = useState<WorkOrderPriority | null>(null);
-    const [assignedUserId, setAssignedUserId] = useState<string>("unassigned");
+    // [NEW] File State
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
 
-    const { data: tree, isLoading: treeLoading } = useQuery({
-        queryKey: ["assets"],
+    // [NEW] Asset Search State
+    const [assetSearch, setAssetSearch] = useState("");
+
+    const { data: assets, isLoading: isLoadingAssets } = useQuery({
+        queryKey: ["assets", "list"],
         queryFn: () => AssetService.getAll(),
     });
 
-    const { data: users, isLoading: usersLoading } = useQuery({
-        queryKey: ["users"],
-        queryFn: () => UserService.getAll(),
+    const form = useForm<WorkOrderCreate>({
+        resolver: zodResolver(workOrderSchema),
+        defaultValues: {
+            priority: "medium",
+        },
     });
 
+    const { reset, handleSubmit, setValue, watch, register, formState: { errors } } = form;
+    const formData = watch();
+
     const mutation = useMutation({
-        mutationFn: AssetService.createWorkOrder,
-        onMutate: (variables) => {
-            console.log('[Wizard] Submitting Work Order:', variables);
+        mutationFn: async (data: WorkOrderCreate) => {
+            const res = await api.post("/work-orders", data);
+            return res.data;
         },
-        onSuccess: (data) => {
-            console.log('[Wizard] Success:', data);
-            setCreatedWorkOrderId(data.id);
-            setStep(4); // Move to upload/success step
+        onMutate: async (newWo) => {
+            await queryClient.cancelQueries({ queryKey: ["work-orders"] });
+            queryClient.setQueryData(["work-orders"], (old: any) => [...(old || []), { ...newWo, id: "temp-" + Date.now(), status: "OPEN" }]);
+        },
+        onSuccess: async (data) => {
+            // [NEW] Upload Photos if any
+            if (selectedFiles.length > 0 && data?.id) {
+                setIsUploading(true);
+                try {
+                    toast.loading("Uploading photos...");
+                    for (const file of selectedFiles) {
+                        const { url, key } = await UploadService.getPresignedUrl('work-orders', data.id, file);
+                        await UploadService.uploadToS3(url, file);
+                        await UploadService.confirmUpload({
+                            entityType: 'work-orders',
+                            entityId: data.id,
+                            key,
+                            fileName: file.name,
+                            mimeType: file.type,
+                            size: file.size
+                        });
+                    }
+                    toast.dismiss();
+                    toast.success("Photos uploaded!");
+                } catch (err) {
+                    console.error("Upload failed", err);
+                    toast.error("Work Order created, but some photos failed to upload.");
+                } finally {
+                    setIsUploading(false);
+                }
+            } else {
+                toast.success("Work Order created successfully");
+            }
+
+            reset();
+            setStep(1);
+            setShowDescription(false);
+            setSelectedFiles([]);
+
+            const tenantSlug = (params?.tenantSlug as string) || 'default';
+            if (data?.id) {
+                router.push(`/${tenantSlug}/dashboard/work-orders/${data.id}`);
+            } else {
+                router.push(`/${tenantSlug}/dashboard/work-orders`);
+            }
         },
         onError: (err: any) => {
-            console.error('[Wizard] Error:', err);
-            alert(`Error: ${err.message}`);
+            console.error("Submission Error:", err);
+            setSubmitError(err.response?.data?.error || "Failed to create work order. Please try again.");
         }
     });
 
-    const handleSubmit = () => {
-        if (!selectedAsset || !priority || !title) return;
-        mutation.mutate({
-            assetId: selectedAsset.id,
-            title,
-            description,
-            priority,
-            // @ts-ignore - DTO needs update or backend handles it
-            assignedUserId: assignedUserId === "unassigned" ? undefined : assignedUserId
-        });
+    const onSubmit = (data: WorkOrderCreate) => {
+        setSubmitError(null);
+        mutation.mutate(data);
     };
 
-    const templates = [
-        "Bearing Overheating: Detected high temperature during inspection.",
-        "Leaking Seal: Oil leak observed at the main shaft seal.",
-        "Motor Noise: Unusual grinding noise from the drive motor.",
-        "Routine Inspection: 500-hour preventive maintenance check."
-    ];
+    const nextStep = () => setStep((s) => s + 1);
+    const prevStep = () => setStep((s) => s - 1);
 
-    const priorities: { id: WorkOrderPriority, label: string, score: string, icon: any, color: string }[] = [
-        { id: "LOW", label: "Low Priority", score: "RIME: ~1-10", icon: Gauge, color: "bg-blue-100 text-blue-700 border-blue-200" },
-        { id: "MEDIUM", label: "Medium", score: "RIME: ~20-40", icon: HardHat, color: "bg-green-100 text-green-700 border-green-200" },
-        { id: "HIGH", label: "High Priority", score: "RIME: ~50-70", icon: Zap, color: "bg-orange-100 text-orange-700 border-orange-200" },
-        { id: "CRITICAL", label: "Critical / Emergency", score: "RIME: >80", icon: AlertOctagon, color: "bg-red-100 text-red-700 border-red-200" },
-    ];
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+        }
+    };
+
+    const removeFile = (index: number) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    };
 
     return (
-        <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
-            {/* Progress Bar */}
-            <div className="bg-gray-50 border-b p-6 pb-2">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-800">New Work Order</h2>
-                    <span className="text-sm font-medium text-gray-500">Step {step} of 3</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                        className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
-                        style={{ width: `${(step / 3) * 100}%` }}
-                    />
-                </div>
+        <div className="max-w-5xl mx-auto min-h-screen bg-gray-50 flex flex-col">
+            <div className="bg-white p-4 border-b flex items-center justify-between sticky top-0 z-10">
+                <h1 className="text-xl font-bold text-gray-900">New Work Order</h1>
+                <div className="text-sm text-gray-500">Step {step} of 4</div>
             </div>
 
-            <div className="p-8 min-h-[500px]">
-                {/* STEP 1: ASSET SELECTION */}
-                {step === 1 && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                        <h3 className="text-lg font-semibold mb-2">1. Select an Asset</h3>
-                        {treeLoading ? <div className="flex justify-center p-12"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div> : tree ? (
-                            <div className="border rounded-xl h-[500px] overflow-hidden bg-gray-50/50 shadow-inner">
-                                <AssetGroupBoard
-                                    assets={tree}
-                                    mode="select"
-                                    onSelect={(asset) => {
-                                        setSelectedAsset(asset);
-                                        setStep(2); // Auto-advance
-                                    }}
-                                />
-                            </div>
-                        ) : <p className="text-center text-gray-500">No assets found.</p>}
-                    </div>
-                )}
+            <main className="flex-1 p-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    <AnimatePresence mode="wait">
 
-                {/* STEP 2: PRIORITY SELECTION */}
-                {step === 2 && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">2. Select Priority</h3>
-                            {selectedAsset && <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">Asset: {selectedAsset.name}</span>}
-                        </div>
+                        {/* STEP 1: SELECT ASSET */}
+                        {step === 1 && (
+                            <motion.div
+                                key="step1"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-4"
+                            >
+                                <h2 className="text-2xl font-semibold text-gray-800">Which asset is broken?</h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {priorities.map(p => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => {
-                                        setPriority(p.id);
-                                        setStep(3);
-                                    }}
-                                    className={`relative flex items-start gap-4 p-6 rounded-xl border-2 text-left transition-all hover:scale-[1.02] active:scale-[0.98]
-                                        ${priority === p.id ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-gray-100 hover:border-primary/30 bg-white shadow-sm'}`}
-                                >
-                                    <div className={`p-3 rounded-lg ${p.color}`}>
-                                        <p.icon className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-gray-900">{p.label}</div>
-                                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">{p.score}</div>
-                                    </div>
-                                    {priority === p.id && <div className="absolute top-4 right-4 text-primary"><CheckCircle className="w-5 h-5" /></div>}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="pt-4 border-t mt-8">
-                            <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
-                        </div>
-                    </div>
-                )}
-
-                {/* STEP 3: DETAILS */}
-                {step === 3 && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">3. Job Details</h3>
-                            <div className="flex gap-2 text-xs font-medium text-gray-500">
-                                <span className="bg-gray-100 px-2 py-1 rounded">{selectedAsset?.name}</span>
-                                <span className="bg-gray-100 px-2 py-1 rounded">{priority}</span>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label>Work Order Title</Label>
-                                <input
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    placeholder="e.g. Broken Conveyor Belt"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <div className="flex justify-between items-center">
-                                    <Label>Assigned Technician</Label>
-                                    <span className="text-xs text-muted-foreground">Optional</span>
-                                </div>
-                                <Select value={assignedUserId} onValueChange={setAssignedUserId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a technician..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                                        {Array.isArray(users) && users.map(u => (
-                                            u?.id ? (
-                                                <SelectItem key={u.id} value={u.id}>
-                                                    <div className="flex items-center gap-2">
-                                                        <UserIcon className="w-3 h-3 text-gray-400" />
-                                                        <span>{u.username || u.email || "Unknown"}</span>
-                                                        <span className="text-xs text-gray-400">({u.role})</span>
-                                                    </div>
-                                                </SelectItem>
-                                            ) : null
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="grid gap-2">
-                                <div className="flex justify-between items-center">
-                                    <Label>Description</Label>
-                                    <div className="flex gap-1">
-                                        {/* AI / Template Badges */}
-                                        <span className="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-wide mr-2">
-                                            <Sparkles className="w-3 h-3 text-purple-500" /> Templates:
-                                        </span>
-                                    </div>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search assets by name or location..."
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                        value={assetSearch}
+                                        onChange={(e) => setAssetSearch(e.target.value)}
+                                    />
                                 </div>
 
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                    {templates.map((t, i) => (
+                                {isLoadingAssets ? (
+                                    <div className="text-center p-8 text-muted-foreground">Loading assets...</div>
+                                ) : (
+                                    <AssetGroupBoard
+                                        mode="select"
+                                        assets={assets || []}
+                                        searchQuery={assetSearch}
+                                        onSelect={(asset) => {
+                                            setValue("assetId", asset.id);
+                                            nextStep();
+                                        }}
+                                    />
+                                )}
+                            </motion.div>
+                        )}
+
+                        {/* STEP 2: PRIORITY */}
+                        {step === 2 && (
+                            <motion.div
+                                key="step2"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-4"
+                            >
+                                <h2 className="text-2xl font-semibold text-gray-800">How urgent is it?</h2>
+                                <div className="space-y-3">
+                                    {[
+                                        { id: "low", label: "Low", desc: "Can wait until next scheduled interval", color: "bg-blue-50 border-blue-200 text-blue-700" },
+                                        { id: "medium", label: "Medium", desc: "Should be fixed within 3 days", color: "bg-green-50 border-green-200 text-green-700" },
+                                        { id: "high", label: "High", desc: "Affecting production, fix ASAP", color: "bg-orange-50 border-orange-200 text-orange-700" },
+                                        { id: "critical", label: "Critical", desc: "Safety hazard or line down", color: "bg-red-50 border-red-200 text-red-700" },
+                                    ].map((p) => (
                                         <button
-                                            key={i}
-                                            onClick={() => setDescription(t)}
-                                            className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100 hover:bg-purple-100 transition-colors"
+                                            key={p.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setValue("priority", p.id as any);
+                                                nextStep();
+                                            }}
+                                            className={`w-full p-4 rounded-xl border text-left transition-all hover:scale-[1.02] ${formData.priority === p.id ? `ring-2 ring-offset-1 ${p.color}` : "bg-white border-gray-200"}`}
                                         >
-                                            {t.slice(0, 20)}...
+                                            <div className="font-bold text-lg capitalize">{p.label}</div>
+                                            <div className="text-sm opacity-80">{p.desc}</div>
                                         </button>
                                     ))}
                                 </div>
+                                <Button type="button" variant="ghost" className="w-full" onClick={prevStep}>Back</Button>
+                            </motion.div>
+                        )}
 
-                                <textarea
-                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    rows={4}
-                                    placeholder="Describe the issue..."
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between mt-8 pt-4 border-t">
-                            <Button variant="ghost" onClick={() => setStep(2)}>Back</Button>
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={!title || mutation.isPending}
-                                className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[150px]"
+                        {/* STEP 3: DETAILS */}
+                        {step === 3 && (
+                            <motion.div
+                                key="step3"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-6"
                             >
-                                {mutation.isPending && <Loader2 className="animate-spin w-4 h-4 mr-2" />}
-                                Create Work Order
-                            </Button>
-                        </div>
-                    </div>
-                )}
+                                <h2 className="text-2xl font-semibold text-gray-800">What's wrong?</h2>
 
-                {/* STEP 4: SUCCESS & UPLOAD */}
-                {step === 4 && createdWorkOrderId && (
-                    <div className="space-y-6 text-center py-8 animate-in zoom-in-50 duration-300">
-                        <div className="flex flex-col items-center text-green-600">
-                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                                <CheckCircle className="w-10 h-10 text-green-600" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-gray-900">Work Order Created!</h3>
-                            <p className="text-gray-500">ID: {createdWorkOrderId}</p>
-                        </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700">Issue Title</label>
+                                        <input
+                                            {...register("title")}
+                                            placeholder="e.g. Leaking oil from main seal"
+                                            className="w-full p-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-lg"
+                                        />
+                                        {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
+                                    </div>
 
-                        <div className="max-w-md mx-auto text-left space-y-4 bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
-                            <Label>Attach Documents / Images (Optional)</Label>
-                            <FileUploader
-                                entityType="work-orders"
-                                entityId={createdWorkOrderId}
-                                onUploadComplete={() => alert("File Attached!")}
-                            />
-                        </div>
+                                    {!showDescription ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowDescription(true)}
+                                            className="text-sm text-blue-600 font-medium flex items-center gap-1 hover:underline"
+                                        >
+                                            <ClipboardList className="h-4 w-4" /> Add more details (optional)
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                            <label className="text-sm font-medium text-gray-700">Description</label>
+                                            <textarea
+                                                {...register("description")}
+                                                rows={4}
+                                                placeholder="Describe what happened..."
+                                                className="w-full p-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                                            />
+                                        </div>
+                                    )}
 
-                        <div className="pt-6">
-                            <Button
-                                onClick={() => router.push(`/${tenantSlug}/dashboard/work-orders`)}
-                                size="lg"
-                                className="w-full max-w-xs"
+                                    {/* [NEW] Photo Upload UI */}
+                                    <div className="space-y-2 pt-2 border-t">
+                                        <label className="text-sm font-medium text-gray-700 block">Photos (Optional)</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedFiles.map((file, i) => (
+                                                <div key={i} className="relative group">
+                                                    <div className="h-16 w-16 rounded-lg border bg-gray-50 flex items-center justify-center overflow-hidden">
+                                                        {file.type.startsWith('image/') ? (
+                                                            <img src={URL.createObjectURL(file)} alt="preview" className="h-full w-full object-cover" />
+                                                        ) : (
+                                                            <FileImage className="h-6 w-6 text-gray-400" />
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile(i)}
+                                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                            ))}
+
+                                            <label className="h-16 w-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
+                                                <UploadCloud className="h-5 w-5 text-gray-400" />
+                                                <span className="text-[9px] text-gray-500 mt-1">Add</span>
+                                                <input type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 space-y-3">
+                                    <Button
+                                        type="button"
+                                        className="w-full h-12 text-lg rounded-xl"
+                                        onClick={async () => {
+                                            const isValid = await form.trigger("title");
+                                            if (isValid) nextStep();
+                                        }}
+                                    >
+                                        Review <ChevronRight className="ml-2 h-5 w-5" />
+                                    </Button>
+                                    <Button type="button" variant="ghost" className="w-full" onClick={prevStep}>Back</Button>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* STEP 4: SUMMARY */}
+                        {step === 4 && (
+                            <motion.div
+                                key="step4"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-6"
                             >
-                                Back to Dashboard
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </div>
+                                <h2 className="text-2xl font-semibold text-gray-800">Summary</h2>
+
+                                <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
+                                    <div>
+                                        <div className="text-sm text-gray-500">Asset</div>
+                                        <div className="font-medium text-lg">{assets?.find(a => a.id === formData.assetId)?.name}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm text-gray-500">Problem</div>
+                                        <div className="font-medium text-lg">{formData.title}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm text-gray-500">Priority</div>
+                                        <div className="font-medium text-lg capitalize">{formData.priority}</div>
+                                    </div>
+                                    {selectedFiles.length > 0 && (
+                                        <div className="pt-2 border-t">
+                                            <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
+                                                <FileImage className="h-4 w-4" />
+                                                <span>{selectedFiles.length} photo{selectedFiles.length !== 1 ? 's' : ''} attached</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {submitError && (
+                                    <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg text-sm">
+                                        {submitError}
+                                    </div>
+                                )}
+
+                                <Button type="submit" size="lg" disabled={mutation.isPending || isUploading} className="w-full bg-green-600 hover:bg-green-700">
+                                    {mutation.isPending || isUploading ? (
+                                        <span className="flex items-center gap-2">
+                                            <Loader2 className="animate-spin h-4 w-4" />
+                                            {isUploading ? "Uploading Photos..." : "Creating..."}
+                                        </span>
+                                    ) : "Create Work Order"}
+                                </Button>
+                                <Button type="button" variant="ghost" className="w-full" onClick={prevStep}>Back</Button>
+                            </motion.div>
+                        )}
+
+                    </AnimatePresence>
+                </form>
+            </main>
         </div>
     );
 }
-
-

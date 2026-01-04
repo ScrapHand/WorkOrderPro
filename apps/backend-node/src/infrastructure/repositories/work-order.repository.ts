@@ -27,6 +27,11 @@ export class PostgresWorkOrderRepository implements IWorkOrderRepository {
             where.assetId = filters.assetId;
         }
 
+        // Priority Filter
+        if (filters.priority) {
+            where.priority = filters.priority;
+        }
+
         // Date Range Filter (Created At)
         if (filters.from || filters.to) {
             where.createdAt = {};
@@ -60,7 +65,7 @@ export class PostgresWorkOrderRepository implements IWorkOrderRepository {
     async findById(id: string, tenantId: string): Promise<any | null> {
         return this.prisma.workOrder.findFirst({
             where: { id, tenantId, deletedAt: null },
-            include: { asset: true }
+            include: { asset: true, attachments: true }
         });
     }
 

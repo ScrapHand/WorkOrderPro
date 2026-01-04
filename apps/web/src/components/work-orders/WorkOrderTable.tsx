@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
-import { Trash2, Search, Filter } from "lucide-react";
+import { Trash2, Search, ArrowUpDown, Calendar, AlertTriangle, CheckCircle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,14 @@ import {
     TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const RimeBadge = ({ score }: { score: number }) => {
     let color = "bg-green-100 text-green-800 border-green-200";
@@ -39,6 +47,9 @@ interface WorkOrderTableProps {
     enableFilters?: boolean;
 }
 
+type SortField = 'date' | 'priority' | 'status';
+type SortOrder = 'asc' | 'desc';
+
 export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters = false }: WorkOrderTableProps) {
     const router = useRouter();
     const params = useParams();
@@ -46,21 +57,18 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
     const queryClient = useQueryClient();
 
     // Filter State
-    const [assetFilter, setAssetFilter] = useState("");
-    const [groupFilter, setGroupFilter] = useState(""); // Root Asset ID
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
 
-    // Debounce search term if needed, but for now direct passing is okay for small datasets
-    // For large datasets, useDebounce is better.
+    // Sorting
+    const [sortField, setSortField] = useState<SortField>('date');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
     const { data: orders, isLoading } = useQuery({
-        queryKey: ["workOrders", statusFilter, assetFilter, groupFilter, dateFrom, dateTo],
+        queryKey: ["workOrders", statusFilter, dateFrom, dateTo], // Removed generic asset filters from key
         queryFn: () => AssetService.getWorkOrders({
             status: statusFilter,
-            assetId: assetFilter || undefined,
-            rootAssetId: groupFilter || undefined,
             from: dateFrom || undefined,
             to: dateTo || undefined
         }),
@@ -78,71 +86,124 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
 
     // Client-side search filtering
     const filteredOrders = orders?.filter(wo => {
-        if (searchTerm && !wo.title.toLowerCase().includes(searchTerm.toLowerCase()) && !wo.work_order_number?.includes(searchTerm)) return false;
+        // [ENHANCED] Search all relevant fields
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            const matchesTitle = wo.title.toLowerCase().includes(term);
+            const matchesDesc = wo.description?.toLowerCase().includes(term);
+            const matchesAsset = wo.asset?.name.toLowerCase().includes(term);
+            const matchesStatus = wo.status.toLowerCase().includes(term);
+            const matchesPriority = wo.priority.toLowerCase().includes(term);
+            const matchesId = wo.id.includes(term); // Allow partial UUID search
+
+            if (!matchesTitle && !matchesDesc && !matchesAsset && !matchesStatus && !matchesPriority && !matchesId) {
+                return false;
+            }
+        }
         return true;
+    }).sort((a, b) => {
+        // [ENHANCED] Sorting Logic
+        let comparison = 0;
+
+        switch (sortField) {
+            case 'date':
+                comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); // Default Desc
+                break;
+            case 'priority':
+                const priorityMap = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+                comparison = (priorityMap[b.priority as keyof typeof priorityMap] || 0) - (priorityMap[a.priority as keyof typeof priorityMap] || 0);
+                break;
+            case 'status':
+                comparison = a.status.localeCompare(b.status);
+                break;
+        }
+
+        return sortOrder === 'asc' ? -comparison : comparison; // Flip for ASC (Default handling above is DESC-ish for Date/Priority)
     });
 
     return (
         <div className="space-y-4">
             {/* Filter Bar */}
             <div className="bg-white p-3 rounded-xl border shadow-sm space-y-3">
-                <div className="flex items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    <div className="relative flex-1 w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search Work Orders..."
-                            className="pl-9 h-10 border-none bg-muted/30 focus-visible:ring-0"
+                            placeholder="Search orders, assets, status, or details..."
+                            className="pl-9 h-10 border-none bg-muted/30 focus-visible:ring-0 w-full"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    {filterMode === 'me' && (
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                            My Tasks
-                        </Badge>
-                    )}
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-10 gap-2 min-w-[100px]">
+                                    <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                                    Sort: <span className="capitalize font-semibold">{sortField}</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Sort By</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => { setSortField('date'); setSortOrder('desc'); }}>
+                                    <Calendar className="mr-2 h-4 w-4" /> Date (Newest)
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setSortField('date'); setSortOrder('asc'); }}>
+                                    <Calendar className="mr-2 h-4 w-4" /> Date (Oldest)
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => { setSortField('priority'); setSortOrder('desc'); }}> // High to Low
+                                    <AlertTriangle className="mr-2 h-4 w-4" /> Priority (High-Low)
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setSortField('priority'); setSortOrder('asc'); }}>
+                                    <AlertTriangle className="mr-2 h-4 w-4" /> Priority (Low-High)
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => { setSortField('status'); setSortOrder('asc'); }}>
+                                    <CheckCircle className="mr-2 h-4 w-4" /> Status
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {filterMode === 'me' && (
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 h-10 px-3 hidden sm:flex items-center">
+                                My Tasks
+                            </Badge>
+                        )}
+                    </div>
                 </div>
 
                 {enableFilters && (
-                    <div className="flex flex-wrap gap-2 pt-2 border-t">
-                        <Input
-                            placeholder="Asset ID (UUID)"
-                            className="w-[150px] h-8 text-xs"
-                            value={assetFilter}
-                            onChange={e => setAssetFilter(e.target.value)}
-                        />
-                        <Input
-                            placeholder="Group / Root Asset ID"
-                            className="w-[150px] h-8 text-xs"
-                            value={groupFilter}
-                            onChange={e => setGroupFilter(e.target.value)}
-                        />
-                        <div className="flex items-center gap-1 border rounded px-2 bg-muted/10">
+                    <div className="flex flex-wrap gap-2 pt-2 border-t items-center">
+                        <span className="text-xs font-semibold text-muted-foreground mr-2">Filters:</span>
+
+                        <div className="flex items-center gap-1 border rounded px-2 bg-white py-1">
                             <span className="text-xs text-muted-foreground">From:</span>
                             <input
                                 type="date"
-                                className="h-8 text-xs bg-transparent outline-none"
+                                className="h-6 text-xs bg-transparent outline-none text-gray-700"
                                 value={dateFrom}
                                 onChange={e => setDateFrom(e.target.value)}
                             />
                         </div>
-                        <div className="flex items-center gap-1 border rounded px-2 bg-muted/10">
+                        <div className="flex items-center gap-1 border rounded px-2 bg-white py-1">
                             <span className="text-xs text-muted-foreground">To:</span>
                             <input
                                 type="date"
-                                className="h-8 text-xs bg-transparent outline-none"
+                                className="h-6 text-xs bg-transparent outline-none text-gray-700"
                                 value={dateTo}
                                 onChange={e => setDateTo(e.target.value)}
                             />
                         </div>
-                        {(assetFilter || groupFilter || dateFrom || dateTo) && (
-                            <Button variant="ghost" size="sm" className="h-8 text-xs text-red-500" onClick={() => {
-                                setAssetFilter("");
-                                setGroupFilter("");
+
+                        {(dateFrom || dateTo) && (
+                            <Button variant="ghost" size="sm" className="h-6 text-xs text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => {
                                 setDateFrom("");
                                 setDateTo("");
                             }}>
-                                Clear
+                                Clear Dates
                             </Button>
                         )}
                     </div>
@@ -172,7 +233,7 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
                         ) : filteredOrders?.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-64 text-center text-muted-foreground italic">
-                                    {filterMode === 'me' ? "No tasks assigned to you." : "No work orders found."}
+                                    {searchTerm ? "No work orders match your search." : (filterMode === 'me' ? "No tasks assigned to you." : "No work orders found.")}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -186,7 +247,7 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
                                         <RimeBadge score={wo.rimeScore} />
                                     </TableCell>
                                     <TableCell>
-                                        <div className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{wo.title}</div>
+                                        <div className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-1">{wo.title}</div>
                                         <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">WO-{wo.id.slice(0, 8)}</div>
                                     </TableCell>
                                     <TableCell className="text-gray-600">

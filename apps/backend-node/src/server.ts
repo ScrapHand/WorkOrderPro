@@ -232,6 +232,8 @@ apiRouter.use('/work-orders', woRouter);
 const uploadRouter = express.Router();
 uploadRouter.post('/presign', uploadController.presign);
 uploadRouter.post('/confirm', uploadController.createAttachment);
+uploadRouter.put('/local-sink', uploadController.localSink); // [DEV] Local Upload
+uploadRouter.get('/local-sink', uploadController.localSink); // [DEV] Local Download
 uploadRouter.get('/proxy', uploadController.proxy); // [NEW] S3 Proxy
 apiRouter.use('/upload', uploadRouter);
 

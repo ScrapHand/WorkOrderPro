@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { S3Service } from '../../services/s3.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class UploadController {
     constructor(
@@ -116,4 +118,51 @@ export class UploadController {
             res.status(500).send('File Access Error');
         }
     };
+
+    // [DEV ONLY] Local File Sink for Mock Uploads
+    localSink = async (req: Request, res: Response) => {
+        try {
+            const key = req.query.key as string;
+            if (!key) return res.status(400).json({ error: 'Missing key' });
+
+            // Security: Prevent path traversal
+            if (key.includes('..')) return res.status(400).json({ error: 'Invalid key' });
+
+            const uploadDir = path.join(process.cwd(), 'uploads');
+            const filePath = path.join(uploadDir, key);
+
+            // PUT: Upload
+            if (req.method === 'PUT') {
+                // Ensure directory exists
+                const dir = path.dirname(filePath);
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+
+                const writeStream = fs.createWriteStream(filePath);
+                req.pipe(writeStream);
+
+                writeStream.on('finish', () => {
+                    res.status(200).send('Uploaded');
+                });
+                writeStream.on('error', (err) => {
+                    console.error('Local Write Error:', err);
+                    res.status(500).send('Write failed');
+                });
+            }
+            // GET: Download
+            else if (req.method === 'GET') {
+                if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
+
+                res.sendFile(filePath);
+            }
+            else {
+                res.status(405).send('Method Not Allowed');
+            }
+
+        } catch (error: any) {
+            console.error('Local Sink Error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    }
 }

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "lucide-react"; // Wait, Shadcn Badge is a component, not lucide icon. 
 // I haven't created Badge component yet. I will use a simple span or create Badge.
 // Let's create Badge component in this same step if possible or just inline it for speed.
-import { PlusCircle, ClipboardList, CheckCircle2, Clock, Trash2 } from "lucide-react";
+import { PlusCircle, ClipboardList, CheckCircle2, Clock, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { RoleGuard } from "@/components/auth/role-guard";
@@ -45,8 +45,51 @@ export default function DashboardPage() {
         }
     });
 
+
+
+    const { data: criticalJobs } = useQuery({
+        queryKey: ["critical-jobs"],
+        queryFn: async () => {
+            const res = await api.get("/work-orders", {
+                params: { priority: "critical", status: "OPEN" } // OPEN or IN_PROGRESS via backend filter if multi-status supported? 
+                // Note: Backend currently supports single status. Frontend will filter just to be safe.
+            });
+            // Filter for non-completed just in case
+            return res.data.filter((wo: any) => wo.status !== 'DONE' && wo.status !== 'COMPLETED');
+        },
+        refetchInterval: 30000 // Check every 30s
+    });
+
     return (
         <div className="container mx-auto p-6 space-y-8">
+            {/* Critical Line Down Alert */}
+            {criticalJobs && criticalJobs.length > 0 && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm animate-in slide-in-from-top-2">
+                    <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                            <AlertTriangle className="h-6 w-6 text-red-600 animate-pulse" />
+                        </div>
+                        <div className="ml-3 w-full">
+                            <h3 className="text-lg font-bold text-red-800 uppercase tracking-wider">
+                                Line Down Detected
+                            </h3>
+                            <div className="mt-2 text-sm text-red-700">
+                                <p className="mb-2">The following critical assets are down. Immediate attention required:</p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    {criticalJobs.map((job: any) => (
+                                        <li key={job.id} className="font-medium">
+                                            <Link href={`/${tenantSlug}/dashboard/work-orders/${job.id}`} className="hover:underline flex items-center gap-2">
+                                                {job.asset?.name || "Unknown Asset"} — {job.title}
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>

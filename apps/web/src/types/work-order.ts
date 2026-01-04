@@ -18,7 +18,16 @@ export interface WorkOrder {
     updatedAt: string;
 
     // Relation View
+    // Relation View
     asset?: Asset;
+    attachments?: any[]; // Using any for now to avoid circular deps or complex importing, or define interface inline
+}
+
+export interface Attachment {
+    id: string;
+    url: string;
+    fileName: string;
+    mimeType: string;
 }
 
 export interface CreateWorkOrderDTO {

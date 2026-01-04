@@ -47,6 +47,7 @@ export class WorkOrderController {
             const filters = {
                 status: req.query.status as string | undefined,
                 assetId: req.query.assetId as string | undefined,
+                priority: req.query.priority as string | undefined,
                 rootAssetId: req.query.rootAssetId as string | undefined, // For Group/Zone filtering
                 from: req.query.from as string | undefined,
                 to: req.query.to as string | undefined

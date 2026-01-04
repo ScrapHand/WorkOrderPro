@@ -11,9 +11,9 @@ import Link from "next/link";
 
 interface AssetCardProps {
     asset: Asset;
-    onViewDocs: (asset: Asset) => void;
-    onViewLoto: (asset: Asset) => void;
-    onViewSpecs: (asset: Asset) => void;
+    onViewDocs?: (asset: Asset) => void;
+    onViewLoto?: (asset: Asset) => void;
+    onViewSpecs?: (asset: Asset) => void;
     onEdit?: (asset: Asset) => void;
     onDelete?: (id: string) => void;
 }
@@ -22,13 +22,13 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, 
     const isCritical = asset.criticality === "A";
 
     return (
-        <Card className="hover:shadow-md transition-shadow group">
-            <div className="relative aspect-video bg-muted w-full overflow-hidden rounded-t-xl">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:border-primary/50 group relative overflow-hidden bg-white border-slate-200">
+            <div className="relative aspect-video bg-slate-100 w-full overflow-hidden rounded-t-xl">
                 {asset.imageUrl ? (
                     <img
                         src={(() => {
                             if (!asset.imageUrl) return "";
-                            if (asset.imageUrl.includes('/api/v1/upload/proxy')) return `${asset.imageUrl}&tenant=default`; // Append tenant if already proxy
+                            if (asset.imageUrl.includes('/api/v1/upload/proxy')) return `${asset.imageUrl}&tenant=default`;
                             if (asset.imageUrl.includes('amazonaws.com')) {
                                 try {
                                     const urlObj = new URL(asset.imageUrl);
@@ -40,76 +40,98 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, 
                             return asset.imageUrl;
                         })()}
                         alt={asset.name}
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
                     />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground bg-gray-100">
-                        No Image
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 bg-slate-50 gap-2">
+                        <FileText className="h-8 w-8 opacity-20" />
+                        <span className="text-xs font-medium opacity-50">No Image</span>
                     </div>
                 )}
-                <div className="absolute top-2 right-2">
-                    <Badge variant={asset.status === 'OPERATIONAL' ? 'default' : 'destructive'}
-                        className={asset.status === 'OPERATIONAL' ? 'bg-green-500 hover:bg-green-600' : ''}>
+
+                {/* [PREMIUM] Glassmorphism Status Badge */}
+                <div className="absolute top-3 right-3">
+                    <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border border-white/20
+                        ${asset.status === 'OPERATIONAL'
+                            ? 'bg-green-500/90 text-white'
+                            : asset.status === 'DOWN'
+                                ? 'bg-red-500/90 text-white'
+                                : 'bg-amber-500/90 text-white'}`}>
                         {asset.status}
-                    </Badge>
+                    </div>
                 </div>
+
+                {/* Criticality Indicator (if Critical) */}
+                {isCritical && (
+                    <div className="absolute top-3 left-3">
+                        <div className="px-2 py-0.5 rounded text-[10px] font-black uppercase text-red-600 bg-white/90 backdrop-blur shadow-sm border border-red-100 flex items-center gap-1">
+                            <Lock className="h-3 w-3" /> Critical
+                        </div>
+                    </div>
+                )}
             </div>
 
-            <CardHeader className="p-4 pb-2">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="line-clamp-1 text-lg">{asset.name}</CardTitle>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{asset.description || "No description provided"}</p>
-                    </div>
-                    {isCritical && (
-                        <Badge variant="outline" className="text-[10px] border-red-200 text-red-700 bg-red-50">
-                            CRITICAL
-                        </Badge>
-                    )}
-                </div>
+            <CardHeader className="p-4 pb-2 space-y-1">
+                <CardTitle className="line-clamp-1 text-base font-semibold text-slate-800 group-hover:text-primary transition-colors">
+                    {asset.name}
+                </CardTitle>
+                <p className="text-xs text-slate-500 line-clamp-1 font-medium">
+                    {asset.description || "No description provided"}
+                </p>
             </CardHeader>
 
-            <CardContent className="p-4 pt-2">
-                {/* Cleaned up Location info as requested */}
+            <CardContent className="p-4 pt-1 pb-4">
+                <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                    <History className="h-3 w-3" /> Updated {new Date(asset.updatedAt || Date.now()).toLocaleDateString()}
+                </div>
             </CardContent>
 
-            <CardFooter className="p-4 pt-0 grid grid-cols-4 gap-2">
-                <Button variant="outline" size="sm" className="h-8 text-[10px] px-1 col-span-1" onClick={() => onViewDocs(asset)} title="Documents">
-                    <FileText className="mr-1 h-3 w-3" /> Docs
-                </Button>
-                <Button variant="outline" size="sm" className="h-8 text-[10px] px-1 col-span-1" onClick={() => onViewLoto(asset)} title="Lockout/Tagout">
-                    <Lock className="mr-1 h-3 w-3" /> LOTO
-                </Button>
-                <Button variant="outline" size="sm" className="h-8 text-[10px] px-1 col-span-1" onClick={() => onViewSpecs(asset)} title="Specifications">
-                    <ClipboardList className="mr-1 h-3 w-3" /> Specs
-                </Button>
-                <div className="col-span-1 flex justify-end">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 hover:bg-slate-100">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <Link href={`/dashboard/work-orders?assetId=${asset.id}`}>
-                                <DropdownMenuItem>
-                                    <History className="mr-2 h-4 w-4" /> View History
-                                </DropdownMenuItem>
-                            </Link>
-                            {onEdit && (
-                                <DropdownMenuItem onClick={() => onEdit(asset)}>
-                                    <FileText className="mr-2 h-4 w-4" /> Edit Asset
-                                </DropdownMenuItem>
-                            )}
-                            {onDelete && (
-                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(asset.id)}>
-                                    <Trash2 className="mr-2 h-4 w-4" /> Decommission
-                                </DropdownMenuItem>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </CardFooter>
+            {(onViewDocs || onViewLoto || onViewSpecs || onEdit) && (
+                <CardFooter className="p-3 pt-0 grid grid-cols-4 gap-2 bg-slate-50/50 border-t border-slate-100">
+                    {onViewDocs && (
+                        <Button variant="ghost" size="sm" className="h-8 text-[10px] px-1 col-span-1 hover:bg-white hover:shadow-sm transition-all" onClick={(e) => { e.stopPropagation(); onViewDocs(asset); }} title="Documents">
+                            <FileText className="mr-1 h-3 w-3 text-slate-500" /> Docs
+                        </Button>
+                    )}
+                    {onViewLoto && (
+                        <Button variant="ghost" size="sm" className="h-8 text-[10px] px-1 col-span-1 hover:bg-white hover:shadow-sm transition-all" onClick={(e) => { e.stopPropagation(); onViewLoto(asset); }} title="Lockout/Tagout">
+                            <Lock className="mr-1 h-3 w-3 text-slate-500" /> LOTO
+                        </Button>
+                    )}
+                    {onViewSpecs && (
+                        <Button variant="ghost" size="sm" className="h-8 text-[10px] px-1 col-span-1 hover:bg-white hover:shadow-sm transition-all" onClick={(e) => { e.stopPropagation(); onViewSpecs(asset); }} title="Specifications">
+                            <ClipboardList className="mr-1 h-3 w-3 text-slate-500" /> Specs
+                        </Button>
+                    )}
+
+                    <div className="col-span-1 flex justify-end">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 hover:bg-white hover:shadow-sm" onClick={(e) => e.stopPropagation()}>
+                                    <MoreVertical className="h-4 w-4 text-slate-400" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <Link href={`/dashboard/work-orders?assetId=${asset.id}`}>
+                                    <DropdownMenuItem>
+                                        <History className="mr-2 h-4 w-4" /> View History
+                                    </DropdownMenuItem>
+                                </Link>
+                                {onEdit && (
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(asset); }}>
+                                        <FileText className="mr-2 h-4 w-4" /> Edit Asset
+                                    </DropdownMenuItem>
+                                )}
+                                {onDelete && (
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(asset.id); }}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Decommission
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </CardFooter>
+            )}
         </Card>
     );
 }

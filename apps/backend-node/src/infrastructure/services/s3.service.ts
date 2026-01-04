@@ -11,13 +11,24 @@ export class S3Service {
         const region = process.env.AWS_REGION || "us-east-1";
         this.bucket = process.env.AWS_BUCKET_NAME || "workorderpro-assets"; // Fallback to mock bucket name
 
-        this.client = new S3Client({
+        const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "mock-key";
+        const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || "mock-secret";
+
+        const clientConfig: any = {
             region,
-            credentials: {
-                accessKeyId: process.env.AWS_ACCESS_KEY_ID || "mock-key",
-                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "mock-secret"
-            }
-        });
+            credentials: { accessKeyId, secretAccessKey },
+            forcePathStyle: true // Required for MinIO/LocalStack
+        };
+
+        // [DEV SAFETY] If using mock keys, DO NOT hit real AWS. Default to localhost if no endpoint provided.
+        if (accessKeyId === "mock-key" && !process.env.AWS_ENDPOINT) {
+            console.warn("[S3] Using 'mock-key' without AWS_ENDPOINT. Defaulting to 'http://localhost:9000'.");
+            clientConfig.endpoint = "http://localhost:9000";
+        } else if (process.env.AWS_ENDPOINT) {
+            clientConfig.endpoint = process.env.AWS_ENDPOINT;
+        }
+
+        this.client = new S3Client(clientConfig);
     }
 
     /**
@@ -36,6 +47,15 @@ export class S3Service {
         const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_"); // Sanitize
         const key = `tenants/${tenantId}/${entityType}/${entityId}/${uniqueId}-${safeName}`;
 
+        const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "mock-key";
+        // [DEV FALLBACK] If using mock keys without endpoint, use local sink
+        if (accessKeyId === "mock-key" && !process.env.AWS_ENDPOINT) {
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+            // Use PUT for upload to local sink
+            const url = `${baseUrl}/api/v1/upload/local-sink?key=${encodeURIComponent(key)}&type=${encodeURIComponent(mimeType)}`;
+            return { url, key };
+        }
+
         const command = new PutObjectCommand({
             Bucket: this.bucket,
             Key: key,
@@ -52,6 +72,12 @@ export class S3Service {
      * Generates a Presigned URL for GET download.
      */
     async generatePresignedGetUrl(key: string): Promise<string> {
+        const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "mock-key";
+        if (accessKeyId === "mock-key" && !process.env.AWS_ENDPOINT) {
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+            return `${baseUrl}/api/v1/upload/local-sink?key=${encodeURIComponent(key)}`;
+        }
+
         const command = new GetObjectCommand({
             Bucket: this.bucket,
             Key: key

@@ -121,6 +121,41 @@ export default function WorkOrderDetailsPage() {
                             )}
                         </CardContent>
                     </Card>
+
+                    {/* [NEW] Attachments Gallery */}
+                    {wo.attachments && wo.attachments.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Info className="h-4 w-4 text-purple-500" /> Photos & Attachments
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {wo.attachments.map((file: any) => (
+                                        <div key={file.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border">
+                                            {file.mimeType.startsWith('image/') ? (
+                                                <img src={file.url} alt={file.fileName} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                                                    <Info className="h-8 w-8 mb-2" />
+                                                    <span className="text-xs px-2 text-center truncate w-full">{file.fileName}</span>
+                                                </div>
+                                            )}
+                                            <a
+                                                href={file.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-medium text-sm"
+                                            >
+                                                View
+                                            </a>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 {/* Sidebar Metrics */}

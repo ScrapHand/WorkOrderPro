@@ -19,7 +19,7 @@ export class AnalyticsService {
             totalAssets
         ] = await Promise.all([
             this.prisma.workOrder.count({ where: { tenantId } }),
-            this.prisma.workOrder.count({ where: { tenantId, status: 'COMPLETED' } }),
+            this.prisma.workOrder.count({ where: { tenantId, status: 'DONE' } }),
             this.prisma.part.count({ where: { tenantId, quantity: { lt: 10 } } }),
             this.prisma.asset.count({ where: { tenantId } })
         ]);
