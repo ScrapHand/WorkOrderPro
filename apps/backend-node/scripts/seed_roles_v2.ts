@@ -97,8 +97,41 @@ async function main() {
 
     try {
         console.log('Connecting...');
-        const tenants = await prisma.tenant.findMany();
+        let tenants = await prisma.tenant.findMany();
+        if (tenants.length === 0) {
+            console.log('No tenants found. Creating default tenant...');
+            const defaultTenant = await prisma.tenant.create({
+                data: {
+                    name: 'Default Organization',
+                    slug: 'default',
+                    plan: 'ENTERPRISE'
+                }
+            });
+            tenants = [defaultTenant];
+        }
         console.log(`Found ${tenants.length} tenants.`);
+
+        // [NEW] Ensure Admin User Exists
+        const adminEmail = 'admin@example.com';
+        const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+
+        if (!existingAdmin) {
+            console.log('Admin user missing. Creating default admin...');
+            // Need bcrypt to hash password
+            const bcrypt = await import('bcryptjs');
+            const hashedPassword = await bcrypt.hash('ScrapHand', 10);
+
+            await prisma.user.create({
+                data: {
+                    email: adminEmail,
+                    passwordHash: hashedPassword,
+                    username: 'System Admin',
+                    role: 'ADMIN', // Using the Enum directly on User model as fallback/primary
+                    tenantId: tenants[0].id
+                }
+            });
+            console.log('Default admin created: admin@example.com / ScrapHand');
+        }
 
         for (const tenant of tenants) {
             console.log(`Seeding roles for: ${tenant.slug}`);
