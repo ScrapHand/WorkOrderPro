@@ -32,7 +32,12 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, 
                             if (asset.imageUrl.includes('amazonaws.com')) {
                                 try {
                                     const urlObj = new URL(asset.imageUrl);
-                                    const key = urlObj.pathname.substring(1);
+                                    // Robust key extraction: Find 'tenants/'
+                                    const path = urlObj.pathname;
+                                    const match = path.match(/tenants\/.+/);
+                                    if (!match) return asset.imageUrl;
+
+                                    const key = match[0];
                                     const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
                                     return `${apiBase}/api/v1/upload/proxy?key=${key}&tenant=default`;
                                 } catch (e) { return asset.imageUrl; }

@@ -41,8 +41,14 @@ export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProp
         // Format: https://bucket.s3.region.amazonaws.com/KEY
         if (url.includes('amazonaws.com')) {
             try {
+                // Robust key extraction: Find 'tenants/' and take everything after
+                // Handles both Virtual-Host (bucket.s3...) and Path-Style (s3.../bucket/)
                 const urlObj = new URL(url);
-                const key = urlObj.pathname.substring(1); // Remove leading slash
+                const path = urlObj.pathname;
+                const match = path.match(/tenants\/.+/);
+                if (!match) return url; // Cannot verify key, attempt direct load
+
+                const key = match[0]; // "tenants/..."
                 // [FIX] Sanitized Base URL Construction
                 const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
                 // [FIX] Append Tenant Slug for Proxy Auth (since <img> tags don't send headers)

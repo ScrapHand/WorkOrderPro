@@ -17,7 +17,7 @@ export class S3Service {
         const clientConfig: any = {
             region,
             credentials: { accessKeyId, secretAccessKey },
-            forcePathStyle: true // Required for MinIO/LocalStack
+            forcePathStyle: !!process.env.AWS_ENDPOINT // Only force path style for MinIO/LocalStack
         };
 
         // [DEV SAFETY] If using mock keys, DO NOT hit real AWS. Default to localhost if no endpoint provided.

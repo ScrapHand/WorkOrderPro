@@ -13,6 +13,7 @@ import { Plus, GripVertical, ArrowLeft, Home, FolderOpen } from "lucide-react";
 interface AssetGroupBoardProps {
     assets: Asset[];
     onEdit?: (asset: Asset) => void;
+    onDelete?: (id: string) => void; // [NEW]
     mode?: 'manage' | 'select';
     onSelect?: (asset: Asset) => void;
     onCreateGroup?: () => void;
@@ -20,7 +21,7 @@ interface AssetGroupBoardProps {
     searchQuery?: string;
 }
 
-export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect, onCreateGroup, onCreateChild, searchQuery }: AssetGroupBoardProps) {
+export function AssetGroupBoard({ assets, onEdit, onDelete, mode = 'manage', onSelect, onCreateGroup, onCreateChild, searchQuery }: AssetGroupBoardProps) {
     const queryClient = useQueryClient();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [isDraggingBoard, setIsDraggingBoard] = useState(false);
@@ -161,6 +162,7 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect, onC
                                 <AssetCard
                                     asset={child}
                                     onEdit={mode === 'manage' ? onEdit : undefined}
+                                    onDelete={mode === 'manage' ? onDelete : undefined}
                                 />
                             </motion.div>
                         ))}
@@ -250,7 +252,9 @@ export function AssetGroupBoard({ assets, onEdit, mode = 'manage', onSelect, onC
                                                 <AssetCard
                                                     asset={child}
                                                     onEdit={mode === 'manage' ? onEdit : undefined}
+                                                    onDelete={mode === 'manage' ? onDelete : undefined}
                                                 />
+
                                                 {/* Drill Down Overlay Button */}
                                                 <Button
                                                     variant="ghost"

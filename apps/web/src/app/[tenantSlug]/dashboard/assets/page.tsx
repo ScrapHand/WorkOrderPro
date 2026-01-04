@@ -1,5 +1,6 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { AssetService } from "@/services/asset.service";
 // import { AssetTree } from "@/components/assets/AssetTree"; // Replacing with InteractiveTree
 import { InteractiveTree } from "@/components/assets/tree/InteractiveTree";
@@ -40,6 +41,15 @@ export default function AssetsPage() {
 
     const isAdminOrManager = user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER;
 
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => AssetService.delete(id), // Assuming AssetService.delete exists
+        onSuccess: () => {
+            toast.success("Asset deleted");
+            refetchAll();
+        },
+        onError: () => toast.error("Failed to delete asset")
+    });
+
     return (
         <div className="space-y-6">
             <header className="flex justify-between items-center">
@@ -79,6 +89,7 @@ export default function AssetsPage() {
                             assets={allAssets || []}
                             isAdmin={isAdminOrManager}
                             onEdit={setEditAsset}
+                        // [FIX] Pass Delete Handlers if AssetGrid supports it (it should)
                         />
                     )}
                 </TabsContent>
@@ -90,6 +101,11 @@ export default function AssetsPage() {
                         <AssetGroupBoard
                             assets={allAssets || []}
                             onEdit={setEditAsset}
+                            onDelete={(id) => {
+                                if (confirm("Are you sure you want to delete this asset?")) {
+                                    deleteMutation.mutate(id);
+                                }
+                            }}
                             onCreateGroup={() => {
                                 setCreateParentId(null);
                                 setEditAsset(null);
