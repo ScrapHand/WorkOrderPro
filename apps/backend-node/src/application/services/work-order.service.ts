@@ -34,6 +34,10 @@ export class WorkOrderService {
         return this.woRepo.findById(id, tenantId);
     }
 
+    async updateWorkOrder(id: string, tenantId: string, data: any) {
+        return this.woRepo.update(id, tenantId, data);
+    }
+
     async deleteWorkOrder(id: string, tenantId: string) {
         return this.woRepo.delete(id, tenantId);
     }

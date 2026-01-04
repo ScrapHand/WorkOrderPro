@@ -237,6 +237,7 @@ woRouter.post('/:workOrderId/complete', requireAuth, sessionController.complete)
 woRouter.post('/', woController.create);
 woRouter.get('/', woController.getAll);
 woRouter.get('/:id', woController.getById); // Catch-all ID route last
+woRouter.patch('/:id', woController.patch);
 woRouter.delete('/:id', woController.delete);
 
 apiRouter.use('/work-orders', woRouter);

@@ -3,6 +3,7 @@ export interface IWorkOrderRepository {
     findAll(tenantId: string, status?: string): Promise<any[]>;
     findById(id: string, tenantId: string): Promise<any | null>;
     delete(id: string, tenantId: string): Promise<void>;
+    update(id: string, tenantId: string, data: any): Promise<any>;
 }
 
 import { PrismaClient } from '@prisma/client';
@@ -74,6 +75,13 @@ export class PostgresWorkOrderRepository implements IWorkOrderRepository {
         await this.prisma.workOrder.updateMany({
             where: { id, tenantId },
             data: { deletedAt: new Date() }
+        });
+    }
+
+    async update(id: string, tenantId: string, data: any): Promise<any> {
+        return this.prisma.workOrder.update({
+            where: { id },
+            data // We rely on caller to sanitize data if needed, or Prisma will fail on extra fields
         });
     }
 }

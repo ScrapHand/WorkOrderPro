@@ -1,8 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
     ChevronLeft,
     Calendar,
@@ -16,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { JobSessionManager } from "@/components/work-orders/JobSessionManager";
-import { useQueryClient } from "@tanstack/react-query";
 
 const RimeBadge = ({ score }: { score: number }) => {
     let color = "bg-green-100 text-green-800 border-green-200";
@@ -37,6 +38,71 @@ const RimeBadge = ({ score }: { score: number }) => {
             <span className="text-2xl">{score}</span>
             <span className="text-[10px] uppercase tracking-wider">{label}</span>
         </div>
+    );
+};
+
+const DescriptionSection = ({ wo, onUpdate }: { wo: any, onUpdate: () => void }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [description, setDescription] = useState(wo.description || "");
+
+    const updateMutation = useMutation({
+        mutationFn: (newDesc: string) => AssetService.updateWorkOrder(wo.id, { description: newDesc }),
+        onSuccess: () => {
+            toast.success("Description updated");
+            setIsEditing(false);
+            onUpdate();
+        },
+        onError: (err: any) => toast.error(`Failed to update: ${err.message}`)
+    });
+
+    if (isEditing) {
+        return (
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Info className="h-4 w-4 text-blue-500" /> Edit Description
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <textarea
+                        className="w-full min-h-[120px] p-3 rounded-md border text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Enter details..."
+                    />
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => { setIsEditing(false); setDescription(wo.description || ""); }}>Cancel</Button>
+                        <Button
+                            size="sm"
+                            onClick={() => updateMutation.mutate(description)}
+                            disabled={updateMutation.isPending}
+                        >
+                            {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                    <Info className="h-4 w-4 text-blue-500" /> Description
+                </CardTitle>
+                {wo.status !== 'DONE' && (
+                    <Button variant="ghost" size="sm" className="h-8 text-blue-600" onClick={() => setIsEditing(true)}>
+                        Edit
+                    </Button>
+                )}
+            </CardHeader>
+            <CardContent>
+                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {wo.description || "No detailed description provided."}
+                </p>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -81,18 +147,7 @@ export default function WorkOrderDetailsPage() {
             <div className="grid grid-cols-3 gap-6">
                 {/* Main Content */}
                 <div className="col-span-2 space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Info className="h-4 w-4 text-blue-500" /> Description
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                                {wo.description || "No detailed description provided."}
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <DescriptionSection wo={wo} onUpdate={handleStatusChange} />
 
                     <Card>
                         <CardHeader>

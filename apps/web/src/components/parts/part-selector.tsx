@@ -61,29 +61,26 @@ export function PartSelector({ onSelect }: PartSelectorProps) {
                             {safeParts.map((part) => (
                                 <CommandItem
                                     key={part.id}
-                                    value={`${part.name} ${part.sku || ""}`.trim()} // Standard search string
+                                    value={part.id} // Use ID for unique selection
                                     onSelect={() => {
-                                        // Reset component state to allow selecting another
-                                        setValue("");
-                                        setOpen(false);
                                         onSelect(part);
+                                        setOpen(false);
                                     }}
                                 >
-                                    <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            value === part.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    <div className="flex flex-col">
-                                        <span className="font-medium">{part.name}</span>
-                                        <span className="text-xs text-muted-foreground flex gap-2">
-                                            {part.sku && <span>SKU: {part.sku}</span>}
-                                            <span className={part.quantity <= 0 ? "text-red-500 font-bold" : ""}>
-                                                Qty: {part.quantity}
+                                    <div className="flex w-full items-center gap-2">
+                                        <div className="h-4 w-4 shrink-0">
+                                            {/* We can show a check or just leave it for better multi-select feel */}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">{part.name}</span>
+                                            <span className="text-xs text-muted-foreground flex gap-2">
+                                                {part.sku && <span>SKU: {part.sku}</span>}
+                                                <span className={part.quantity <= 0 ? "text-red-500 font-bold" : ""}>
+                                                    Qty: {part.quantity}
+                                                </span>
+                                                <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: part.currency || 'GBP' }).format(part.cost)}</span>
                                             </span>
-                                            <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: part.currency || 'GBP' }).format(part.cost)}</span>
-                                        </span>
+                                        </div>
                                     </div>
                                 </CommandItem>
                             ))}

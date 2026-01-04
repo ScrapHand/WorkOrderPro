@@ -52,6 +52,11 @@ export const AssetService = {
         return res.data;
     },
 
+    updateWorkOrder: async (id: string, data: Partial<WorkOrder>): Promise<WorkOrder> => {
+        const res = await api.patch(`/work-orders/${id}`, data);
+        return res.data;
+    },
+
     deleteWorkOrder: async (id: string): Promise<void> => {
         await api.delete(`/work-orders/${id}`);
     }

@@ -77,6 +77,24 @@ export class WorkOrderController {
         }
     };
 
+    patch = async (req: Request, res: Response) => {
+        try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+
+            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+
+            const { id } = req.params;
+            const updates = req.body;
+
+            const wo = await this.woService.updateWorkOrder(id, tenant.id, updates);
+            res.json(wo);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    };
+
     delete = async (req: Request, res: Response) => {
         try {
             const tenantCtx = getCurrentTenant();
