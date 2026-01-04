@@ -62,6 +62,7 @@ export class AuthController {
                 res.json({
                     success: true,
                     user: (req.session as any).user,
+                    tenant: (user as any).tenant, // Include full tenant object
                     message: 'Logged in successfully',
                 });
             });

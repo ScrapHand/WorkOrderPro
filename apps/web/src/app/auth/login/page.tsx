@@ -58,7 +58,13 @@ export default function LoginPage() {
             // The Set-Cookie header from the response is handled by the browser automatically.
 
             toast.success("Login successful");
-            const slug = localStorage.getItem("tenant_slug") || "default";
+
+            // Prefer server-provided slug, fallback to storage, then default
+            const slug = data.tenant?.slug || localStorage.getItem("tenant_slug") || "default";
+
+            // Update storage for next time
+            localStorage.setItem("tenant_slug", slug);
+
             router.push(`/${slug}/dashboard`);
 
         } catch (error: any) {
