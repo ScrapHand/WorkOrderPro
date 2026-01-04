@@ -24,8 +24,14 @@ export class TenantController {
             console.log('[TenantController] Calling Service.findAll...');
             const tenants = await this.service.findAll();
             console.log(`[TenantController] Fetched ${tenants.length} tenants. Sending response.`);
+            // [FIX] BigInt Serialization (Prisma _count may return BigInt)
+            const safeTenants = JSON.parse(JSON.stringify(tenants, (key, value) =>
+                typeof value === 'bigint'
+                    ? value.toString()
+                    : value
+            ));
 
-            res.json(tenants);
+            res.json(safeTenants);
         } catch (error) {
             console.error('List Tenants Error:', error);
             res.status(500).json({ error: 'Failed to list tenants' });
