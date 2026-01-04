@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
 import { Trash2, Search, Filter } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -41,6 +41,8 @@ interface WorkOrderTableProps {
 
 export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters = false }: WorkOrderTableProps) {
     const router = useRouter();
+    const params = useParams();
+    const tenantSlug = (params?.tenantSlug as string) || 'default';
     const queryClient = useQueryClient();
 
     // Filter State
@@ -178,7 +180,7 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
                                 <TableRow
                                     key={wo.id}
                                     className="group cursor-pointer hover:bg-blue-50/30 transition-colors"
-                                    onClick={() => router.push(`/dashboard/work-orders/${wo.id}`)}
+                                    onClick={() => router.push(`/${tenantSlug}/dashboard/work-orders/${wo.id}`)}
                                 >
                                     <TableCell>
                                         <RimeBadge score={wo.rimeScore} />
