@@ -65,14 +65,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     // [PROTOCOL] Invisible UI Logic
     const allAdminLinks = adminLinksPrefix(tenantSlug);
     const adminLinks = allAdminLinks.filter(link => {
-        // 1. Common Admin Links (Everyone with ADMIN role sees this)
+        // [FIX] Master sees EVERYTHING in admin
+        if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GLOBAL_ADMIN) return true;
+
         if (["User Management", "Company Actions"].includes(link.name)) return true;
-
-        // 2. Super Admin Links (Hidden from Tenant Admins)
-        if (["Role Management", "Secrets & Config", "System Doctor"].includes(link.name)) {
-            return user?.role === UserRole.SUPER_ADMIN;
-        }
-
         return false;
     });
     const b = config?.branding;
@@ -127,7 +123,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     {/* Admin Section */}
                     <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.GLOBAL_ADMIN, UserRole.ADMIN, UserRole.MANAGER]}>
                         <div className="mt-6 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4">
-                            Administration
+                            Administration {user?.role === UserRole.SUPER_ADMIN ? '(Master)' : ''}
                         </div>
                         {adminLinks.map((link) => (
                             <Link key={link.href} href={link.href} onClick={handleLinkClick}>
