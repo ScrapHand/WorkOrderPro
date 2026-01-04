@@ -23,7 +23,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
         let tenantId: string | null = null;
         let finalSlug = slug;
 
-        if (sessionUser && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN' && sessionUser.role !== 'SUPER_ADMIN') {
+        if (sessionUser && !req.path.includes('/auth/') && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN' && sessionUser.role !== 'SUPER_ADMIN') {
             // [HARD LOCK] If a user is logged in, FORGET the header? No, we must CHECK it.
             // If they ask for 'default' but belong to 'aston', we should BLOCK them (403),
             // NOT silently give them 'aston' data (which looks like a bypass).
