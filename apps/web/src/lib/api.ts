@@ -4,8 +4,23 @@ import axios from "axios";
 const BASE_URL = "/api/v1";
 
 // Helper to get slug dynamically
+// Helper to get slug dynamically
 const getTenantSlug = () => {
     if (typeof window !== 'undefined') {
+        // [FIX] Prioritize URL path for Global Admin context switching
+        // url structure: /[tenantSlug]/...
+        const pathParts = window.location.pathname.split('/');
+        if (pathParts.length >= 2 && pathParts[1] && pathParts[1] !== 'auth' && pathParts[1] !== 'dashboard') {
+            // Basic check: avoid grabbing 'auth' or 'dashboard' if they are root (though usually they are nested)
+            // Assuming structure /[slug]/dashboard
+            // If structure is /dashboard (for default), simple split might be tricky.
+            // Better regex or check.
+
+            // Common pattern: /[slug]/...
+            // If slug is 'default', it might be implicit or explicit.
+            return pathParts[1];
+        }
+
         return localStorage.getItem('tenant_slug') || 'default';
     }
     return 'default';

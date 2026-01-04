@@ -24,7 +24,17 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
         let finalSlug = slug;
 
         if (sessionUser && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN') {
-            // [HARD LOCK] If a user is logged in, FORGET the header. Use their session's tenant.
+            // [HARD LOCK] If a user is logged in, FORGET the header? No, we must CHECK it.
+            // If they ask for 'default' but belong to 'aston', we should BLOCK them (403),
+            // NOT silently give them 'aston' data (which looks like a bypass).
+
+            if (slug !== sessionUser.tenantSlug) {
+                return res.status(403).json({
+                    error: 'Cross-tenant access forbidden',
+                    message: `You belong to '${sessionUser.tenantSlug}' and cannot access '${slug}'.`
+                });
+            }
+
             tenantId = sessionUser.tenantId;
             finalSlug = sessionUser.tenantSlug;
         } else {
