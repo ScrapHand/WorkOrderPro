@@ -44,8 +44,8 @@ export class WorkOrderSessionController {
         try {
             const user = (req as any).user;
             const { workOrderId } = req.params;
-            const { notes } = req.body;
-            await this.service.completeWorkOrder(user.tenantId, workOrderId, notes);
+            const { notes, parts } = req.body;
+            await this.service.completeWorkOrder(user.tenantId, workOrderId, notes, parts);
             res.json({ message: 'Work Order completed' });
         } catch (error) {
             console.error('Complete Session Error:', error);

@@ -80,18 +80,66 @@ export class WorkOrderSessionService {
         });
     }
 
-    async completeWorkOrder(tenantId: string, workOrderId: string, notes: string): Promise<void> {
-        // 1. Close all active sessions
-        await this.pauseWorkOrder(tenantId, workOrderId);
+    async completeWorkOrder(tenantId: string, workOrderId: string, notes: string, parts: { partId: string, quantity: number }[] = []): Promise<void> {
+        // Run as a transaction to ensure Inventory and WO status are consistent
+        await this.prisma.$transaction(async (tx) => {
+            // 1. Close all active sessions
+            // (Re-implementing pause logic within transaction context for safety)
+            const activeSessions = await this.sessionRepo.findActiveByWorkOrder(tenantId, workOrderId);
+            const endTime = new Date();
 
-        // 2. Update status and completion fields
-        await this.prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: {
-                status: 'DONE',
-                completedAt: new Date(),
-                completionNotes: notes
+            for (const session of activeSessions) {
+                const duration = Math.round((endTime.getTime() - session.startTime.getTime()) / 1000 / 60);
+                await tx.workOrderSession.update({
+                    where: { id: session.id },
+                    data: { endTime, duration }
+                });
             }
+
+            // 2. Process Parts Usage
+            for (const item of parts) {
+                // Get current cost for snapshot
+                const part = await tx.part.findUnique({ where: { id: item.partId } });
+                if (!part) throw new Error(`Part not found: ${item.partId}`);
+
+                // Record usage
+                await tx.workOrderPart.create({
+                    data: {
+                        workOrderId,
+                        partId: item.partId,
+                        quantityUsed: item.quantity,
+                        costAtTime: part.cost,
+                        currency: part.currency
+                    }
+                });
+
+                // Update Inventory (Allow negative for now)
+                await tx.part.update({
+                    where: { id: item.partId },
+                    data: { quantity: { decrement: item.quantity } }
+                });
+
+                // Log Transaction
+                await tx.inventoryTransaction.create({
+                    data: {
+                        partId: item.partId,
+                        changeQuantity: -item.quantity,
+                        type: 'OUT',
+                        reason: `Used in Work Order via Completion`,
+                        performedBy: 'system' // ideal: pass userId through
+                    }
+                });
+            }
+
+            // 3. Update WO Status
+            await tx.workOrder.update({
+                where: { id: workOrderId },
+                data: {
+                    status: 'DONE',
+                    completedAt: endTime,
+                    completionNotes: notes
+                }
+            });
         });
     }
 

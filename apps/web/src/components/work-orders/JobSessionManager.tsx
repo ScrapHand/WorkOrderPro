@@ -25,6 +25,10 @@ import { Play, Pause, CheckCircle, Clock, UploadCloud, X, FileImage, Loader2 } f
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthProvider";
 import { UploadService } from "@/services/upload.service";
+import { PartSelector } from "../parts/part-selector";
+import { Part } from "@/services/part.service";
+import { Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 import { api } from "@/lib/api";
 
@@ -39,6 +43,21 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
     // [NEW] File Upload State
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    // [NEW] Parts Tracking State
+    const [selectedParts, setSelectedParts] = useState<{ part: Part, quantity: number }[]>([]);
+
+    const handleAddPart = (part: Part) => {
+        if (selectedParts.find(p => p.part.id === part.id)) return; // Prevent duplicates
+        setSelectedParts(prev => [...prev, { part, quantity: 1 }]);
+    };
+
+    const handleRemovePart = (partId: string) => {
+        setSelectedParts(prev => prev.filter(p => p.part.id !== partId));
+    };
+
+    const handleUpdateQuantity = (partId: string, qty: number) => {
+        setSelectedParts(prev => prev.map(p => p.part.id === partId ? { ...p, quantity: qty } : p));
+    };
 
     // [NEW] File Handlers
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,7 +151,8 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
             // 2. Complete Job
             const res = await api.post(`${SESSION_API(id as string)}/complete`, {
-                notes: completionNotes
+                notes: completionNotes,
+                parts: selectedParts.map(p => ({ partId: p.part.id, quantity: p.quantity }))
             });
             return res.data;
         },
@@ -140,6 +160,7 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
             toast.success("Job completed!");
             setIsCompleteModalOpen(false);
             setSelectedFiles([]); // Reset files
+            setSelectedParts([]); // Reset parts
             setCompletionNotes(""); // Reset notes
             queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
             onStatusChange();
@@ -268,6 +289,39 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
                                 onChange={(e) => setCompletionNotes(e.target.value)}
                                 rows={4}
                             />
+                        </div>
+
+                        {/* Parts Used UI */}
+                        <div className="space-y-2 pt-2 border-t">
+                            <label className="text-sm font-medium block">Parts Used</label>
+                            <div className="space-y-2 mb-2">
+                                {selectedParts.map((item) => (
+                                    <div key={item.part.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded border">
+                                        <div className="flex-1 text-sm">
+                                            <div className="font-medium">{item.part.name}</div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {item.part.sku} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: item.part.currency || 'GBP' }).format(item.part.cost)}
+                                            </div>
+                                        </div>
+                                        <Input
+                                            type="number"
+                                            className="w-20 h-8"
+                                            value={item.quantity}
+                                            onChange={(e) => handleUpdateQuantity(item.part.id, parseInt(e.target.value) || 1)}
+                                            min={1}
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                                            onClick={() => handleRemovePart(item.part.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <PartSelector onSelect={handleAddPart} />
                         </div>
 
                         {/* Photo Upload UI */}

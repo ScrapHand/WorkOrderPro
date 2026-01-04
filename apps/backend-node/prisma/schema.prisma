@@ -150,6 +150,7 @@ model Part {
   sku          String?
   description  String?
   cost         Float    @default(0.0)
+  currency     String   @default("GBP") // [NEW] ISO 4217 Currency Code
   quantity     Int      @default(0)
   minQuantity  Int      @default(5) @map("min_quantity")
   binLocation  String?  @map("bin_location")
@@ -171,6 +172,7 @@ model WorkOrderPart {
   partId       String   @map("part_id")
   quantityUsed Int      @map("quantity_used")
   costAtTime   Float    @map("cost_at_time") // Snapshot of cost when used
+  currency     String   @default("GBP")      // [NEW] Snapshot of currency at usage time
 
   usedAt       DateTime @default(now())
 
