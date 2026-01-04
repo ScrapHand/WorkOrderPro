@@ -144,9 +144,7 @@ export default function LoginPage() {
                     <div className="text-sm text-muted-foreground">
                         Don't have an account? Contact Admin.
                     </div>
-                    <div className="bg-blue-50 border border-blue-100 p-2 rounded text-[10px] text-blue-600 font-medium">
-                        Tip: Demo Admin password is <span className="font-bold">ScrapHand</span>
-                    </div>
+
                 </div>
             </Card>
         </div>
