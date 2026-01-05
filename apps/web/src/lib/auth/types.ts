@@ -12,9 +12,10 @@ export interface User {
     id: string;
     email: string;
     username?: string;
-    full_name: string;
+    full_name?: string; // Often synthesized
+    avatarUrl?: string;
     role: UserRole;
-    is_active: boolean;
+    tenantId: string; ve: boolean;
     tenantSlug?: string;
     permissions?: string[]; // [RBAC] Granular permissions
 }

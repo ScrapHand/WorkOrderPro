@@ -43,6 +43,7 @@ model User {
   tenantId     String   @map("tenant_id")
   email        String   @unique
   username     String?  @map("user_name")
+  avatarUrl    String?  @map("avatar_url")
   passwordHash String   @map("password_hash")
   role         String   @default("VIEWER") // ADMIN, TECHNICIAN, VIEWER
   

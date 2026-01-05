@@ -47,9 +47,15 @@ export class UserController {
 
     update = async (req: Request, res: Response) => {
         try {
-            if (!hasPermission(req, 'user:write')) return res.status(403).json({ error: 'Forbidden' });
-
             const { id } = req.params;
+            const sessionUser = (req.session as any).user;
+
+            // Security: Allow if having 'user:write' OR if updating self
+            const isSelf = sessionUser?.id === id;
+            if (!isSelf && !hasPermission(req, 'user:write')) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+
             const updates = { ...req.body };
 
             // Handle Password Update
