@@ -3,6 +3,7 @@ export class Asset {
         public readonly id: string,
         public readonly tenantId: string,
         public name: string,
+        public code: string | null,
         public status: 'OPERATIONAL' | 'DOWN' | 'MAINTENANCE',
         public criticality: 'A' | 'B' | 'C',
         public hierarchyPath: string,

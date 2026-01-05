@@ -1,5 +1,5 @@
 from typing import Optional, Any, List
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel, UUID4, field_validator
 from datetime import datetime
 from enum import Enum
 
@@ -14,10 +14,6 @@ class WorkOrderBase(BaseModel):
     signed_by_name: Optional[str] = None
 
 class WorkOrderCreate(WorkOrderBase):
-    pass
-
-    from pydantic import field_validator
-
     @field_validator('status', 'priority', mode='before', check_fields=False)
     @classmethod
     def normalize_fields(cls, v):
@@ -49,7 +45,7 @@ class WorkOrderSession(BaseModel):
 class WorkOrderAsset(BaseModel):
     id: UUID4
     name: str
-    code: str
+    code: Optional[str] = None
     location: Optional[str] = None
     status: Optional[str] = None
 
@@ -72,8 +68,6 @@ class WorkOrder(WorkOrderBase):
     class Config:
         from_attributes = True
         use_enum_values = True
-
-    from pydantic import field_validator
 
     @field_validator('status', 'priority', mode='before', check_fields=False)
     @classmethod

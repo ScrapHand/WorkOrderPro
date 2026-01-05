@@ -6,6 +6,7 @@ export interface Asset {
     tenantId: string;
     parentId: string | null;
     name: string;
+    code: string | null;
     description?: string;
     imageUrl?: string | null;
     lotoConfig?: {

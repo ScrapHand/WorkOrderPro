@@ -16,19 +16,14 @@ export class RimeService {
      * Formula: Asset Criticality * Work Order Priority
      */
     async calculateScore(assetId: string, tenantId: string, priority: string): Promise<number> {
-        console.log('[RimeService] Calculating Score...', { assetId, priority });
         // 1. Get Priority Value
         const priorityScore = this.getPriorityScore(priority);
 
         // 2. Get Asset Criticality (Recursive)
-        console.log('[RimeService] Fetching Ancestors...');
         const assetCriticality = await this.getRecursiveCriticality(assetId, tenantId);
-        console.log('[RimeService] Ancestors Fetched. Criticality:', assetCriticality);
 
         // 3. Calculate
-        const score = assetCriticality * priorityScore;
-        console.log('[RimeService] Final Score:', score);
-        return score;
+        return assetCriticality * priorityScore;
     }
 
     private getPriorityScore(priority: string): number {

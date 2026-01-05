@@ -24,7 +24,7 @@ export class WorkOrderService {
             assignedUserId
         };
 
-        return this.woRepo.create(workOrder);
+        return await this.woRepo.create(workOrder);
     }
 
     async getWorkOrders(tenantId: string, filters: any = {}) {

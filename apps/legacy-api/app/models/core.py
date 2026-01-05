@@ -18,7 +18,7 @@ class Asset(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
-    code = Column(String, nullable=False) # Should be unique per tenant
+    code = Column(String, nullable=True) # Should be unique per tenant
     location = Column(String, nullable=True)
     category = Column(String, nullable=True)
     status = Column(String, default=AssetStatus.healthy.value)

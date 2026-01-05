@@ -12,27 +12,33 @@ export class AssetService {
         description?: string,
         criticality: 'A' | 'B' | 'C' = 'C',
         imageUrl?: string | null,
-        lotoConfig?: any | null
+        lotoConfig?: any | null,
+        code?: string | null
     ): Promise<Asset> {
+        const id = uuidv4();
+
         // [DOMAIN LOGIC] Hierarchy Path Calculation
-        let hierarchyPath = '/';
+        let hierarchyPath = `/${id}`;
         if (parentId) {
             const parent = await this.assetRepo.findById(parentId, tenantId);
             if (!parent) throw new Error('Parent asset not found');
-            hierarchyPath = parent.hierarchyPath === '/' ? `/${parent.id}` : `${parent.hierarchyPath}/${parent.id}`;
+            // If parent is from old system/root, it might have '/' as path.
+            // But we want it to be /PARENT_ID/ID
+            const parentPath = parent.hierarchyPath === '/' ? `/${parent.id}` : parent.hierarchyPath;
+            hierarchyPath = `${parentPath}/${id}`;
         }
 
         const newAsset = new Asset(
-            uuidv4(),
+            id,
             tenantId,
             name,
+            code || null,
             'OPERATIONAL',
             criticality,
             hierarchyPath,
             parentId,
             description,
             imageUrl,
-
             lotoConfig,
             null // documents
         );

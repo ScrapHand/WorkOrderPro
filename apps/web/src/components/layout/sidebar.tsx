@@ -176,6 +176,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         handleLinkClick();
                     }}
                 >
+                    <LogOut className="h-4 w-4" /> Logout
                 </Button>
             </div>
 

@@ -8,6 +8,7 @@ const mapToDomain = (row: any): Asset => {
         row.id,
         row.tenant_id || row.tenantId,
         row.name,
+        row.code,
         row.status as 'OPERATIONAL' | 'DOWN' | 'MAINTENANCE',
         row.criticality as 'A' | 'B' | 'C',
         row.hierarchy_path || row.hierarchyPath,
@@ -33,6 +34,7 @@ export class PostgresAssetRepository implements IAssetRepository {
                 tenantId: asset.tenantId,
                 parentId: asset.parentId,
                 name: asset.name,
+                code: asset.code,
                 description: asset.description,
                 imageUrl: asset.imageUrl,
                 lotoConfig: asset.lotoConfig ?? undefined,
@@ -50,6 +52,7 @@ export class PostgresAssetRepository implements IAssetRepository {
             where: { id: asset.id },
             data: {
                 name: asset.name,
+                code: asset.code,
                 status: asset.status,
                 criticality: asset.criticality,
                 hierarchyPath: asset.hierarchyPath,
@@ -88,14 +91,14 @@ export class PostgresAssetRepository implements IAssetRepository {
         const rawResults: any[] = await this.prisma.$queryRaw`
             WITH RECURSIVE asset_tree AS (
                 -- Base Case: The Root
-                SELECT id, tenant_id, parent_id, name, status, criticality, hierarchy_path, "description", image_url, loto_config, documents, specs, "createdAt", "updatedAt", "deletedAt", 0 as depth
+                SELECT id, tenant_id, parent_id, name, code, status, criticality, hierarchy_path, "description", image_url, loto_config, documents, specs, "createdAt", "updatedAt", "deletedAt", 0 as depth
                 FROM "Asset"
                 WHERE id = ${rootId} AND tenant_id = ${tenantId} AND "deletedAt" IS NULL
                 
                 UNION ALL
                 
                 -- Recursive Step: Direct Children
-                SELECT child.id, child.tenant_id, child.parent_id, child.name, child.status, child.criticality, child.hierarchy_path, child."description", child.image_url, child.loto_config, child.documents, child.specs, child."createdAt", child."updatedAt", child."deletedAt", parent.depth + 1
+                SELECT child.id, child.tenant_id, child.parent_id, child.name, child.code, child.status, child.criticality, child.hierarchy_path, child."description", child.image_url, child.loto_config, child.documents, child.specs, child."createdAt", child."updatedAt", child."deletedAt", parent.depth + 1
                 FROM "Asset" child
                 JOIN asset_tree parent ON child.parent_id = parent.id
                 WHERE child.tenant_id = ${tenantId} AND child."deletedAt" IS NULL
@@ -111,14 +114,14 @@ export class PostgresAssetRepository implements IAssetRepository {
         const rawResults: any[] = await this.prisma.$queryRaw`
             WITH RECURSIVE ancestor_tree AS (
                 -- Base Case: The Leaf
-                SELECT id, tenant_id, parent_id, name, status, criticality, hierarchy_path, "description", image_url, loto_config, documents, specs, "createdAt", "updatedAt", "deletedAt", 0 as depth
+                SELECT id, tenant_id, parent_id, name, code, status, criticality, hierarchy_path, "description", image_url, loto_config, documents, specs, "createdAt", "updatedAt", "deletedAt", 0 as depth
                 FROM "Asset"
                 WHERE id = ${assetId} AND tenant_id = ${tenantId} AND "deletedAt" IS NULL
                 
                 UNION ALL
                 
                 -- Recursive Step: Parents
-                SELECT parent.id, parent.tenant_id, parent.parent_id, parent.name, parent.status, parent.criticality, parent.hierarchy_path, parent."description", parent.image_url, parent.loto_config, parent.documents, parent.specs, parent."createdAt", parent."updatedAt", parent."deletedAt", child.depth + 1
+                SELECT parent.id, parent.tenant_id, parent.parent_id, parent.name, parent.code, parent.status, parent.criticality, parent.hierarchy_path, parent."description", parent.image_url, parent.loto_config, parent.documents, parent.specs, parent."createdAt", parent."updatedAt", parent."deletedAt", child.depth + 1
                 FROM "Asset" parent
                 JOIN ancestor_tree child ON child.parent_id = parent.id
                 WHERE parent.tenant_id = ${tenantId} AND parent."deletedAt" IS NULL

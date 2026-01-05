@@ -87,6 +87,7 @@ model Asset {
   tenantId      String   @map("tenant_id")
   parentId      String?  @map("parent_id")
   name          String
+  code          String?  // [NEW] Canonical Asset Identifier (e.g. AMC-OBY)
   description   String?
   imageUrl      String?  @map("image_url")
   status        String   @default("OPERATIONAL") // Enum: OPERATIONAL, DOWN, MAINTENANCE
@@ -113,6 +114,7 @@ model Asset {
   @@index([parentId])
   @@index([deletedAt])
   @@index([hierarchyPath]) // Optimize path searches
+  @@unique([tenantId, code]) // [NEW] Ensure codes are unique per tenant
 }
 
 model WorkOrder {

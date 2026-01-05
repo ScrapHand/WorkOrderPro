@@ -1,8 +1,8 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AdminService } from "@/services/admin.service";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileUploader } from "@/components/common/FileUploader";
@@ -11,13 +11,24 @@ export default function BrandingPage() {
     const [color, setColor] = useState("#2563eb");
     const [logoUrl, setLogoUrl] = useState("");
 
-    // Using window.alert for now since useToast is missing
+    // [FIX] Fetch current values on mount
+    const { data: config, isLoading } = useQuery({
+        queryKey: ["tenant-config"],
+        queryFn: AdminService.getConfig,
+    });
+
+    // Sync local state when config is loaded
+    useEffect(() => {
+        if (config?.branding) {
+            if (config.branding.primaryColor) setColor(config.branding.primaryColor);
+            if (config.branding.logoUrl) setLogoUrl(config.branding.logoUrl);
+        }
+    }, [config]);
 
     const updateBranding = useMutation({
         mutationFn: AdminService.updateBranding,
         onSuccess: () => {
             alert("Branding Updated Successfully");
-            // Force refresh to apply? Ideally use context.
             window.location.reload();
         },
         onError: () => {
