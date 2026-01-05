@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { WorkOrderService } from '../../../application/services/work-order.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
+import { hasPermission } from '../../auth/rbac.utils';
 
 export class WorkOrderController {
     constructor(
@@ -11,6 +12,8 @@ export class WorkOrderController {
 
     create = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'work_order:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -39,6 +42,8 @@ export class WorkOrderController {
 
     getAll = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'work_order:read')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -64,6 +69,8 @@ export class WorkOrderController {
 
     getById = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'work_order:read')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -82,6 +89,8 @@ export class WorkOrderController {
 
     patch = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'work_order:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -101,6 +110,8 @@ export class WorkOrderController {
 
     delete = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'work_order:delete')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 

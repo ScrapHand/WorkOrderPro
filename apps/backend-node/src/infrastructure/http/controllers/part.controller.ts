@@ -1,8 +1,8 @@
-
 import { Request, Response } from 'express';
 import { PartService } from '../../../application/services/part.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
+import { hasPermission } from '../../auth/rbac.utils';
 
 export class PartController {
     constructor(
@@ -12,6 +12,8 @@ export class PartController {
 
     create = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'inventory:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -29,6 +31,8 @@ export class PartController {
 
     getAll = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'inventory:read')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -46,6 +50,8 @@ export class PartController {
 
     update = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'inventory:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -63,6 +69,11 @@ export class PartController {
 
     delete = async (req: Request, res: Response) => {
         try {
+            // [STRICT] Prefer inventory:delete, fallback to inventory:write
+            if (!hasPermission(req, 'inventory:delete') && !hasPermission(req, 'inventory:write')) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 

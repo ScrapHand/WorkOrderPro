@@ -10,11 +10,14 @@ import { Button } from '@/components/ui/button';
 import { AddInventoryModal } from '@/components/inventory/AddInventoryModal';
 import { toast } from 'sonner';
 import { Skeleton } from "@/components/ui/skeleton";
+import { RoleGuard } from '@/components/auth/role-guard';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function InventoryPage() {
     const [search, setSearch] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const queryClient = useQueryClient();
+    const { data: user } = useAuth();
 
     const { data: parts, isLoading } = useQuery({
         queryKey: ["parts"],
@@ -53,6 +56,9 @@ export default function InventoryPage() {
         setIsAddModalOpen(true);
     };
 
+    const canWrite = user?.permissions?.includes('inventory:write') || user?.permissions?.includes('*') || user?.role === 'SUPER_ADMIN';
+    const canDelete = user?.permissions?.includes('inventory:delete') || user?.permissions?.includes('*') || user?.role === 'SUPER_ADMIN';
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -60,9 +66,11 @@ export default function InventoryPage() {
                     <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
                     <p className="text-gray-500">Manage spare parts and stock levels.</p>
                 </div>
-                <Button onClick={() => { setEditingPart(null); setIsAddModalOpen(true); }} className="gap-2">
-                    <Plus className="w-4 h-4" /> Add Part
-                </Button>
+                <RoleGuard requiredPermission="inventory:write">
+                    <Button onClick={() => { setEditingPart(null); setIsAddModalOpen(true); }} className="gap-2">
+                        <Plus className="w-4 h-4" /> Add Part
+                    </Button>
+                </RoleGuard>
             </div>
 
             {/* Stats */}
@@ -120,7 +128,7 @@ export default function InventoryPage() {
                             <th className="px-6 py-3 text-right hidden lg:table-cell">Cost</th>
                             <th className="px-6 py-3 text-center">Qty</th>
                             <th className="px-6 py-3 hidden sm:table-cell">Status</th>
-                            <th className="px-6 py-3 text-right">Actions</th>
+                            {(canWrite || canDelete) && <th className="px-6 py-3 text-right">Actions</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -165,27 +173,33 @@ export default function InventoryPage() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                onClick={() => handleEdit(part)}
-                                            >
-                                                <Edit className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                onClick={() => handleDelete(part.id)}
-                                                disabled={deletePart.isPending}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </td>
+                                    {(canWrite || canDelete) && (
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                {canWrite && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                        onClick={() => handleEdit(part)}
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
+                                                )}
+                                                {canDelete && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                        onClick={() => handleDelete(part.id)}
+                                                        disabled={deletePart.isPending}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    )}
                                 </tr>
                             ))
                         )}

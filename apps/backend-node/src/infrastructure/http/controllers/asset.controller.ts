@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AssetService } from '../../../application/services/asset.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
+import { hasPermission } from '../../auth/rbac.utils';
 
 export class AssetController {
     constructor(
@@ -11,6 +12,8 @@ export class AssetController {
 
     create = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'asset:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -39,6 +42,8 @@ export class AssetController {
 
     update = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'asset:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -69,6 +74,8 @@ export class AssetController {
 
     getTree = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'asset:read')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -86,6 +93,8 @@ export class AssetController {
 
     getAll = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'asset:read')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -102,6 +111,8 @@ export class AssetController {
 
     delete = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'asset:delete')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -141,6 +152,9 @@ export class AssetController {
             if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
             if (scope === 'user') {
+                // User-scoped preference is always allowed if logged in (effectively asset:read context)
+                if (!hasPermission(req, 'asset:read')) return res.status(403).json({ error: 'Forbidden' });
+
                 const currentUser = await this.prisma.user.findUnique({ where: { id: user.id } });
                 const currentPrefs = ((currentUser as any)?.preferences) || {};
                 const newPrefs = { ...currentPrefs, assetLayout: layout };
@@ -150,7 +164,8 @@ export class AssetController {
                     data: { preferences: newPrefs } as any
                 });
             } else if (scope === 'global') {
-                if (user.role !== 'ADMIN' && user.role !== 'MANAGER') return res.status(403).json({ error: 'Forbidden' });
+                // Global layout requires write permissions
+                if (!hasPermission(req, 'asset:write')) return res.status(403).json({ error: 'Forbidden' });
 
                 await Promise.all(
                     Object.entries(layout).map(([assetId, pos]) =>

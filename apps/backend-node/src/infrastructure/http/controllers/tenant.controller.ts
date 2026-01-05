@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { TenantService } from '../../../application/services/tenant.service';
+import { hasPermission } from '../../auth/rbac.utils';
 
 export class TenantController {
     constructor(private service: TenantService) { }
@@ -23,7 +24,7 @@ export class TenantController {
 
             console.log('[TenantController] Calling Service.findAll...');
             const tenants = await this.service.findAll();
-            console.log(`[TenantController] Fetched ${tenants.length} tenants. Sending response.`);
+
             // [FIX] BigInt Serialization (Prisma _count may return BigInt)
             const safeTenants = JSON.parse(JSON.stringify(tenants, (key, value) =>
                 typeof value === 'bigint'
@@ -40,11 +41,13 @@ export class TenantController {
 
     create = async (req: Request, res: Response) => {
         try {
+            // Only SUPER_ADMIN or GLOBAL_ADMIN (or tenant:write if we add it) should create tenants
+            if (!hasPermission(req, 'tenant:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const { name, slug, adminEmail } = req.body;
             if (!name || !slug || !adminEmail) {
                 return res.status(400).json({ error: 'Name, slug, and adminEmail are required' });
             }
-            // Optional: check for existing slug
 
             const tenant = await this.service.create(name, slug, adminEmail);
             res.status(201).json(tenant);
@@ -56,6 +59,14 @@ export class TenantController {
 
     seedDemo = async (req: Request, res: Response) => {
         try {
+            // Demo seeding is a destructive/write op.
+            const sessionUser = (req.session as any).user;
+            const isMaster = ['SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(sessionUser?.role);
+
+            if (!isMaster && !hasPermission(req, 'tenant:write')) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+
             const { id } = req.params;
             await this.service.seedAstonManorDemo(id);
             res.json({ message: 'Demo data seeded successfully' });
@@ -67,6 +78,8 @@ export class TenantController {
 
     delete = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'tenant:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const { id } = req.params;
             if (id === 'default') {
                 return res.status(400).json({ error: 'Cannot delete the default tenant' });

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { RoleService } from '../../../application/services/role.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
+import { hasPermission } from '../../auth/rbac.utils';
 
 export class RoleController {
     constructor(
@@ -11,6 +12,8 @@ export class RoleController {
 
     create = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'role:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -30,6 +33,8 @@ export class RoleController {
 
     update = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'role:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -48,6 +53,8 @@ export class RoleController {
 
     delete = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'role:write')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -64,6 +71,8 @@ export class RoleController {
 
     getAll = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'role:read')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
@@ -79,6 +88,8 @@ export class RoleController {
 
     getById = async (req: Request, res: Response) => {
         try {
+            if (!hasPermission(req, 'role:read')) return res.status(403).json({ error: 'Forbidden' });
+
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
