@@ -87,7 +87,6 @@ export default function AssetsPage() {
                     ) : (
                         <AssetGrid
                             assets={allAssets || []}
-                            isAdmin={isAdminOrManager}
                             onEdit={setEditAsset}
                         // [FIX] Pass Delete Handlers if AssetGrid supports it (it should)
                         />
