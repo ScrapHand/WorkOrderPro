@@ -65,11 +65,23 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     // [PROTOCOL] Invisible UI Logic
     const allAdminLinks = adminLinksPrefix(tenantSlug);
     const adminLinks = allAdminLinks.filter(link => {
-        // [PROTOCOL] God Mode (Email Override + Role Check)
+        // 1. God / Super Admin
         if (user?.email === 'scraphand@admin.com') return true;
         if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GLOBAL_ADMIN) return true;
 
-        if (["User Management", "Company Actions"].includes(link.name)) return true;
+        // 2. Permission Check
+        const perms = user?.permissions || [];
+        if (perms.includes('*')) return true;
+
+        if (link.name === "User Management") return perms.includes('user:read') || perms.includes('user:write');
+        if (link.name === "Company Actions") return perms.includes('tenant:manage');
+        if (link.name === "Role Management") return perms.includes('user:write'); // Assuming user:write covers roles for now
+        if (link.name === "Secrets & Config") return perms.includes('tenant:manage');
+        if (link.name === "System Doctor") return perms.includes('tenant:manage');
+
+        // 3. Fallback for Legacy Admin Role (if no permissions set)
+        if (user?.role === UserRole.ADMIN) return true;
+
         return false;
     });
     const b = config?.branding;
@@ -122,35 +134,39 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     ))}
 
                     {/* Admin Section */}
-                    <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.GLOBAL_ADMIN, UserRole.ADMIN, UserRole.MANAGER]}>
-                        <div className="mt-6 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4">
-                            Administration {user?.role === UserRole.SUPER_ADMIN ? '(Master)' : ''}
-                        </div>
-                        {adminLinks.map((link) => (
-                            <Link key={link.href} href={link.href} onClick={handleLinkClick}>
-                                <Button
-                                    variant={pathname === link.href ? "default" : "ghost"}
-                                    className={cn(
-                                        "w-full justify-start gap-3",
-                                        pathname === link.href ? "" : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    <link.icon className="h-4 w-4" />
-                                    {link.name}
-                                </Button>
-                            </Link>
-                        ))}
-                    </RoleGuard>
+                    {adminLinks.length > 0 && (
+                        <>
+                            <div className="mt-6 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4">
+                                Administration {user?.role === UserRole.SUPER_ADMIN ? '(Master)' : ''}
+                            </div>
+                            {adminLinks.map((link) => (
+                                <Link key={link.href} href={link.href} onClick={handleLinkClick}>
+                                    <Button
+                                        variant={pathname === link.href ? "default" : "ghost"}
+                                        className={cn(
+                                            "w-full justify-start gap-3",
+                                            pathname === link.href ? "" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        <link.icon className="h-4 w-4" />
+                                        {link.name}
+                                    </Button>
+                                </Link>
+                            ))}
+                        </>
+                    )}
                 </nav>
             </div>
 
             {/* Sticky Footer / Big Button */}
             <div className="border-t p-4 space-y-2">
-                <Link href={`/${tenantSlug}/dashboard/work-orders/new`} onClick={handleLinkClick}>
-                    <Button size="lg" className="w-full gap-2 shadow-lg">
-                        <PlusCircle className="h-5 w-5" /> Create Work Order
-                    </Button>
-                </Link>
+                <RoleGuard requiredPermission="work_order:write">
+                    <Link href={`/${tenantSlug}/dashboard/work-orders/new`} onClick={handleLinkClick}>
+                        <Button size="lg" className="w-full gap-2 shadow-lg">
+                            <PlusCircle className="h-5 w-5" /> Create Work Order
+                        </Button>
+                    </Link>
+                </RoleGuard>
 
                 <Button
                     variant="outline"

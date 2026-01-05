@@ -52,11 +52,13 @@ function WorkOrderListContent() {
                     </h1>
                     <p className="text-muted-foreground">Manage active tasks and maintenance history.</p>
                 </div>
-                <Link href={`/${tenantSlug}/dashboard/work-orders/new`}>
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
-                        <Plus className="w-4 h-4" /> New Work Order
-                    </button>
-                </Link>
+                <RoleGuard requiredPermission="work_order:write">
+                    <Link href={`/${tenantSlug}/dashboard/work-orders/new`}>
+                        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
+                            <Plus className="w-4 h-4" /> New Work Order
+                        </button>
+                    </Link>
+                </RoleGuard>
             </header>
 
             <WorkOrderTable

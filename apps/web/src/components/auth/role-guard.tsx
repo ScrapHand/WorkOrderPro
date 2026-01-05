@@ -6,12 +6,13 @@ import { UserRole } from "@/lib/auth/types";
 
 
 interface RoleGuardProps {
-    allowedRoles: UserRole[];
+    allowedRoles?: UserRole[];
+    requiredPermission?: string;
     children: ReactNode;
     fallback?: ReactNode;
 }
 
-export function RoleGuard({ allowedRoles, children, fallback = null }: RoleGuardProps) {
+export function RoleGuard({ allowedRoles, requiredPermission, children, fallback = null }: RoleGuardProps) {
     const { data: user, isLoading } = useAuth();
 
     if (isLoading) {
@@ -23,7 +24,23 @@ export function RoleGuard({ allowedRoles, children, fallback = null }: RoleGuard
         return <>{fallback}</>;
     }
 
-    if (!allowedRoles.includes(user.role)) {
+    // [RBAC] 1. Permission Check
+    if (requiredPermission) {
+        // Super/Global Admin Bypass
+        if (['SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(user.role)) return <>{children}</>;
+
+        // Temporary Legacy Bypass until all roles have permissions migrated
+        if (user.role === 'ADMIN') return <>{children}</>;
+
+        // Check Permissions Array
+        if (user.permissions?.includes('*')) return <>{children}</>;
+        if (user.permissions?.includes(requiredPermission)) return <>{children}</>;
+
+        return <>{fallback}</>;
+    }
+
+    // 2. Role Check (Legacy)
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
         return <>{fallback}</>;
     }
 

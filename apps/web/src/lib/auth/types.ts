@@ -16,4 +16,5 @@ export interface User {
     role: UserRole;
     is_active: boolean;
     tenantSlug?: string;
+    permissions?: string[]; // [RBAC] Granular permissions
 }

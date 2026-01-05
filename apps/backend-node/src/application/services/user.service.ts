@@ -98,4 +98,44 @@ export class UserService {
         const tenant = await this.prisma.tenant.findUnique({ where: { slug } });
         return tenant?.id || null;
     }
+
+    async getUserPermissions(userId: string): Promise<string[]> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { customRole: true }
+        });
+
+        if (!user) return [];
+
+        // 1. Super Admin Bypass (Optimization)
+        if (user.role === 'SUPER_ADMIN') return ['*'];
+
+        // 2. Custom Role
+        if (user.customRoleId && user.customRole) {
+            // Prisma JSON type handling
+            const perms = user.customRole.permissions;
+            if (typeof perms === 'string') return JSON.parse(perms);
+            if (Array.isArray(perms)) return perms as string[];
+            return [];
+        }
+
+        // 3. System Role (Lookup by Name)
+        const systemRole = await this.prisma.role.findFirst({
+            where: {
+                tenantId: user.tenantId,
+                name: user.role
+            }
+        });
+
+        if (systemRole) {
+            const perms = systemRole.permissions;
+            if (typeof perms === 'string') return JSON.parse(perms);
+            if (Array.isArray(perms)) return perms as string[];
+        }
+
+        // 4. Fallback (Legacy/Safety)
+        if (user.role === 'ADMIN') return ['*'];
+
+        return [];
+    }
 }

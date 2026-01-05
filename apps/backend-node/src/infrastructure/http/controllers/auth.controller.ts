@@ -61,7 +61,8 @@ export class AuthController {
                 email: user.email,
                 role: user.role,
                 tenantId: user.tenantId,
-                tenantSlug: (user as any).tenant?.slug
+                tenantSlug: (user as any).tenant?.slug,
+                permissions: await this.userService.getUserPermissions(user.id) // [RBAC] Inject permissions
             };
 
             req.session.save((err) => {

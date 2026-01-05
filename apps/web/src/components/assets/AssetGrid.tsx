@@ -11,13 +11,30 @@ import { AssetSpecsModal } from "./AssetSpecsModal"; // [NEW]
 import { AssetService } from "@/services/asset.service";
 // import { CreateAssetModal } from "./CreateAssetModal"; // Removed as we lift state
 
+import { useAuth } from "@/hooks/use-auth"; // [RBAC]
+import { UserRole } from "@/lib/auth/types";
+
 interface AssetGridProps {
     assets: Asset[];
-    isAdmin?: boolean;
     onEdit?: (asset: Asset) => void;
 }
 
-export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
+export function AssetGrid({ assets, onEdit }: AssetGridProps) {
+    const { data: user } = useAuth();
+
+    // [RBAC] Permission Check Helper
+    const canEdit = user && (
+        ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'ADMIN'].includes(user.role) ||
+        user.permissions?.includes('*') ||
+        user.permissions?.includes('asset:write')
+    );
+
+    const canDelete = user && (
+        ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'ADMIN'].includes(user.role) ||
+        user.permissions?.includes('*') ||
+        user.permissions?.includes('asset:delete')
+    );
+
     const [selectedDocsAssetId, setSelectedDocsAssetId] = useState<string | null>(null);
     const [selectedLotoAssetId, setSelectedLotoAssetId] = useState<string | null>(null);
     const [selectedSpecsAssetId, setSelectedSpecsAssetId] = useState<string | null>(null);
@@ -55,8 +72,8 @@ export function AssetGrid({ assets, isAdmin, onEdit }: AssetGridProps) {
                             onViewDocs={(a) => setSelectedDocsAssetId(a.id)}
                             onViewLoto={(a) => setSelectedLotoAssetId(a.id)}
                             onViewSpecs={(a) => setSelectedSpecsAssetId(a.id)}
-                            onEdit={isAdmin && onEdit ? onEdit : undefined}
-                            onDelete={isAdmin ? handleDelete : undefined}
+                            onEdit={canEdit && onEdit ? onEdit : undefined}
+                            onDelete={canDelete ? handleDelete : undefined}
                         />
                     ))}
                 </div>
