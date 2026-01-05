@@ -176,9 +176,16 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         handleLinkClick();
                     }}
                 >
-                    <LogOut className="h-4 w-4" /> Sign Out
                 </Button>
             </div>
+
+            {/* [DEBUG] RBAC Visibility */}
+            {process.env.NODE_ENV === 'development' && (
+                <div className="px-4 pb-4 text-[10px] text-muted-foreground break-all">
+                    <p>Role: {user?.role}</p>
+                    <p>Perms: {user?.permissions?.join(', ') || 'NONE'}</p>
+                </div>
+            )}
         </div>
     );
 }

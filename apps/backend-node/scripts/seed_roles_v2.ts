@@ -75,10 +75,10 @@ const DEFAULT_ROLES = {
     TECHNICIAN: [
         'work_order:read', 'work_order:write',
         'asset:read',
-        'inventory:read'
+        'inventory:read', 'inventory:write' // [UPDATE] Allow parts consumption
     ],
     VIEWER: [
-        'work_order:read',
+        'work_order:read', 'work_order:write', // [UPDATE] Allow creating tickets
         'asset:read',
         'inventory:read'
     ]

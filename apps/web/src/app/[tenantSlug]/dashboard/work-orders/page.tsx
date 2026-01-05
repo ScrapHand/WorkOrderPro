@@ -33,6 +33,7 @@ const RimeBadge = ({ score }: { score: number }) => {
     );
 };
 
+import { useTerminology } from "@/hooks/use-terminology";
 import { Suspense } from "react";
 
 import { WorkOrderTable } from "@/components/work-orders/WorkOrderTable";
@@ -42,20 +43,21 @@ function WorkOrderListContent() {
     const params = useParams();
     const tenantSlug = (params?.tenantSlug as string) || 'default';
     const predefinedFilter = searchParams.get("assignee");
+    const t = useTerminology();
 
     return (
         <div className="space-y-6">
             <header className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                        {predefinedFilter === 'me' ? "My Schedule" : "Work Orders"}
+                        {predefinedFilter === 'me' ? "My Schedule" : t.workOrders}
                     </h1>
                     <p className="text-muted-foreground">Manage active tasks and maintenance history.</p>
                 </div>
                 <RoleGuard requiredPermission="work_order:write">
                     <Link href={`/${tenantSlug}/dashboard/work-orders/new`}>
                         <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
-                            <Plus className="w-4 h-4" /> New Work Order
+                            <Plus className="w-4 h-4" /> New {t.workOrder}
                         </button>
                     </Link>
                 </RoleGuard>
@@ -72,7 +74,7 @@ function WorkOrderListContent() {
 
 export default function WorkOrderList() {
     return (
-        <Suspense fallback={<div className="p-8">Loading Work Orders...</div>}>
+        <Suspense fallback={<div className="p-8">Loading...</div>}>
             <WorkOrderListContent />
         </Suspense>
     );

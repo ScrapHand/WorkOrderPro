@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
 import { Trash2, Search, ArrowUpDown, Calendar, AlertTriangle, CheckCircle } from "lucide-react";
+import { useTerminology } from "@/hooks/use-terminology";
 import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
     const params = useParams();
     const tenantSlug = (params?.tenantSlug as string) || 'default';
     const queryClient = useQueryClient();
+    const t = useTerminology();
 
     // Filter State
     const [dateFrom, setDateFrom] = useState("");
@@ -129,7 +131,7 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
                     <div className="relative flex-1 w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search orders, assets, status, or details..."
+                            placeholder={`Search ${t.workOrders}, ${t.assets}, status, or details...`}
                             className="pl-9 h-10 border-none bg-muted/30 focus-visible:ring-0 w-full"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -215,8 +217,8 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
                     <TableHeader className="bg-gray-50/50">
                         <TableRow>
                             <TableHead className="w-[80px]">RIME</TableHead>
-                            <TableHead>Work Order</TableHead>
-                            <TableHead>Asset</TableHead>
+                            <TableHead>{t.workOrder}</TableHead>
+                            <TableHead>{t.asset}</TableHead>
                             <TableHead>Priority</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Created</TableHead>
@@ -233,7 +235,7 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
                         ) : filteredOrders?.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-64 text-center text-muted-foreground italic">
-                                    {searchTerm ? "No work orders match your search." : (filterMode === 'me' ? "No tasks assigned to you." : "No work orders found.")}
+                                    {searchTerm ? `No ${t.workOrders.toLowerCase()} match your search.` : (filterMode === 'me' ? "No tasks assigned to you." : `No ${t.workOrders.toLowerCase()} found.`)}
                                 </TableCell>
                             </TableRow>
                         ) : (

@@ -17,8 +17,10 @@ import { UploadCloud, X, FileImage, Loader2, Search } from "lucide-react";
 
 import { AssetService } from "@/services/asset.service";
 import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
+import { useTerminology } from "@/hooks/use-terminology";
 
 export function NewWorkOrderWizard() {
+    const t = useTerminology();
     const [step, setStep] = useState(1);
     const queryClient = useQueryClient();
     const router = useRouter();
@@ -143,13 +145,13 @@ export function NewWorkOrderWizard() {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="space-y-4"
                             >
-                                <h2 className="text-2xl font-semibold text-gray-800">Which asset is broken?</h2>
+                                <h2 className="text-2xl font-semibold text-gray-800">Which {t.asset.toLowerCase()} is broken?</h2>
 
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                     <input
                                         type="text"
-                                        placeholder="Search assets by name or location..."
+                                        placeholder={`Search ${t.assets.toLowerCase()} by name or location...`}
                                         className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                                         value={assetSearch}
                                         onChange={(e) => setAssetSearch(e.target.value)}
@@ -157,7 +159,7 @@ export function NewWorkOrderWizard() {
                                 </div>
 
                                 {isLoadingAssets ? (
-                                    <div className="text-center p-8 text-muted-foreground">Loading assets...</div>
+                                    <div className="text-center p-8 text-muted-foreground">Loading {t.assets.toLowerCase()}...</div>
                                 ) : (
                                     <AssetGroupBoard
                                         mode="select"
@@ -310,7 +312,7 @@ export function NewWorkOrderWizard() {
 
                                 <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
                                     <div>
-                                        <div className="text-sm text-gray-500">Asset</div>
+                                        <div className="text-sm text-gray-500">{t.asset}</div>
                                         <div className="font-medium text-lg">{assets?.find(a => a.id === formData.assetId)?.name}</div>
                                     </div>
                                     <div>
