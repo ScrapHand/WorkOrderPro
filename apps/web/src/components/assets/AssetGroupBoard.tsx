@@ -9,6 +9,7 @@ import { motion, Reorder } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Plus, GripVertical, ArrowLeft, Home, FolderOpen } from "lucide-react";
+import { RoleGuard } from "@/components/auth/role-guard"; // [NEW]
 
 interface AssetGroupBoardProps {
     assets: Asset[];
@@ -208,15 +209,17 @@ export function AssetGroupBoard({ assets, onEdit, onDelete, mode = 'manage', onS
 
                                     <div className="flex items-center">
                                         {mode === 'manage' && onEdit && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6"
-                                                onClick={() => onEdit(group)}
-                                                onMouseDown={(e) => e.stopPropagation()}
-                                            >
-                                                <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                            </Button>
+                                            <RoleGuard requiredPermission="asset:write">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6"
+                                                    onClick={() => onEdit(group)}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                >
+                                                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                                </Button>
+                                            </RoleGuard>
                                         )}
                                         {mode === 'select' && (
                                             <Button
@@ -280,15 +283,17 @@ export function AssetGroupBoard({ assets, onEdit, onDelete, mode = 'manage', onS
                                 </div>
                                 {mode === 'manage' && (
                                     <div className="p-3 pt-0">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="w-full text-xs text-muted-foreground dashed border border-transparent hover:border-border"
-                                            onClick={() => onCreateChild?.(group.id)}
-                                            onMouseDown={(e) => e.stopPropagation()}
-                                        >
-                                            <Plus className="mr-2 h-3 w-3" /> Add Child
-                                        </Button>
+                                        <RoleGuard requiredPermission="asset:write">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="w-full text-xs text-muted-foreground dashed border border-transparent hover:border-border"
+                                                onClick={() => onCreateChild?.(group.id)}
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                            >
+                                                <Plus className="mr-2 h-3 w-3" /> Add Child
+                                            </Button>
+                                        </RoleGuard>
                                     </div>
                                 )}
                             </div>
@@ -296,17 +301,19 @@ export function AssetGroupBoard({ assets, onEdit, onDelete, mode = 'manage', onS
 
                         {/* Create New Group Column */}
                         {mode === 'manage' && (
-                            <div
-                                className="min-w-[300px] flex items-center justify-center border-2 border-dashed rounded-xl opacity-50 hover:opacity-100 transition-opacity cursor-pointer shrink-0"
-                                onClick={() => onCreateGroup?.()}
-                                onMouseDown={e => e.stopPropagation()}
-                            >
-                                <div className="text-center">
-                                    <Plus className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                                    <span className="text-muted-foreground font-medium">Add Group</span>
-                                    <p className="text-xs text-muted-foreground/70 px-4 mt-2">Create a new container in {currentRoot ? currentRoot.name : 'Root'}.</p>
+                            <RoleGuard requiredPermission="asset:write">
+                                <div
+                                    className="min-w-[300px] flex items-center justify-center border-2 border-dashed rounded-xl opacity-50 hover:opacity-100 transition-opacity cursor-pointer shrink-0"
+                                    onClick={() => onCreateGroup?.()}
+                                    onMouseDown={e => e.stopPropagation()}
+                                >
+                                    <div className="text-center">
+                                        <Plus className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                                        <span className="text-muted-foreground font-medium">Add Group</span>
+                                        <p className="text-xs text-muted-foreground/70 px-4 mt-2">Create a new container in {currentRoot ? currentRoot.name : 'Root'}.</p>
+                                    </div>
                                 </div>
-                            </div>
+                            </RoleGuard>
                         )}
                     </div>
                 )

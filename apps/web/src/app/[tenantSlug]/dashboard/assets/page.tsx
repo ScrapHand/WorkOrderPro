@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { CreateAssetModal } from "@/components/assets/CreateAssetModal";
 import { useAuth } from "@/hooks/use-auth";
 import { UserRole } from "@/lib/auth/types";
+import { RoleGuard } from "@/components/auth/role-guard";
 import { Asset } from "@/types/asset";
 
 import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
@@ -39,7 +40,11 @@ export default function AssetsPage() {
         setCreateParentId(null);
     };
 
-    const isAdminOrManager = user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER;
+    const canEdit = user && (
+        ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'ADMIN'].includes(user.role) ||
+        user.permissions?.includes('*') ||
+        user.permissions?.includes('asset:write')
+    );
 
     const deleteMutation = useMutation({
         mutationFn: (id: string) => AssetService.delete(id), // Assuming AssetService.delete exists
@@ -58,9 +63,11 @@ export default function AssetsPage() {
                     <p className="text-muted-foreground">Manage your physical assets, equipment, and LOTO procedures.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={() => { setCreateParentId(null); setIsCreateModalOpen(true); }}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Asset
-                    </Button>
+                    <RoleGuard requiredPermission="asset:write">
+                        <Button onClick={() => { setCreateParentId(null); setIsCreateModalOpen(true); }}>
+                            <Plus className="mr-2 h-4 w-4" /> Add Asset
+                        </Button>
+                    </RoleGuard>
                 </div>
             </header>
 
@@ -127,7 +134,7 @@ export default function AssetsPage() {
                         <div className="h-[600px] bg-white rounded-xl border overflow-hidden">
                             <InteractiveTree
                                 assets={allAssets} // Pass all assets, component handles tree building
-                                onNodeClick={(asset) => isAdminOrManager ? setEditAsset(asset) : null}
+                                onNodeClick={(asset) => canEdit ? setEditAsset(asset) : null}
                             />
                         </div>
                     )}
