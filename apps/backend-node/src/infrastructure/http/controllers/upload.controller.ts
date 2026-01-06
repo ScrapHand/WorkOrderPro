@@ -77,7 +77,7 @@ export class UploadController {
             if (accessKeyId === 'mock-key' && !process.env.AWS_ENDPOINT) {
                 // Using Local Sink
                 const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
-                url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}`;
+                url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}&tenant=${tenant.slug}`;
             } else {
                 // Real S3 or MinIO
                 const bucket = process.env.AWS_BUCKET_NAME || 'workorderpro-assets';
@@ -88,7 +88,7 @@ export class UploadController {
                     // If using MinIO/Endpoint, the URL might need to be different, 
                     // but the Proxy endpoint /api/v1/upload/proxy is safest as it handles signing.
                     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
-                    url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}`;
+                    url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}&tenant=${tenant.slug}`;
                 }
             }
 
