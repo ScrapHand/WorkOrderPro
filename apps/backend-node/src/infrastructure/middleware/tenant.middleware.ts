@@ -11,9 +11,14 @@ export interface TenantContext {
 export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    // 1. Extract Slug from Header (X-Tenant-Slug)
-    let slug = req.get('x-tenant-slug') || (req.query.tenant as string) || (req.query.slug as string) || 'default';
+    // 1. Extract Slug - PRIORITIZE Query Params for linked assets/proxies
+    let slug = (req.query.tenant as string) || (req.query.slug as string) || req.get('x-tenant-slug') || 'default';
     slug = slug.toLowerCase().trim();
+
+    // [DEBUG] Log resolution source for Proxies
+    if (req.path.includes('/proxy')) {
+        console.log(`[TenantMiddleware] Proxy Resolution: slug=${slug}, query.tenant=${req.query.tenant}, header=${req.get('x-tenant-slug')}`);
+    }
 
     try {
         // [SECURITY] [PHASE 26] Session Lock Strategy

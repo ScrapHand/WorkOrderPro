@@ -76,7 +76,9 @@ export class UploadController {
 
             if (accessKeyId === 'mock-key' && !process.env.AWS_ENDPOINT) {
                 // Using Local Sink
-                const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+                const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                const host = req.get('host');
+                const baseUrl = (process.env.NEXT_PUBLIC_API_URL || `${protocol}://${host}`).replace(/\/$/, '');
                 url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}&tenant=${tenant.slug}`;
             } else {
                 // Real S3 or MinIO
@@ -87,7 +89,9 @@ export class UploadController {
                 if (process.env.AWS_ENDPOINT) {
                     // If using MinIO/Endpoint, the URL might need to be different, 
                     // but the Proxy endpoint /api/v1/upload/proxy is safest as it handles signing.
-                    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+                    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                    const host = req.get('host');
+                    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || `${protocol}://${host}`).replace(/\/$/, '');
                     url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}&tenant=${tenant.slug}`;
                 }
             }
