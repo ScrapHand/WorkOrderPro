@@ -1,5 +1,5 @@
 import { PrismaClient, User } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import * as argon2 from 'argon2';
 
 export class UserService {
     constructor(private prisma: PrismaClient) { }
@@ -13,7 +13,7 @@ export class UserService {
     ): Promise<User> {
         // Default password if not provided
         const passwordToHash = plainPassword || 'temp1234';
-        const passwordHash = await bcrypt.hash(passwordToHash, 10);
+        const passwordHash = await argon2.hash(passwordToHash);
 
         // [PROTOCOL] Enforce Subscription Limits
         const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
@@ -49,7 +49,7 @@ export class UserService {
         const updateData: any = { ...rest };
 
         if (password) {
-            updateData.passwordHash = await bcrypt.hash(password, 10);
+            updateData.passwordHash = await argon2.hash(password);
         }
 
         return this.prisma.user.update({

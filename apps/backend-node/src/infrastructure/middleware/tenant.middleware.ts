@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../database/prisma';
 import { Request, Response, NextFunction } from 'express';
 import { AsyncLocalStorage } from 'async_hooks';
-
-const prisma = new PrismaClient();
 
 // [ARCH] Multi-Tenancy Context
 export interface TenantContext {
@@ -51,7 +49,17 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
             id: tenantId
         };
 
-        // 4. Run next() within the AsyncLocalStorage context
+        // 4. Set Tenant ID in Postgres session for RLS
+        // We use $executeRawUnsafe because it's a SET LOCAL command
+        try {
+            await prisma.$executeRawUnsafe(`SET LOCAL app.tenant_id = '${tenantId}'`);
+        } catch (dbError) {
+            console.error('[TenantMiddleware] Failed to set app.tenant_id:', dbError);
+            // Non-fatal if DB doesn't support it or RLS not enabled yet, 
+            // but in production this should be strictly enforced.
+        }
+
+        // 5. Run next() within the AsyncLocalStorage context
         tenantStorage.run(context, () => {
             next();
         });

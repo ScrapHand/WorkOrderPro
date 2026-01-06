@@ -13,7 +13,12 @@ export class AssetService {
         criticality: 'A' | 'B' | 'C' = 'C',
         imageUrl?: string | null,
         lotoConfig?: any | null,
-        code?: string | null
+        code?: string | null,
+        status?: 'OPERATIONAL' | 'DOWN' | 'MAINTENANCE',
+        rimeRisk?: number | null,
+        rimeImpact?: number | null,
+        rimeMaintenance?: number | null,
+        rimeEffort?: number | null
     ): Promise<Asset> {
         const id = uuidv4();
 
@@ -33,14 +38,19 @@ export class AssetService {
             tenantId,
             name,
             code || null,
-            'OPERATIONAL',
+            status || 'OPERATIONAL',
             criticality,
             hierarchyPath,
             parentId,
             description,
             imageUrl,
             lotoConfig,
-            null // documents
+            null, // documents
+            null, // specs
+            rimeRisk || null,
+            rimeImpact || null,
+            rimeMaintenance || null,
+            rimeEffort || null
         );
 
         await this.assetRepo.create(newAsset);

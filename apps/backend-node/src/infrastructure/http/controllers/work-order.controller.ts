@@ -12,6 +12,7 @@ export class WorkOrderController {
 
     create = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'work_order:write')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();
@@ -42,6 +43,7 @@ export class WorkOrderController {
 
     getAll = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'work_order:read')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();
@@ -69,6 +71,7 @@ export class WorkOrderController {
 
     getById = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'work_order:read')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();
@@ -89,6 +92,7 @@ export class WorkOrderController {
 
     patch = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'work_order:write')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();
@@ -110,6 +114,7 @@ export class WorkOrderController {
 
     delete = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'work_order:delete')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();

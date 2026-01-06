@@ -13,6 +13,10 @@ export class Asset {
         public lotoConfig?: any | null,
         public documents?: any | null, // [FIX] Added documents field
         public specs?: Record<string, string> | null,
+        public rimeRisk?: number | null,
+        public rimeImpact?: number | null,
+        public rimeMaintenance?: number | null,
+        public rimeEffort?: number | null,
         public createdAt?: Date,
         public updatedAt?: Date,
         public deletedAt?: Date | null,

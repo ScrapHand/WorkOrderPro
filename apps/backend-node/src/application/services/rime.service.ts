@@ -19,11 +19,39 @@ export class RimeService {
         // 1. Get Priority Value
         const priorityScore = this.getPriorityScore(priority);
 
-        // 2. Get Asset Criticality (Recursive)
-        const assetCriticality = await this.getRecursiveCriticality(assetId, tenantId);
+        // 2. Get Asset and its recursive RIME factors
+        const ancestors = await this.assetRepo.findAncestors(assetId, tenantId);
 
-        // 3. Calculate
-        return assetCriticality * priorityScore;
+        let risk = 0, impact = 0, maintenance = 0, effort = 0;
+        let foundFactors = false;
+
+        for (const asset of ancestors) {
+            if (asset.rimeRisk !== null && asset.rimeRisk !== undefined) {
+                risk = asset.rimeRisk;
+                impact = asset.rimeImpact || 0;
+                maintenance = asset.rimeMaintenance || 0;
+                effort = asset.rimeEffort || 0;
+                foundFactors = true;
+                break;
+            }
+        }
+
+        if (foundFactors) {
+            // Formula: (Risk + Impact + Maintenance + Effort) * Priority
+            // This is a common variation of RIME when factors are granular.
+            return (risk + impact + maintenance + effort) * priorityScore;
+        }
+
+        // Fallback: Legacy Criticality * Priority
+        let criticality = 5;
+        for (const asset of ancestors) {
+            if (asset.criticality) {
+                criticality = this.mapCriticalityToNumber(asset.criticality);
+                break;
+            }
+        }
+
+        return criticality * priorityScore;
     }
 
     private getPriorityScore(priority: string): number {

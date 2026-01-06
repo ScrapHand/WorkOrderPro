@@ -3,6 +3,7 @@ import { AssetService } from '../../../application/services/asset.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
 import { hasPermission } from '../../auth/rbac.utils';
+import { createAssetSchema } from '../../../application/validators/auth.validator';
 
 export class AssetController {
     constructor(
@@ -12,6 +13,7 @@ export class AssetController {
 
     create = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'asset:write')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();
@@ -21,16 +23,28 @@ export class AssetController {
             const tenantId = tenantCtx.id;
             if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
-            const { name, parentId, description, criticality, imageUrl, lotoConfig } = req.body;
+            // [VALIDATION] Zod Check
+            const result = createAssetSchema.safeParse(req.body);
+            if (!result.success) {
+                return res.status(400).json({ error: 'Invalid asset data', details: result.error.issues });
+            }
+
+            const { name, parentId, description, criticality, status, code, rimeRisk, rimeImpact, rimeMaintenance, rimeEffort } = result.data as any;
 
             const asset = await this.assetService.createAsset(
                 tenantId,
                 name,
                 parentId || null,
                 description,
-                criticality,
-                imageUrl,
-                lotoConfig
+                criticality as any,
+                undefined, // imageUrl
+                undefined, // lotoConfig
+                code,
+                status as any,
+                rimeRisk,
+                rimeImpact,
+                rimeMaintenance,
+                rimeEffort
             );
 
             res.status(201).json(asset);
@@ -42,6 +56,7 @@ export class AssetController {
 
     update = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'asset:write')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();
@@ -74,6 +89,7 @@ export class AssetController {
 
     getTree = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'asset:read')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();
@@ -93,6 +109,7 @@ export class AssetController {
 
     getAll = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'asset:read')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();
@@ -111,6 +128,7 @@ export class AssetController {
 
     delete = async (req: Request, res: Response) => {
         try {
+            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'asset:delete')) return res.status(403).json({ error: 'Forbidden' });
 
             const tenantCtx = getCurrentTenant();

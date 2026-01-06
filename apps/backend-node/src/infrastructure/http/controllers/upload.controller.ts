@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { S3Service } from '../../services/s3.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
+import { presignSchema } from '../../../application/validators/auth.validator';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -14,23 +15,32 @@ export class UploadController {
     presign = async (req: Request, res: Response) => {
         try {
             const tenant = getCurrentTenant();
-            if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
+            if (!tenant) return res.status(401).json({ error: 'Tenant context missing' });
 
-            const { entityType, entityId, fileName, mimeType } = req.body;
-
-            if (!['assets', 'work-orders', 'tenant'].includes(entityType)) {
-                return res.status(400).json({ error: 'Invalid entity type' });
+            // [VALIDATION] Zod Check
+            const result = presignSchema.safeParse(req.body);
+            if (!result.success) {
+                return res.status(400).json({ error: 'Invalid request data', details: result.error.issues });
             }
 
-            // [FIX] Resolve Tenant ID for S3 Key and FK
-            const tenantRecord = await this.prisma.tenant.findUnique({
-                where: { slug: tenant.slug }
-            });
+            const { entityType, entityId, fileName, mimeType } = result.data;
 
-            if (!tenantRecord) return res.status(404).json({ error: 'Tenant not found' });
+            // [SECURITY] Ownership Check
+            // Ensure the entity (Asset or WorkOrder) belongs to the requesting tenant
+            if (entityType === 'assets') {
+                const asset = await this.prisma.asset.findFirst({
+                    where: { id: entityId, tenantId: tenant.id }
+                });
+                if (!asset) return res.status(403).json({ error: 'Access Denied: Asset does not belong to your tenant' });
+            } else if (entityType === 'work-orders') {
+                const wo = await this.prisma.workOrder.findFirst({
+                    where: { id: entityId, tenantId: tenant.id }
+                });
+                if (!wo) return res.status(403).json({ error: 'Access Denied: Work Order does not belong to your tenant' });
+            }
 
             const { url, key } = await this.s3Service.generatePresignedUrl(
-                tenantRecord.id, // Real UUID
+                tenant.id,
                 entityType as 'assets' | 'work-orders' | 'tenant',
                 entityId,
                 fileName,
@@ -40,7 +50,7 @@ export class UploadController {
             res.json({ url, key });
         } catch (error: any) {
             console.error('Presign Error:', error);
-            res.status(500).json({ error: error.message });
+            res.status(500).json({ error: 'Internal server error' });
         }
     };
 
@@ -61,9 +71,26 @@ export class UploadController {
 
             if (!tenantRecord) return res.status(404).json({ error: 'Tenant not found' });
 
-            const bucket = process.env.AWS_BUCKET_NAME || 'workorderpro-assets';
-            const region = process.env.AWS_REGION || 'us-east-1';
-            const url = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+            const accessKeyId = process.env.AWS_ACCESS_KEY_ID || 'mock-key';
+            let url = '';
+
+            if (accessKeyId === 'mock-key' && !process.env.AWS_ENDPOINT) {
+                // Using Local Sink
+                const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+                url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}`;
+            } else {
+                // Real S3 or MinIO
+                const bucket = process.env.AWS_BUCKET_NAME || 'workorderpro-assets';
+                const region = process.env.AWS_REGION || 'us-east-1';
+                url = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+                if (process.env.AWS_ENDPOINT) {
+                    // If using MinIO/Endpoint, the URL might need to be different, 
+                    // but the Proxy endpoint /api/v1/upload/proxy is safest as it handles signing.
+                    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+                    url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}`;
+                }
+            }
 
             const attachment = await this.prisma.attachment.create({
                 data: {

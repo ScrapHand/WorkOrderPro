@@ -5,7 +5,7 @@ import { getCurrentTenant } from '../../middleware/tenant.middleware';
 export class AdminController {
     constructor(private prisma: PrismaClient) { }
 
-    updateConfig = async (req: Request, res: Response) => {
+    updateConfig = async (req: Request, res: Response, next: any) => {
         try {
             console.log("AdminController.updateConfig: Body:", JSON.stringify(req.body, null, 2));
             const tenantCtx = getCurrentTenant();
@@ -52,11 +52,11 @@ export class AdminController {
             res.json(updated);
         } catch (error: any) {
             console.error('Update Config Error:', error);
-            res.status(500).json({ error: error.message });
+            next(error);
         }
     };
 
-    getConfig = async (req: Request, res: Response) => {
+    getConfig = async (req: Request, res: Response, next: any) => {
         try {
             const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
@@ -102,7 +102,7 @@ export class AdminController {
             });
         } catch (error: any) {
             console.error('Get Config Error:', error);
-            res.status(500).json({ error: error.message });
+            next(error);
         }
     };
 }

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import * as bcrypt from 'bcryptjs';
+import * as argon2 from 'argon2';
 
 export class TenantService {
     constructor(private prisma: PrismaClient) { }
@@ -28,7 +28,7 @@ export class TenantService {
             });
 
             // 2. Create Admin User
-            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            const hashedPassword = await argon2.hash(adminPassword);
             await tx.user.create({
                 data: {
                     email: adminEmail,

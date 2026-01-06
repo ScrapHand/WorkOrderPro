@@ -123,6 +123,7 @@ export class WorkOrderSessionService {
                 // Log Transaction
                 await tx.inventoryTransaction.create({
                     data: {
+                        tenantId,
                         partId: item.partId,
                         changeQuantity: -item.quantity,
                         type: 'OUT',

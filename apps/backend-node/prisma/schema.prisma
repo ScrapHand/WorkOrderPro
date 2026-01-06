@@ -36,6 +36,7 @@ model Tenant {
   roles     Role[]
   workOrderSessions WorkOrderSession[]
   workOrderParts    WorkOrderPart[]
+  inventoryTransactions InventoryTransaction[]
 }
 
 model User {
@@ -92,6 +93,10 @@ model Asset {
   imageUrl      String?  @map("image_url")
   status        String   @default("OPERATIONAL") // Enum: OPERATIONAL, DOWN, MAINTENANCE
   criticality   String?  @map("criticality") // Nullable for Recursive Inheritance
+  rimeRisk      Int?     @map("rime_risk")
+  rimeImpact    Int?     @map("rime_impact")
+  rimeMaintenance Int?   @map("rime_maintenance")
+  rimeEffort    Int?     @map("rime_effort")
   hierarchyPath String   @default("/") @map("hierarchy_path") // optimization for search
   lotoConfig    Json?    @map("loto_config") // { electrical: url, pneumatic: url, hydraulic: url }
   documents     Json?    @map("documents")   // [{ name: "Manual", url: "..." }]
@@ -196,6 +201,7 @@ model WorkOrderPart {
 
 model InventoryTransaction {
   id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
   partId        String   @map("part_id")
   changeQuantity Int      @map("change_quantity") // +10, -5, etc.
   type          String   // IN, OUT, AUDIT
@@ -204,8 +210,10 @@ model InventoryTransaction {
   performedAt   DateTime @default(now())
   performedBy   String?  @map("performed_by") // User ID if available
 
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
   part          Part     @relation(fields: [partId], references: [id])
 
+  @@index([tenantId])
   @@index([partId])
 }
 
@@ -260,4 +268,19 @@ model WorkOrderSession {
 
   @@index([workOrderId])
   @@index([userId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  tenantId    String?  @map("tenant_id")
+  userId      String?  @map("user_id")
+  event       String   // e.g., "LOGIN_SUCCESS", "TENANT_CREATED", "PERMISSIONS_UPDATED"
+  resource    String?  // e.g., "User", "Asset", "WorkOrder"
+  resourceId  String?  @map("resource_id")
+  metadata    Json?    // e.g., { ip: "...", oldRole: "...", newRole: "..." }
+  timestamp   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([event])
 }

@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 import 'dotenv/config';
@@ -9,7 +9,7 @@ export class S3Service {
 
     constructor() {
         const region = process.env.AWS_REGION || "us-east-1";
-        this.bucket = process.env.AWS_BUCKET_NAME || "workorderpro-assets"; // Fallback to mock bucket name
+        this.bucket = process.env.AWS_BUCKET_NAME || "workorderpro-assets";
 
         const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "mock-key";
         const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || "mock-secret";
@@ -17,7 +17,7 @@ export class S3Service {
         const clientConfig: any = {
             region,
             credentials: { accessKeyId, secretAccessKey },
-            forcePathStyle: !!process.env.AWS_ENDPOINT // Only force path style for MinIO/LocalStack
+            forcePathStyle: true // [FIX] Required for local development with localhost/MinIO/Mock
         };
 
         // [DEV SAFETY] If using mock keys, DO NOT hit real AWS. Default to localhost if no endpoint provided.
@@ -85,5 +85,33 @@ export class S3Service {
 
         // Expires in 1 hour
         return getSignedUrl(this.client, command, { expiresIn: 3600 });
+    }
+
+    /**
+     * Ensures the configured bucket exists (useful for MinIO/Local dev).
+     */
+    async ensureBucketExists(): Promise<void> {
+        const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "mock-key";
+        if (accessKeyId === "mock-key" && !process.env.AWS_ENDPOINT) {
+            console.log("[S3] Local-sink mode detected. Skipping bucket existence check.");
+            return;
+        }
+
+        try {
+            await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+            console.log(`[S3] Bucket '${this.bucket}' already exists.`);
+        } catch (error: any) {
+            if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+                console.log(`[S3] Bucket '${this.bucket}' not found. Creating...`);
+                try {
+                    await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
+                    console.log(`[S3] Bucket '${this.bucket}' created successfully.`);
+                } catch (createError: any) {
+                    console.error(`[S3] Failed to create bucket '${this.bucket}':`, createError.message);
+                }
+            } else {
+                console.error(`[S3] Error checking bucket '${this.bucket}':`, error.message);
+            }
+        }
     }
 }

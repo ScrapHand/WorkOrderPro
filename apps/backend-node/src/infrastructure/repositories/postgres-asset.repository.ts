@@ -17,7 +17,11 @@ const mapToDomain = (row: any): Asset => {
         row.image_url || row.imageUrl,
         row.loto_config || row.lotoConfig,
         row.documents,
-        row.specs, // [FIX] Map specs
+        row.specs,
+        row.rime_risk || row.rimeRisk || null,
+        row.rime_impact || row.rimeImpact || null,
+        row.rime_maintenance || row.rimeMaintenance || null,
+        row.rime_effort || row.rimeEffort || null,
         row.createdAt ? new Date(row.createdAt) : undefined,
         row.updatedAt ? new Date(row.updatedAt) : undefined,
         row.deletedAt ? new Date(row.deletedAt) : null
@@ -42,6 +46,10 @@ export class PostgresAssetRepository implements IAssetRepository {
                 specs: asset.specs as any, // [FIX] Cast to any for Prisma Json compat
                 status: asset.status,
                 criticality: asset.criticality,
+                rimeRisk: asset.rimeRisk,
+                rimeImpact: asset.rimeImpact,
+                rimeMaintenance: asset.rimeMaintenance,
+                rimeEffort: asset.rimeEffort,
                 hierarchyPath: asset.hierarchyPath
             }
         });
@@ -55,6 +63,10 @@ export class PostgresAssetRepository implements IAssetRepository {
                 code: asset.code,
                 status: asset.status,
                 criticality: asset.criticality,
+                rimeRisk: asset.rimeRisk,
+                rimeImpact: asset.rimeImpact,
+                rimeMaintenance: asset.rimeMaintenance,
+                rimeEffort: asset.rimeEffort,
                 hierarchyPath: asset.hierarchyPath,
                 imageUrl: asset.imageUrl,
                 lotoConfig: asset.lotoConfig ?? undefined,

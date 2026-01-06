@@ -10,6 +10,8 @@ import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { tenantMiddleware, getCurrentTenant } from './infrastructure/middleware/tenant.middleware';
 import { requireAuth } from './infrastructure/middleware/auth.middleware';
+import { requirePermission, requireRole } from './infrastructure/middleware/rbac.middleware';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -20,24 +22,32 @@ const PORT = process.env.PORT || 8080;
 // [ARCH] 1. Proxy Trust (Render Requirement)
 // Trust loopback and link-local. For Render, we often need to trust the load balancer.
 // parse '1' or true. true means trust everything (safe-ish behind Render's firewall)
-app.set('trust proxy', true);
+app.set('trust proxy', process.env.NODE_ENV === 'production');
 
 // [ARCH] 2. Security Middleware
 app.use(helmet());
 app.use(cookieParser());
 app.use(express.json());
 
-// [DEBUG] Log Protocol and Headers for Auth Debugging
-app.use((req, res, next) => {
-    if (req.path.includes('/auth') || req.path.includes('/work-orders')) {
-        console.log(`[Request] ${req.method} ${req.path}`);
-        console.log(`   Secure: ${req.secure}`);
-        console.log(`   Protocol: ${req.protocol}`);
-        console.log(`   X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
-        console.log(`   SessionID: ${req.sessionID}`);
-    }
-    next();
+// [HARDENING] 2.1 General Rate Limiting
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later.' }
 });
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10, // 10 attempts per 15 mins
+    message: { error: 'Too many login attempts, please try again later.' }
+});
+
+app.use('/api', generalLimiter);
+app.use('/api/v1/auth/login', authLimiter);
+
+// [DEBUG] Log Protocol and Headers moved after session
 
 // [ARCH] 3. CORS & Auth
 // Must allow credentials for cross-site cookies.
@@ -87,9 +97,20 @@ app.use(session({
 // [ARCH] 5. Tenant Context
 app.use(tenantMiddleware);
 
+// [DEBUG] Log Protocol and Headers for Auth Debugging - POST SESSION
+app.use((req, res, next) => {
+    if (req.path.includes('/api/v1')) {
+        const sessionUser = (req.session as any)?.user;
+        console.log(`[Request] ${req.method} ${req.path}`);
+        console.log(`   SessionID: ${req.sessionID}`);
+        console.log(`   User: ${sessionUser?.email || 'GUEST'} (${sessionUser?.role || 'N/A'})`);
+        console.log(`   Tenant: ${getCurrentTenant()?.slug || 'NONE'}`);
+    }
+    next();
+});
+
 // [ARCH] Database Connection
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { prisma } from './infrastructure/database/prisma';
 
 // [ARCH] DI & Routes
 // Import Controllers
@@ -120,7 +141,9 @@ import { PostgresWorkOrderSessionRepository } from './infrastructure/repositorie
 import { WorkOrderSessionService } from './application/services/work-order-session.service';
 import { WorkOrderSessionController } from './infrastructure/http/controllers/work-order-session.controller';
 
-import { AuthController } from './infrastructure/http/controllers/auth.controller'; // [FIX] Import Auth
+import { AuthController } from './infrastructure/http/controllers/auth.controller';
+import { PlatformAdminController } from './infrastructure/http/controllers/platform-admin.controller';
+import { AuditService } from './application/services/audit.service';
 
 // Instantiate Services
 const assetRepo = new PostgresAssetRepository(prisma);
@@ -133,6 +156,7 @@ const woService = new WorkOrderService(woRepo, rimeService);
 const woController = new WorkOrderController(woService, prisma);
 
 const s3Service = new S3Service();
+s3Service.ensureBucketExists().catch(err => console.error('[S3] Bootstrap Error:', err));
 const uploadController = new UploadController(s3Service, prisma);
 
 const userService = new UserService(prisma);
@@ -156,7 +180,10 @@ const sessionRepo = new PostgresWorkOrderSessionRepository(prisma);
 const sessionService = new WorkOrderSessionService(sessionRepo, prisma);
 const sessionController = new WorkOrderSessionController(sessionService);
 
-const authController = new AuthController(userService); // [PHASE 23] Real Auth
+const auditService = new AuditService(prisma);
+const authController = new AuthController(userService, auditService); // [PHASE 23] Real Auth
+
+const platformAdminController = new PlatformAdminController(prisma);
 
 // Define Routers
 const apiRouter = express.Router(); // [FIX] Group under /api/v1
@@ -214,11 +241,15 @@ const adminRouter = express.Router();
 adminRouter.patch('/config', adminController.updateConfig);
 adminRouter.get('/config', adminController.getConfig);
 
-// [NEW] Tenant Management Routes
-adminRouter.get('/', tenantController.getAll);
-adminRouter.post('/', tenantController.create);
-adminRouter.post('/:id/seed', tenantController.seedDemo);
-adminRouter.delete('/:id', tenantController.delete); // [NEW] Delete Tenant
+// [NEW] Tenant Management Routes - Restricted to Super Admin
+adminRouter.get('/', requireRole('SUPER_ADMIN'), tenantController.getAll);
+adminRouter.post('/', requireRole('SUPER_ADMIN'), tenantController.create);
+adminRouter.post('/:id/seed', requireRole('SUPER_ADMIN'), tenantController.seedDemo);
+adminRouter.delete('/:id', requireRole('SUPER_ADMIN'), tenantController.delete); // [NEW] Delete Tenant
+
+// [NEW] Platform-Wide Admin Routes
+adminRouter.get('/audit-logs', requireRole('SUPER_ADMIN'), platformAdminController.getAuditLogs);
+adminRouter.get('/users/search', requireRole('SUPER_ADMIN'), platformAdminController.globalUserSearch);
 
 apiRouter.use('/tenant', adminRouter); // Note: mounted at /api/v1/tenant
 
@@ -293,6 +324,36 @@ app.use('/api', apiRouter); // [FIX] Fallback for api/ (legacy)
 
 // Health Check (Root)
 app.get('/health', (req, res) => res.send('OK'));
+
+// [HARDENING] Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // 1. Log to console for backend debugging
+    console.error('[Fatal Error]', err);
+
+    // 2. Avoid double-sending if headers already sent
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    const status = err.status || 500;
+
+    // 3. Bulletproof Serialization
+    // Native Errors don't stringify well, we extract key info
+    const errorResponse = {
+        error: process.env.NODE_ENV === 'production'
+            ? 'Internal Server Error'
+            : err.message || 'Internal Server Error',
+        requestId: (req as any).id || 'N/A',
+        stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
+        details: process.env.NODE_ENV === 'production' ? undefined : {
+            code: err.code,
+            meta: err.meta,
+            clientVersion: err.clientVersion
+        }
+    };
+
+    res.status(status).json(errorResponse);
+});
 
 
 app.listen(PORT, () => {
