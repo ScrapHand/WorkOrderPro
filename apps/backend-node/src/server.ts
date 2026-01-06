@@ -25,7 +25,10 @@ const PORT = process.env.PORT || 8080;
 app.set('trust proxy', process.env.NODE_ENV === 'production');
 
 // [ARCH] 2. Security Middleware
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false, // [FIX] Required for some cross-origin image loads
+}));
 app.use(cookieParser());
 app.use(express.json());
 
