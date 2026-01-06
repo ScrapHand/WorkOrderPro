@@ -27,10 +27,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
         let finalSlug = slug;
 
         if (sessionUser && !req.path.includes('/auth/') && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN' && sessionUser.role !== 'SUPER_ADMIN') {
-            // [HARD LOCK] If a user is logged in, FORGET the header? No, we must CHECK it.
-            // If they ask for 'default' but belong to 'aston', we should BLOCK them (403),
-            // NOT silently give them 'aston' data (which looks like a bypass).
-
+            // [HARD LOCK] Enforce user's assigned tenant
             if (slug !== sessionUser.tenantSlug) {
                 return res.status(403).json({
                     error: 'Cross-tenant access forbidden',
@@ -41,10 +38,26 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
             tenantId = sessionUser.tenantId;
             finalSlug = sessionUser.tenantSlug;
         } else {
-            // [RESOLUTION] For Login or Global Admins, resolve from slug
-            const tenant = await prisma.tenant.findUnique({ where: { slug: finalSlug } });
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
-            tenantId = tenant.id;
+            // [RESOLUTION] Resolve from slug (Login, Global Admins, or Guests)
+
+            // [HARDENING] Special resolution for S3 Proxy to bypass cross-origin cookie loss
+            if (req.path.includes('/proxy') && req.query.key) {
+                const key = req.query.key as string;
+                const parts = key.split('/');
+                if (parts[0] === 'tenants' && parts[1]) {
+                    const resolvedTenant = await prisma.tenant.findUnique({ where: { id: parts[1] } });
+                    if (resolvedTenant) {
+                        tenantId = resolvedTenant.id;
+                        finalSlug = resolvedTenant.slug;
+                    }
+                }
+            }
+
+            if (!tenantId) {
+                const tenant = await prisma.tenant.findUnique({ where: { slug: finalSlug } });
+                if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+                tenantId = tenant.id;
+            }
         }
 
         if (!tenantId) return res.status(401).json({ error: 'Unauthorized: Tenant could not be identified' });
