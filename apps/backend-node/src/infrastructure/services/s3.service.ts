@@ -88,6 +88,21 @@ export class S3Service {
     }
 
     /**
+     * Fetches an object from S3 as a readable stream.
+     */
+    async getObjectStream(key: string): Promise<{ body: any, contentType?: string }> {
+        const command = new GetObjectCommand({
+            Bucket: this.bucket,
+            Key: key
+        });
+        const response = await this.client.send(command);
+        return {
+            body: response.Body,
+            contentType: response.ContentType
+        };
+    }
+
+    /**
      * Ensures the configured bucket exists (useful for MinIO/Local dev).
      */
     async ensureBucketExists(): Promise<void> {

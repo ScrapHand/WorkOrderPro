@@ -137,8 +137,33 @@ export class UploadController {
                 return res.status(403).json({ error: 'Access Denied: File does not belong to this tenant' });
             }
 
-            const signedUrl = await this.s3Service.generatePresignedGetUrl(key);
-            res.redirect(signedUrl);
+            const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "mock-key";
+            if (accessKeyId === "mock-key" && !process.env.AWS_ENDPOINT) {
+                // Local Sink Logic: Stream directly for better header control
+                const uploadDir = path.join(process.cwd(), 'uploads');
+                const filePath = path.join(uploadDir, key);
+                if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
+
+                res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                return res.sendFile(filePath);
+            }
+
+            // Real S3 or MinIO
+            const { body, contentType } = await this.s3Service.getObjectStream(key);
+
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            if (contentType) res.setHeader('Content-Type', contentType);
+
+            // Pipe the stream to the response
+            if (body && typeof (body as any).pipe === 'function') {
+                (body as any).pipe(res);
+            } else {
+                // SdkStream can sometimes be different depending on platform, 
+                // but in Node.js it implements the Readable interface.
+                res.end(await (body as any).transformToByteArray());
+            }
 
         } catch (error: any) {
             console.error('Proxy Error:', error);
@@ -181,6 +206,9 @@ export class UploadController {
             else if (req.method === 'GET') {
                 if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
 
+                // [FIX] Allow Cross-Origin usage for local mock
+                res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+                res.setHeader('Access-Control-Allow-Origin', '*');
                 res.sendFile(filePath);
             }
             else {
