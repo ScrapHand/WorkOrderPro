@@ -8,17 +8,12 @@ export class AdminController {
     updateConfig = async (req: Request, res: Response, next: any) => {
         try {
             console.log("AdminController.updateConfig: Body:", JSON.stringify(req.body, null, 2));
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
-            const { branding, rbac } = req.body;
-            // Expecting: { branding: { primaryColor, ... }, rbac: { "ROLE": ... } }
+            const { branding, rbac, notifications, secrets } = req.body;
 
-            // 1. Resolve Tenant
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } }) as any;
-            if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
-
-            // 2. Prepare Update Data
+            // 1. Prepare Update Data
             const data: any = {};
 
             if (branding) {
@@ -33,18 +28,19 @@ export class AdminController {
                 data.rbacConfig = rbac;
             }
 
-            if (req.body.notifications) {
-                data.notificationConfig = req.body.notifications;
+            if (notifications) {
+                data.notificationConfig = notifications;
             }
 
-            if (req.body.secrets) {
-                const currentSecrets = (tenant.secretsConfig as any) || {};
-                data.secretsConfig = { ...currentSecrets, ...req.body.secrets };
+            if (secrets) {
+                const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } }) as any;
+                const currentSecrets = (tenant?.secretsConfig as Record<string, any>) || {};
+                data.secretsConfig = { ...currentSecrets, ...secrets };
             }
 
-            // 3. Perform Update
+            // 2. Perform Update
             const updated = await this.prisma.tenant.update({
-                where: { id: tenant.id },
+                where: { id: tenantId },
                 data: data
             });
 
@@ -56,12 +52,34 @@ export class AdminController {
         }
     };
 
+    updateEntitlements = async (req: Request, res: Response, next: any) => {
+        try {
+            // Only SUPER_ADMIN allowed (This role check will be enforced at route level via middleware)
+            const { id } = req.params; // Target Tenant ID
+            const { plan, maxUsers, maxAdmins } = req.body;
+
+            const updated = await this.prisma.tenant.update({
+                where: { id },
+                data: {
+                    plan,
+                    maxUsers,
+                    maxAdmins
+                }
+            });
+
+            res.json(updated);
+        } catch (error: any) {
+            console.error('Update Entitlements Error:', error);
+            next(error);
+        }
+    };
+
     getConfig = async (req: Request, res: Response, next: any) => {
         try {
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
-            const tenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
+            const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
             // [SECURITY] Mask Secrets
@@ -85,9 +103,6 @@ export class AdminController {
                 logoUrl: dbBranding.logoUrl || tenant.logoUrl,
             };
 
-            console.log("AdminController.getConfig: Merged Branding:", mergedBranding);
-
-            // Return safe public config
             res.json({
                 slug: tenant.slug,
                 name: tenant.name,

@@ -47,7 +47,7 @@ export class UploadController {
                 mimeType
             );
 
-            res.json({ url, key });
+            res.json({ url, key, mimeType }); // Explicitly return mimeType to client
         } catch (error: any) {
             console.error('Presign Error:', error);
             res.status(500).json({ error: 'Internal server error' });

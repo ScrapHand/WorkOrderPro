@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import { FileUploader } from "@/components/common/FileUploader";
+import { FileUploader } from "@/components/ui/file-uploader";
 import { Asset } from "@/types/asset";
 import { AssetService } from "@/services/asset.service";
 import { useEffect } from "react";
@@ -125,9 +125,9 @@ export function CreateAssetModal({ open, onOpenChange, parentId, parentName, ini
                                     </div>
                                 )}
                                 <FileUploader
-                                    entityType="assets"
-                                    entityId={initialData?.id} // [FIX] ID or undefined
-                                    onUploadComplete={(file) => setValue("imageUrl", file.url)}
+                                    entityType="asset"
+                                    entityId={initialData?.id}
+                                    onUploadSuccess={(url) => setValue("imageUrl", url)}
                                 />
                             </div>
                         </div>

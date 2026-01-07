@@ -10,26 +10,68 @@ import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { tenantMiddleware, getCurrentTenant } from './infrastructure/middleware/tenant.middleware';
 import { requireAuth } from './infrastructure/middleware/auth.middleware';
-import { requirePermission, requireRole } from './infrastructure/middleware/rbac.middleware';
+import { requirePermission, requireRole, UserRole } from './infrastructure/middleware/rbac.middleware';
 import rateLimit from 'express-rate-limit';
+
+// Infrastructure & DB
+import { prisma } from './infrastructure/database/prisma';
+import pgSession from 'connect-pg-simple';
+
+// Repositories
+import { PostgresAssetRepository } from './infrastructure/repositories/postgres-asset.repository';
+import { PostgresWorkOrderRepository } from './infrastructure/repositories/work-order.repository';
+import { PostgresRoleRepository } from './infrastructure/repositories/postgres-role.repository';
+import { PostgresWorkOrderSessionRepository } from './infrastructure/repositories/postgres-work-order-session.repository';
+
+// Services
+import { AssetService } from './application/services/asset.service';
+import { RimeService } from './application/services/rime.service';
+import { WorkOrderService } from './application/services/work-order.service';
+import { S3Service } from './infrastructure/services/s3.service';
+import { UserService } from './application/services/user.service';
+import { ReportService } from './application/services/report.service';
+import { RoleService } from './application/services/role.service';
+import { WorkOrderSessionService } from './application/services/work-order-session.service';
+import { AuditService } from './application/services/audit.service';
+import { PartService } from './application/services/part.service';
+import { PMService } from './application/services/pm.service';
+import { ChecklistTemplateService } from './application/services/checklist-template.service';
+import { TenantService } from './application/services/tenant.service';
+import { AnalyticsService } from './application/services/analytics.service';
+
+// Controllers
+import { AssetController } from './infrastructure/http/controllers/asset.controller';
+import { WorkOrderController } from './infrastructure/http/controllers/work-order.controller';
+import { UploadController } from './infrastructure/http/controllers/upload.controller';
+import { UserController } from './infrastructure/http/controllers/user.controller';
+import { PartController } from './infrastructure/http/controllers/part.controller';
+import { PMController } from './infrastructure/http/controllers/pm.controller';
+import { AdminController } from './infrastructure/http/controllers/admin.controller';
+import { DebugController } from './infrastructure/http/controllers/debug.controller';
+import { ReportController } from './infrastructure/http/controllers/report.controller';
+import { RoleController } from './infrastructure/http/controllers/role.controller';
+import { WorkOrderSessionController } from './infrastructure/http/controllers/work-order-session.controller';
+import { AuthController } from './infrastructure/http/controllers/auth.controller';
+import { PlatformAdminController } from './infrastructure/http/controllers/platform-admin.controller';
+import { TenantController } from './infrastructure/http/controllers/tenant.controller';
+import { AnalyticsController } from './infrastructure/http/controllers/analytics.controller';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.set('trust proxy', 1); // [FIX] PaaS providers (Render/Vercel) use load balancers. 1 = trust first hop.
+app.set('trust proxy', 1);
 
-// [ARCH] 2. Security Middleware
+// Security Middleware
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginEmbedderPolicy: false, // [FIX] Required for some cross-origin image loads
+    crossOriginEmbedderPolicy: false,
 }));
 app.use(cookieParser());
 app.use(express.json());
 
-// [HARDENING] 2.1 General Rate Limiting
 const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per window
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests, please try again later.' }
@@ -37,68 +79,43 @@ const generalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10, // 10 attempts per 15 mins
+    max: 10,
     message: { error: 'Too many login attempts, please try again later.' }
 });
 
 app.use('/api', generalLimiter);
 app.use('/api/v1/auth/login', authLimiter);
 
-// [DEBUG] Log Protocol and Headers moved after session
-
-// [ARCH] 3. CORS & Auth
-// Must allow credentials for cross-site cookies.
-const corsOptions = {
-    origin: [
-        'http://localhost:3000',
-        'https://workorderpro.vercel.app',
-        'https://work-order-pro.vercel.app', // [FIX] New Prod URL
-        ...(process.env.BACKEND_CORS_ORIGINS ? process.env.BACKEND_CORS_ORIGINS.split(',') : []),
-        /https:\/\/.*\.vercel\.app$/ // Allow preview deployments
-    ],
-    credentials: true,
-};
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable Pre-Flight with same config
-
-// [ARCH] 4. Session Persistence (Postgres)
-// Replaces MemoryStore to survive Render restarts/re-deploys.
-import pgSession from 'connect-pg-simple';
+// Session Persistence
 const PgStore = pgSession(session);
-
 app.use(session({
     store: new PgStore({
         conObject: {
             connectionString: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false } // Render requires SSL
+            ssl: { rejectUnauthorized: false }
         },
-        createTableIfMissing: true, // [FIX] Ensure table exists for dev consistency
-        errorLog: console.error // [PHASE 18] Log connection errors
+        createTableIfMissing: true,
+        errorLog: console.error
     }),
     secret: process.env.SESSION_SECRET || 'dev_secret_key_change_in_prod',
     resave: false,
-    saveUninitialized: false, // [OPTIONAL] Set to true if you want to track "Guest" sessions
-    name: 'wop_sid', // [PHASE 22] Rename to clear legacy collisions
-    rolling: true, // [NEW] Reset maxAge on every response to keep active users logged in
-    proxy: true, // [CRITICAL] Trust the proxy for secure cookies
+    saveUninitialized: false,
+    name: 'wop_sid',
+    rolling: true,
+    proxy: true,
     cookie: {
         path: '/',
-        httpOnly: true, // Mitigate XSS
-        secure: process.env.NODE_ENV === 'production', // [FIX] HTTPS only in prod
-        // 'none' required for cross-site (backend != frontend domain).
-        // 'lax' is safer for same-domain deployments.
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        // CHIPS Support: Partition cookie by top-level site
         partitioned: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days persistence
+        maxAge: 7 * 24 * 60 * 60 * 1000
     } as any
 }));
 
-// [ARCH] 5. Tenant Context
 app.use(tenantMiddleware);
 
-// [DEBUG] Log Protocol and Headers for Auth Debugging - POST SESSION
+// Request Logging
 app.use((req, res, next) => {
     if (req.path.includes('/api/v1')) {
         const sessionUser = (req.session as any)?.user;
@@ -110,43 +127,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// [ARCH] Database Connection
-import { prisma } from './infrastructure/database/prisma';
-
-// [ARCH] DI & Routes
-// Import Controllers
-import { PostgresAssetRepository } from './infrastructure/repositories/postgres-asset.repository';
-import { AssetService } from './application/services/asset.service';
-import { AssetController } from './infrastructure/http/controllers/asset.controller';
-
-import { PostgresWorkOrderRepository } from './infrastructure/repositories/work-order.repository';
-import { RimeService } from './application/services/rime.service';
-import { WorkOrderService } from './application/services/work-order.service';
-import { WorkOrderController } from './infrastructure/http/controllers/work-order.controller';
-
-import { S3Service } from './infrastructure/services/s3.service';
-import { UploadController } from './infrastructure/http/controllers/upload.controller';
-
-import { UserService } from './application/services/user.service';
-import { UserController } from './infrastructure/http/controllers/user.controller';
-import { AdminController } from './infrastructure/http/controllers/admin.controller';
-import { DebugController } from './infrastructure/http/controllers/debug.controller';
-import { ReportService } from './application/services/report.service';
-import { ReportController } from './infrastructure/http/controllers/report.controller';
-
-import { PostgresRoleRepository } from './infrastructure/repositories/postgres-role.repository';
-import { RoleService } from './application/services/role.service';
-import { RoleController } from './infrastructure/http/controllers/role.controller';
-
-import { PostgresWorkOrderSessionRepository } from './infrastructure/repositories/postgres-work-order-session.repository';
-import { WorkOrderSessionService } from './application/services/work-order-session.service';
-import { WorkOrderSessionController } from './infrastructure/http/controllers/work-order-session.controller';
-
-import { AuthController } from './infrastructure/http/controllers/auth.controller';
-import { PlatformAdminController } from './infrastructure/http/controllers/platform-admin.controller';
-import { AuditService } from './application/services/audit.service';
-
-// Instantiate Services
+// Instantiate Services & Controllers
 const assetRepo = new PostgresAssetRepository(prisma);
 const assetService = new AssetService(assetRepo);
 const assetController = new AssetController(assetService, prisma);
@@ -165,10 +146,11 @@ const userController = new UserController(userService);
 const adminController = new AdminController(prisma);
 const debugController = new DebugController(prisma);
 
-// Inventory Module (Temporarily Disabled for Refactor)
-// const inventoryRepo = new PostgresInventoryRepository(prisma);
-// const inventoryService = new InventoryService(inventoryRepo);
-// const inventoryController = new InventoryController(inventoryService, prisma);
+const partService = new PartService(prisma);
+const partController = new PartController(partService, prisma);
+
+const pmService = new PMService();
+const pmController = new PMController();
 
 const reportService = new ReportService(prisma);
 const reportController = new ReportController(reportService, prisma);
@@ -182,33 +164,30 @@ const sessionService = new WorkOrderSessionService(sessionRepo, prisma);
 const sessionController = new WorkOrderSessionController(sessionService);
 
 const auditService = new AuditService(prisma);
-const authController = new AuthController(userService, auditService); // [PHASE 23] Real Auth
+const authController = new AuthController(userService, auditService);
+
+const tenantService = new TenantService(prisma);
+const tenantController = new TenantController(tenantService);
 
 const platformAdminController = new PlatformAdminController(prisma);
 
+const analyticsService = new AnalyticsService(prisma);
+const analyticsController = new AnalyticsController(analyticsService);
+
 // Define Routers
-const apiRouter = express.Router(); // [FIX] Group under /api/v1
+const apiRouter = express.Router();
 
 // Auth Routes
 const authRouter = express.Router();
 authRouter.post('/login', authController.login);
 authRouter.post('/logout', authController.logout);
 authRouter.get('/me', authController.me);
-authRouter.get('/verify', (req, res) => {
-    res.json({
-        message: 'Auth Verification',
-        sessionID: req.sessionID,
-        user: (req.session as any).user || null,
-        tenant: getCurrentTenant(),
-        headers: req.headers
-    });
-});
 apiRouter.use('/auth', authRouter);
 
 // Asset Routes
 const assetRouter = express.Router();
 assetRouter.post('/', requirePermission('asset:write'), assetController.create);
-assetRouter.post('/layout', requireAuth, assetController.saveLayout); // [NEW] Save Layout - Auth enough for user scope
+assetRouter.post('/layout', requireAuth, assetController.saveLayout);
 assetRouter.get('/', requirePermission('asset:read'), assetController.getAll);
 assetRouter.get('/:id/tree', requirePermission('asset:read'), assetController.getTree);
 assetRouter.patch('/:id', requirePermission('asset:write'), assetController.update);
@@ -231,65 +210,44 @@ roleRouter.delete('/:id', requirePermission('role:delete'), roleController.delet
 roleRouter.get('/:id', requirePermission('role:read'), roleController.getById);
 apiRouter.use('/roles', roleRouter);
 
-// Admin Routes (Tenants)
-import { TenantService } from './application/services/tenant.service';
-import { TenantController } from './infrastructure/http/controllers/tenant.controller';
-
-const tenantService = new TenantService(prisma);
-const tenantController = new TenantController(tenantService);
-
-const adminRouter = express.Router();
-adminRouter.patch('/config', adminController.updateConfig);
-adminRouter.get('/config', adminController.getConfig);
-
-// [NEW] Tenant Management Routes - Restricted to Super Admin
-adminRouter.get('/', requireRole('SUPER_ADMIN'), tenantController.getAll);
-adminRouter.post('/', requireRole('SUPER_ADMIN'), tenantController.create);
-adminRouter.post('/:id/seed', requireRole('SUPER_ADMIN'), tenantController.seedDemo);
-adminRouter.delete('/:id', requireRole('SUPER_ADMIN'), tenantController.delete); // [NEW] Delete Tenant
-
-// [NEW] Platform-Wide Admin Routes
-adminRouter.get('/audit-logs', requireRole('SUPER_ADMIN'), platformAdminController.getAuditLogs);
-adminRouter.get('/users/search', requireRole('SUPER_ADMIN'), platformAdminController.globalUserSearch);
-
-apiRouter.use('/tenant', adminRouter); // Note: mounted at /api/v1/tenant
+// Tenant Admin Routes
+const tenantAdminRouter = express.Router();
+tenantAdminRouter.patch('/config', requireRole(['TENANT_ADMIN', 'GLOBAL_ADMIN', 'SUPER_ADMIN']), adminController.updateConfig);
+tenantAdminRouter.get('/config', requireAuth, adminController.getConfig);
+tenantAdminRouter.patch('/:id/entitlements', requireRole('SUPER_ADMIN'), adminController.updateEntitlements);
+tenantAdminRouter.get('/', requireRole('SUPER_ADMIN'), tenantController.getAll);
+tenantAdminRouter.post('/', requireRole('SUPER_ADMIN'), tenantController.create);
+tenantAdminRouter.post('/:id/seed', requireRole('SUPER_ADMIN'), tenantController.seedDemo);
+tenantAdminRouter.delete('/:id', requireRole('SUPER_ADMIN'), tenantController.delete);
+tenantAdminRouter.get('/audit-logs', requireRole('SUPER_ADMIN'), platformAdminController.getAuditLogs);
+tenantAdminRouter.get('/users/search', requireRole('SUPER_ADMIN'), platformAdminController.globalUserSearch);
+apiRouter.use('/tenant', tenantAdminRouter);
 
 // Work Order Routes
 const woRouter = express.Router();
-
-// Session Routes - Protected (Must be before /:id)
 woRouter.get('/my-active', requireAuth, sessionController.myActive);
 woRouter.get('/:workOrderId/sessions', requireAuth, sessionController.getSessions);
 woRouter.post('/:workOrderId/session/start', requireAuth, sessionController.start);
 woRouter.post('/:workOrderId/session/stop', requireAuth, sessionController.stop);
 woRouter.post('/:workOrderId/pause', requireAuth, sessionController.pause);
 woRouter.post('/:workOrderId/complete', requireAuth, sessionController.complete);
-
-// General Routes
 woRouter.post('/', requirePermission('work_order:write'), woController.create);
 woRouter.get('/', requirePermission('work_order:read'), woController.getAll);
-woRouter.get('/:id', requirePermission('work_order:read'), woController.getById); // Catch-all ID route last
+woRouter.get('/:id', requirePermission('work_order:read'), woController.getById);
 woRouter.patch('/:id', requirePermission('work_order:write'), woController.patch);
 woRouter.delete('/:id', requirePermission('work_order:delete'), woController.delete);
-
 apiRouter.use('/work-orders', woRouter);
 
 // Upload Routes
 const uploadRouter = express.Router();
 uploadRouter.post('/presign', requireAuth, uploadController.presign);
 uploadRouter.post('/confirm', requireAuth, uploadController.createAttachment);
-uploadRouter.put('/local-sink', requireAuth, uploadController.localSink); // [DEV] Local Upload
-uploadRouter.get('/local-sink', requireAuth, uploadController.localSink); // [DEV] Local Download
-uploadRouter.get('/proxy', uploadController.proxy); // [NEW] S3 Proxy - Public with internal resolution
+uploadRouter.put('/local-sink', requireAuth, uploadController.localSink);
+uploadRouter.get('/local-sink', requireAuth, uploadController.localSink);
+uploadRouter.get('/proxy', uploadController.proxy);
 apiRouter.use('/upload', uploadRouter);
 
-// Inventory/Parts Module
-import { PartService } from './application/services/part.service';
-import { PartController } from './infrastructure/http/controllers/part.controller';
-
-const partService = new PartService(prisma);
-const partController = new PartController(partService, prisma);
-
+// Parts Routes
 const partRouter = express.Router();
 partRouter.post('/', requirePermission('inventory:write'), partController.create);
 partRouter.get('/', requirePermission('inventory:read'), partController.getAll);
@@ -299,9 +257,22 @@ apiRouter.use('/parts', partRouter);
 
 // Report Routes
 const reportRouter = express.Router();
-reportRouter.get('/work-orders', reportController.getWorkOrderSummary);
-reportRouter.get('/inventory', reportController.getInventorySnapshot);
+reportRouter.get('/work-orders', requireAuth, reportController.getWorkOrderSummary);
+reportRouter.get('/trends', requireAuth, reportController.getTrends);
+reportRouter.get('/inventory', requireAuth, reportController.getInventorySnapshot);
+reportRouter.get('/advanced', requireAuth, reportController.getAdvancedMetrics);
 apiRouter.use('/reports', reportRouter);
+
+// PM Routes
+const pmRouter = express.Router();
+pmRouter.post('/schedules', requireAuth, pmController.createSchedule);
+pmRouter.get('/schedules', requireAuth, pmController.getSchedules);
+pmRouter.post('/templates', requireAuth, pmController.createTemplate);
+pmRouter.get('/templates', requireAuth, pmController.getTemplates);
+pmRouter.get('/checklists/:workOrderId', requireAuth, pmController.getWorkOrderChecklist);
+pmRouter.post('/checklists/sign-off/:itemId', requireAuth, pmController.signOffItem);
+pmRouter.post('/trigger', requireAuth, pmController.triggerPMs);
+apiRouter.use('/pm', pmRouter);
 
 // Debug Routes
 const debugRouter = express.Router();
@@ -309,53 +280,26 @@ debugRouter.get('/tenant', debugController.getTenantStatus);
 apiRouter.use('/debug', debugRouter);
 
 // Analytics Routes
-import { AnalyticsService } from './application/services/analytics.service';
-import { AnalyticsController } from './infrastructure/http/controllers/analytics.controller';
-
-const analyticsService = new AnalyticsService(prisma);
-const analyticsController = new AnalyticsController(analyticsService);
-
 const analyticsRouter = express.Router();
 analyticsRouter.get('/stats', analyticsController.getStats);
 apiRouter.use('/analytics', analyticsRouter);
 
-// Mount API v1
-app.use('/api/v1', apiRouter); // [FIX] Use v1 prefix
-app.use('/api', apiRouter); // [FIX] Fallback for api/ (legacy)
+// Mount API
+app.use('/api/v1', apiRouter);
+app.use('/api', apiRouter);
 
-// Health Check (Root)
 app.get('/health', (req, res) => res.send('OK'));
 
-// [HARDENING] Global Error Handler
+// Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    // 1. Log to console for backend debugging
     console.error('[Fatal Error]', err);
-
-    // 2. Avoid double-sending if headers already sent
-    if (res.headersSent) {
-        return next(err);
-    }
-
+    if (res.headersSent) return next(err);
     const status = err.status || 500;
-
-    // 3. Bulletproof Serialization
-    // Native Errors don't stringify well, we extract key info
-    const errorResponse = {
-        error: process.env.NODE_ENV === 'production'
-            ? 'Internal Server Error'
-            : err.message || 'Internal Server Error',
-        requestId: (req as any).id || 'N/A',
-        stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
-        details: process.env.NODE_ENV === 'production' ? undefined : {
-            code: err.code,
-            meta: err.meta,
-            clientVersion: err.clientVersion
-        }
-    };
-
-    res.status(status).json(errorResponse);
+    res.status(status).json({
+        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message || 'Internal Server Error',
+        requestId: (req as any).id || 'N/A'
+    });
 });
-
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

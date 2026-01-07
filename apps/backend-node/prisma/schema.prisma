@@ -37,6 +37,8 @@ model Tenant {
   workOrderSessions WorkOrderSession[]
   workOrderParts    WorkOrderPart[]
   inventoryTransactions InventoryTransaction[]
+  pmSchedules       PMSchedule[]
+  checklistTemplates ChecklistTemplate[]
 }
 
 model User {
@@ -59,6 +61,8 @@ model User {
   
   sessions     WorkOrderSession[] // Relation to time logs
   assignedWorkOrders WorkOrder[] @relation("AssignedWorkOrders")
+  pmSchedules      PMSchedule[]
+  checklistTemplates ChecklistTemplate[]
 
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
 
@@ -113,6 +117,7 @@ model Asset {
   children    Asset[]  @relation("AssetHierarchy")
   workOrders  WorkOrder[]
   attachments Attachment[]
+  pmSchedules PMSchedule[]
 
   // Indexes for Performance
   @@index([tenantId])
@@ -130,6 +135,7 @@ model WorkOrder {
   description String?
   priority    String   // Enum: CRITICAL, HIGH, MEDIUM, LOW
   status      String   @default("OPEN") // Enum: OPEN, IN_PROGRESS, DONE
+  type        String   @default("REACTIVE") // Enum: PREVENTIVE, REACTIVE
   rimeScore   Int      @map("rime_score") // Calculated: Asset Criticality * Priority
   
   completedAt     DateTime? @map("completed_at")
@@ -141,6 +147,11 @@ model WorkOrder {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime? // Soft Delete
+
+  pmScheduleId String? @map("pm_schedule_id")
+  pmSchedule   PMSchedule? @relation(fields: [pmScheduleId], references: [id])
+  
+  checklist    WorkOrderChecklist?
 
   // Relations
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
@@ -283,4 +294,82 @@ model AuditLog {
   @@index([tenantId])
   @@index([userId])
   @@index([event])
+}
+
+model PMSchedule {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  assetId       String   @map("asset_id")
+  title         String
+  description   String?
+  frequency     String   // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
+  startDate     DateTime @map("start_date")
+  nextDueDate   DateTime @map("next_due_date")
+  active        Boolean  @default(true)
+  
+  checklistTemplateId String? @map("checklist_template_id")
+  checklistTemplate   ChecklistTemplate? @relation(fields: [checklistTemplateId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  asset         Asset    @relation(fields: [assetId], references: [id])
+  workOrders    WorkOrder[]
+  createdById   String?  @map("created_by_id")
+  createdBy     User?    @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId])
+  @@index([assetId])
+  @@index([nextDueDate])
+}
+
+model ChecklistTemplate {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  description String?
+  
+  items       ChecklistTemplateItem[]
+  schedules   PMSchedule[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdById String?  @map("created_by_id")
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId])
+}
+
+model ChecklistTemplateItem {
+  id                 String   @id @default(uuid())
+  templateId         String   @map("template_id")
+  task               String
+  isRequired         Boolean  @default(true) @map("is_required")
+  order              Int      @default(0)
+
+  template           ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model WorkOrderChecklist {
+  id          String   @id @default(uuid())
+  workOrderId String   @unique @map("work_order_id")
+  
+  items       WorkOrderChecklistItem[]
+
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+model WorkOrderChecklistItem {
+  id                 String   @id @default(uuid())
+  checklistId        String   @map("checklist_id")
+  task               String
+  isCompleted        Boolean  @default(false) @map("is_completed")
+  completedAt        DateTime? @map("completed_at")
+  completedBy        String?  @map("completed_by") // User ID
+  order              Int      @default(0)
+
+  checklist          WorkOrderChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
 }

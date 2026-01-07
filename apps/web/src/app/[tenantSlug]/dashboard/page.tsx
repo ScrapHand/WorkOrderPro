@@ -42,7 +42,8 @@ export default function DashboardPage() {
                 sessionId: item.id,
                 startTime: item.startTime
             })) as WorkOrder[];
-        }
+        },
+        refetchInterval: 15000
     });
 
 

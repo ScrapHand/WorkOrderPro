@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { hasPermission } from '../auth/rbac.utils';
+import { prisma } from '../database/prisma';
 
 /**
  * Enum for Roles to ensure consistency
@@ -8,16 +9,53 @@ export enum UserRole {
     SUPER_ADMIN = 'SUPER_ADMIN',
     GLOBAL_ADMIN = 'GLOBAL_ADMIN',
     TENANT_ADMIN = 'TENANT_ADMIN',
+    ADMIN = 'ADMIN',
+    TECHNICIAN = 'TECHNICIAN',
     USER = 'USER',
     VIEWER = 'VIEWER'
 }
 
 /**
- * LOGGER UTILITY (Placeholder for actual legacy audit service)
+ * ROLE WEIGHTS (Blueprint Hierarchy)
  */
-const auditLog = (req: Request, action: string, details: any) => {
+export const ROLE_WEIGHTS: Record<string, number> = {
+    [UserRole.GLOBAL_ADMIN]: 100,
+    [UserRole.SUPER_ADMIN]: 80,
+    [UserRole.TENANT_ADMIN]: 60,
+    [UserRole.ADMIN]: 40,
+    [UserRole.TECHNICIAN]: 20,
+    [UserRole.USER]: 10,
+    [UserRole.VIEWER]: 5
+};
+
+/**
+ * REAL AUDIT LOGGING
+ * Persists critical security events to the database.
+ */
+const auditLog = async (req: Request, event: string, details: any) => {
     const user = (req.session as any)?.user;
-    console.info(`[AUDIT] User:${user?.id || 'GUEST'} (${user?.role || 'N/A'}) | Action:${action} | Tenant:${user?.tenantId || 'NONE'} | Details:${JSON.stringify(details)}`);
+
+    // Log to console for immediate visibility
+    console.info(`[AUDIT] User:${user?.id || 'GUEST'} | Event:${event} | Details:${JSON.stringify(details)}`);
+
+    try {
+        await prisma.auditLog.create({
+            data: {
+                tenantId: user?.tenantId || null,
+                userId: user?.id || null,
+                event,
+                resource: details.resource || 'SYSTEM',
+                resourceId: details.resourceId || null,
+                metadata: {
+                    ...details,
+                    ip: req.ip,
+                    userAgent: req.headers['user-agent']
+                }
+            }
+        });
+    } catch (error) {
+        console.error('[RBAC] Audit logging failed:', error);
+    }
 };
 
 /**
@@ -80,21 +118,27 @@ export const requireRole = (role: string | string[]) => {
         const user = (req.session as any)?.user;
         const allowedRoles = Array.isArray(role) ? role : [role];
 
-        // Super Admin bypasses everything
-        if (user?.role === UserRole.SUPER_ADMIN) {
-            return next();
+        if (!user) {
+            return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required.' });
         }
 
-        if (!user || !allowedRoles.includes(user.role)) {
+        // Determine the minimum weight required for access
+        const requiredWeight = Math.min(...allowedRoles.map(r => ROLE_WEIGHTS[r] || 0));
+        const userWeight = ROLE_WEIGHTS[user.role] || 0;
+
+        // PLATFORM HARDENING: If GLOBAL_ADMIN is in allowedRoles, only users with weight >= 100 can enter
+        // This ensures SUPER_ADMIN (80) cannot perform platform-level actions.
+        if (userWeight < requiredWeight) {
             auditLog(req, 'UNAUTHORIZED_ROLE_ATTEMPT', {
                 path: req.path,
                 requiredRoles: allowedRoles,
-                userRole: user?.role
+                userRole: user.role,
+                weightMismatch: { userWeight, requiredWeight }
             });
 
             return res.status(403).json({
                 error: 'Forbidden',
-                message: `This action requires one of the following roles: ${allowedRoles.join(', ')}.`
+                message: `This action requires ${allowedRoles.join(' or ')} or higher privileges.`
             });
         }
 

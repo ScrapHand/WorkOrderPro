@@ -13,9 +13,12 @@ export interface WorkOrder {
     status: WorkOrderStatus;
     rimeScore: number;
     work_order_number?: string;
+    dueDate?: string;
     completedAt?: string;
     createdAt: string;
     updatedAt: string;
+    type: 'CORRECTIVE' | 'PREVENTIVE';
+    pmScheduleId?: string;
 
     // Relation View
     // Relation View

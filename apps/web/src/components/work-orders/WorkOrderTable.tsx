@@ -74,16 +74,25 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
             from: dateFrom || undefined,
             to: dateTo || undefined
         }),
-        refetchInterval: 30000,
+        refetchInterval: 15000,
     });
 
     const deleteMutation = useMutation({
         mutationFn: AssetService.deleteWorkOrder,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["workOrders"] });
-            toast.success("Work Order deleted");
+        onMutate: async (id) => {
+            // Optimistic Update
+            await queryClient.cancelQueries({ queryKey: ["workOrders"] });
+            const previousOrders = queryClient.getQueryData(["workOrders", statusFilter, dateFrom, dateTo]);
+            queryClient.setQueryData(["workOrders", statusFilter, dateFrom, dateTo], (old: any) => old?.filter((wo: any) => wo.id !== id));
+            return { previousOrders };
         },
-        onError: () => toast.error("Failed to delete Work Order")
+        onError: (err, id, context) => {
+            queryClient.setQueryData(["workOrders", statusFilter, dateFrom, dateTo], context?.previousOrders);
+            toast.error("Failed to delete Work Order");
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+        }
     });
 
     // Client-side search filtering

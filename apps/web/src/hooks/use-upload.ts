@@ -17,14 +17,14 @@ export function useUpload(options: UploadOptions = {}) {
 
         try {
             // 1. Get Presigned URL
-            const { data: presignedData } = await api.post('/uploads/presign', {
+            const { data: presignedData } = await api.post('/v1/upload/presign', {
                 fileName: file.name,
-                fileType: file.type,
+                mimeType: file.type, // Use mimeType to match backend schema
                 entityType,
                 entityId,
             });
 
-            const { uploadUrl, key } = presignedData;
+            const { url: uploadUrl, key } = presignedData;
 
             // 2. Upload to S3 directly
             const xhr = new XMLHttpRequest();
@@ -56,7 +56,7 @@ export function useUpload(options: UploadOptions = {}) {
 
             // 3. Construct the proxy URL (or final public URL)
             // We use the proxy endpoint to avoid CORS/RLS issues on raw S3
-            const finalUrl = `/api/v1/uploads/proxy?key=${encodeURIComponent(key)}`;
+            const finalUrl = `/api/v1/upload/proxy?key=${encodeURIComponent(key)}`;
 
             options.onSuccess?.(finalUrl, key);
             return { url: finalUrl, key };

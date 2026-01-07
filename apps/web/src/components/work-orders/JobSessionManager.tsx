@@ -34,6 +34,9 @@ import { api } from "@/lib/api";
 
 const SESSION_API = (id: string) => `/work-orders/${id}`;
 
+// [NEW] FileUploader Component
+import { FileUploader } from "@/components/ui/file-uploader";
+
 export function JobSessionManager({ status, onStatusChange }: { status: string, onStatusChange: () => void }) {
     const { id } = useParams();
     const queryClient = useQueryClient();
@@ -41,8 +44,6 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
     const [completionNotes, setCompletionNotes] = useState("");
 
-    // [NEW] File Upload State
-    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     // [NEW] Parts Tracking State
     const [selectedParts, setSelectedParts] = useState<{ part: Part, quantity: number }[]>([]);
 
@@ -57,17 +58,6 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
 
     const handleUpdateQuantity = (partId: string, qty: number) => {
         setSelectedParts(prev => prev.map(p => p.part.id === partId ? { ...p, quantity: qty } : p));
-    };
-
-    // [NEW] File Handlers
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
-        }
-    };
-
-    const removeFile = (index: number) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     // --- Queries ---
@@ -86,14 +76,27 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
             const res = await api.post(`${SESSION_API(id as string)}/session/start`, {});
             return res.data;
         },
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ["workOrderSessions", id] });
+            const previousSessions = queryClient.getQueryData(["workOrderSessions", id]);
+            // Optimistically add a pending session
+            queryClient.setQueryData(["workOrderSessions", id], (old: any) => [
+                ...(old || []),
+                { id: 'temp-id', userId: user?.id, startTime: new Date().toISOString(), user: { username: 'You', email: user?.email } }
+            ]);
+            return { previousSessions };
+        },
         onSuccess: () => {
             toast.success("Clocked in successfully");
-            queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
             onStatusChange();
         },
-        onError: (err: any) => {
+        onError: (err: any, _vars, context) => {
+            queryClient.setQueryData(["workOrderSessions", id], context?.previousSessions);
             console.error("Start Session Error", err);
             toast.error(`Failed to start work: ${err.response?.data?.error || err.message}`);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["workOrderSessions", id] });
         }
     });
 
@@ -102,11 +105,23 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
             const res = await api.post(`${SESSION_API(id as string)}/session/stop`, {});
             return res.data;
         },
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ["workOrderSessions", id] });
+            const previousSessions = queryClient.getQueryData(["workOrderSessions", id]);
+            // Optimistically remove my session
+            queryClient.setQueryData(["workOrderSessions", id], (old: any) => old?.filter((s: any) => s.userId !== user?.id));
+            return { previousSessions };
+        },
         onSuccess: () => {
             toast.success("Clocked out successfully");
-            queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
         },
-        onError: (err: any) => toast.error(`Failed to stop work: ${err.response?.data?.error || err.message}`)
+        onError: (err: any, _vars, context) => {
+            queryClient.setQueryData(["workOrderSessions", id], context?.previousSessions);
+            toast.error(`Failed to stop work: ${err.response?.data?.error || err.message}`);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["workOrderSessions", id] });
+        }
     });
 
     const pauseMutation = useMutation({
@@ -114,41 +129,28 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
             const res = await api.post(`${SESSION_API(id as string)}/pause`, {});
             return res.data;
         },
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ["workOrderSessions", id] });
+            const previousSessions = queryClient.getQueryData(["workOrderSessions", id]);
+            // Optimistically clear all sessions
+            queryClient.setQueryData(["workOrderSessions", id], []);
+            return { previousSessions };
+        },
         onSuccess: () => {
             toast.info("Job paused. All users clocked out.");
-            queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
             onStatusChange();
         },
-        onError: (err: any) => toast.error(`Failed to pause job: ${err.response?.data?.error || err.message}`)
+        onError: (err: any, _vars, context) => {
+            queryClient.setQueryData(["workOrderSessions", id], context?.previousSessions);
+            toast.error(`Failed to pause job: ${err.response?.data?.error || err.message}`);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["workOrderSessions", id] });
+        }
     });
 
     const completeMutation = useMutation({
         mutationFn: async () => {
-            // 1. Upload Photos First
-            if (selectedFiles.length > 0) {
-                toast.loading("Uploading photos...");
-                try {
-                    for (const file of selectedFiles) {
-                        const { url, key } = await UploadService.getPresignedUrl('work-orders', id as string, file);
-                        await UploadService.uploadToS3(url, file);
-                        await UploadService.confirmUpload({
-                            entityType: 'work-orders',
-                            entityId: id as string,
-                            key,
-                            fileName: file.name,
-                            mimeType: file.type,
-                            size: file.size
-                        });
-                    }
-                    toast.dismiss();
-                    toast.success("Photos uploaded");
-                } catch (err) {
-                    console.error("Photo upload failed", err);
-                    toast.dismiss();
-                    throw new Error("Failed to upload photos. Please try again or complete without photos.");
-                }
-            }
-
             // 2. Complete Job
             const res = await api.post(`${SESSION_API(id as string)}/complete`, {
                 notes: completionNotes,
@@ -159,10 +161,10 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
         onSuccess: () => {
             toast.success("Job completed!");
             setIsCompleteModalOpen(false);
-            setSelectedFiles([]); // Reset files
-            setSelectedParts([]); // Reset parts
-            setCompletionNotes(""); // Reset notes
-            queryClient.invalidateQueries({ queryKey: ["workOrderSessions"] });
+            setSelectedParts([]);
+            setCompletionNotes("");
+            queryClient.invalidateQueries({ queryKey: ["workOrderSessions", id] });
+            queryClient.invalidateQueries({ queryKey: ["workOrder", id] }); // Invalidate details for attachments
             onStatusChange();
         },
         onError: (err: any) => toast.error(`Failed to complete job: ${err.message}`)
@@ -330,35 +332,16 @@ export function JobSessionManager({ status, onStatusChange }: { status: string, 
                             </div>
                         </div>
 
-                        {/* Photo Upload UI */}
+                        {/* Standardized Photo Upload */}
                         <div className="space-y-2 pt-2 border-t">
-                            <label className="text-sm font-medium block">Attach Photos</label>
-                            <div className="flex flex-wrap gap-2">
-                                {selectedFiles.map((file, i) => (
-                                    <div key={i} className="relative group">
-                                        <div className="h-16 w-16 rounded-lg border bg-gray-50 flex items-center justify-center overflow-hidden">
-                                            {file.type.startsWith('image/') ? (
-                                                <img src={URL.createObjectURL(file)} alt="preview" className="h-full w-full object-cover" />
-                                            ) : (
-                                                <FileImage className="h-6 w-6 text-gray-400" />
-                                            )}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeFile(i)}
-                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </div>
-                                ))}
-
-                                <label className="h-16 w-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
-                                    <UploadCloud className="h-5 w-5 text-gray-400" />
-                                    <span className="text-[9px] text-gray-500 mt-1">Add</span>
-                                    <input type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*" />
-                                </label>
-                            </div>
+                            <label className="text-sm font-medium block">Job Evidence (Photos)</label>
+                            <FileUploader
+                                entityType="work_order"
+                                entityId={id as string}
+                                onUploadSuccess={() => {
+                                    queryClient.invalidateQueries({ queryKey: ["workOrder", id] });
+                                }}
+                            />
                         </div>
                     </div>
                     <DialogFooter>

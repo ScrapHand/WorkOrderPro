@@ -251,7 +251,7 @@ export function NewWorkOrderWizard() {
                                         </div>
                                     )}
 
-                                    {/* [NEW] Photo Upload UI */}
+                                    {/* [ENHANCED] Photo Upload UI */}
                                     <div className="space-y-2 pt-2 border-t">
                                         <label className="text-sm font-medium text-gray-700 block">Photos (Optional)</label>
                                         <div className="flex flex-wrap gap-2">
@@ -275,11 +275,12 @@ export function NewWorkOrderWizard() {
                                             ))}
 
                                             <label className="h-16 w-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
-                                                <UploadCloud className="h-5 w-5 text-gray-400" />
-                                                <span className="text-[9px] text-gray-500 mt-1">Add</span>
+                                                <UploadCloud className="h-5 w-5 text-gray-400 shadow-sm" />
+                                                <span className="text-[9px] text-gray-500 mt-1 font-medium">Add Photo</span>
                                                 <input type="file" multiple className="hidden" onChange={handleFileSelect} accept="image/*" />
                                             </label>
                                         </div>
+                                        <p className="text-[10px] text-gray-400">Photos will be uploaded after creation.</p>
                                     </div>
                                 </div>
 

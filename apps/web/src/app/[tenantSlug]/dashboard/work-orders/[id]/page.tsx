@@ -9,15 +9,14 @@ import {
     ChevronLeft,
     Calendar,
     Clock,
-    AlertCircle,
     Wrench,
-    Info,
-    CheckCircle2
+    Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { JobSessionManager } from "@/components/work-orders/JobSessionManager";
+import { ChecklistSignOff } from "@/components/work-orders/ChecklistSignOff";
 
 const RimeBadge = ({ score }: { score: number }) => {
     let color = "bg-green-100 text-green-800 border-green-200";
@@ -145,9 +144,17 @@ export default function WorkOrderDetailsPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-6">
-                {/* Main Content */}
                 <div className="col-span-2 space-y-6">
                     <DescriptionSection wo={wo} onUpdate={handleStatusChange} />
+
+                    {/* Maintenance Checklist Logic */}
+                    {wo.type === 'PREVENTIVE' && (
+                        <Card className="border-blue-200 bg-blue-50/10">
+                            <CardContent className="pt-6">
+                                <ChecklistSignOff workOrderId={wo.id} />
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <Card>
                         <CardHeader>
@@ -177,7 +184,6 @@ export default function WorkOrderDetailsPage() {
                         </CardContent>
                     </Card>
 
-                    {/* [NEW] Attachments Gallery */}
                     {wo.attachments && wo.attachments.length > 0 && (
                         <Card>
                             <CardHeader>
@@ -213,7 +219,6 @@ export default function WorkOrderDetailsPage() {
                     )}
                 </div>
 
-                {/* Sidebar Metrics */}
                 <div className="space-y-6">
                     <JobSessionManager status={wo.status} onStatusChange={handleStatusChange} />
 
@@ -228,12 +233,6 @@ export default function WorkOrderDetailsPage() {
                             <div className="flex justify-between text-xs">
                                 <span className="text-muted-foreground italic">Priority Tier</span>
                                 <span className="font-bold uppercase text-gray-700">{wo.priority}</span>
-                            </div>
-                            <div className="flex justify-between text-xs border-t pt-2">
-                                <span className="text-muted-foreground">Response Goal</span>
-                                <span className="font-semibold text-gray-700">
-                                    {wo.priority === 'CRITICAL' ? '< 1 hour' : wo.priority === 'HIGH' ? '< 24 hours' : 'Schedule as needed'}
-                                </span>
                             </div>
                         </div>
                     </Card>
@@ -250,15 +249,6 @@ export default function WorkOrderDetailsPage() {
                                     <div className="text-sm text-muted-foreground">{new Date(wo.createdAt).toLocaleString()}</div>
                                 </div>
                             </div>
-                            {wo.status === 'DONE' && (
-                                <div className="flex items-start gap-3 border-t pt-4">
-                                    <div className="mt-1 h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                                    <div>
-                                        <div className="text-xs font-bold uppercase text-gray-700">Completed</div>
-                                        <div className="text-sm text-muted-foreground">{new Date(wo.updatedAt).toLocaleString()}</div>
-                                    </div>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
                 </div>
