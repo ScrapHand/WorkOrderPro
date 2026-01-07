@@ -12,14 +12,8 @@ export class PartController {
 
     create = async (req: Request, res: Response) => {
         try {
-            if (!hasPermission(req, 'inventory:write')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const part = await this.partService.create(tenantId, req.body);
             res.status(201).json(part);
@@ -31,14 +25,8 @@ export class PartController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            if (!hasPermission(req, 'inventory:read')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const parts = await this.partService.getAll(tenantId);
             res.json(parts);
@@ -50,14 +38,8 @@ export class PartController {
 
     update = async (req: Request, res: Response) => {
         try {
-            if (!hasPermission(req, 'inventory:write')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const part = await this.partService.update(req.params.id, tenantId, req.body);
             res.json(part);
@@ -69,17 +51,8 @@ export class PartController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            // [STRICT] Prefer inventory:delete, fallback to inventory:write
-            if (!hasPermission(req, 'inventory:delete') && !hasPermission(req, 'inventory:write')) {
-                return res.status(403).json({ error: 'Forbidden' });
-            }
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             await this.partService.delete(req.params.id, tenantId);
             res.status(204).send();

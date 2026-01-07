@@ -16,13 +16,7 @@ import rateLimit from 'express-rate-limit';
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// [ARCH] 1. Proxy Trust (Render Requirement)
-// Crucial for X-Forwarded-Proto to work, enabling Secure cookies.
-// '1' trusts the first hop (the Render Load Balancer)
-// [ARCH] 1. Proxy Trust (Render Requirement)
-// Trust loopback and link-local. For Render, we often need to trust the load balancer.
-// parse '1' or true. true means trust everything (safe-ish behind Render's firewall)
-app.set('trust proxy', process.env.NODE_ENV === 'production');
+app.set('trust proxy', 1); // [FIX] PaaS providers (Render/Vercel) use load balancers. 1 = trust first hop.
 
 // [ARCH] 2. Security Middleware
 app.use(helmet({
@@ -86,14 +80,18 @@ app.use(session({
     resave: false,
     saveUninitialized: false, // [OPTIONAL] Set to true if you want to track "Guest" sessions
     name: 'wop_sid', // [PHASE 22] Rename to clear legacy collisions
+    rolling: true, // [NEW] Reset maxAge on every response to keep active users logged in
     proxy: true, // [CRITICAL] Trust the proxy for secure cookies
     cookie: {
         path: '/',
+        httpOnly: true, // Mitigate XSS
         secure: process.env.NODE_ENV === 'production', // [FIX] HTTPS only in prod
-        httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // [FIX] 'none' for cross-site (frontend domain != backend domain in prod), 'lax' for local
-        partitioned: process.env.NODE_ENV === 'production', // [NEW] CHIPS support for cross-site iframes
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
+        // 'none' required for cross-site (backend != frontend domain).
+        // 'lax' is safer for same-domain deployments.
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        // CHIPS Support: Partition cookie by top-level site
+        partitioned: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days persistence
     } as any
 }));
 
@@ -209,28 +207,28 @@ apiRouter.use('/auth', authRouter);
 
 // Asset Routes
 const assetRouter = express.Router();
-assetRouter.post('/', assetController.create);
-assetRouter.post('/layout', assetController.saveLayout); // [NEW] Save Layout
-assetRouter.get('/', assetController.getAll); // [FIX] Restore Helper
-assetRouter.get('/:id/tree', assetController.getTree);
-assetRouter.patch('/:id', assetController.update); // [FIX] Add Update Route
+assetRouter.post('/', requirePermission('asset:write'), assetController.create);
+assetRouter.post('/layout', requireAuth, assetController.saveLayout); // [NEW] Save Layout - Auth enough for user scope
+assetRouter.get('/', requirePermission('asset:read'), assetController.getAll);
+assetRouter.get('/:id/tree', requirePermission('asset:read'), assetController.getTree);
+assetRouter.patch('/:id', requirePermission('asset:write'), assetController.update);
 apiRouter.use('/assets', assetRouter);
 
 // User Routes
 const userRouter = express.Router();
-userRouter.post('/', userController.create); // Create User
-userRouter.get('/', userController.getAll); // List Users
-userRouter.patch('/:id', userController.update);
-userRouter.delete('/:id', userController.delete);
+userRouter.post('/', requirePermission('user:write'), userController.create);
+userRouter.get('/', requirePermission('user:read'), userController.getAll);
+userRouter.patch('/:id', requirePermission('user:write'), userController.update);
+userRouter.delete('/:id', requirePermission('user:delete'), userController.delete);
 apiRouter.use('/users', userRouter);
 
 // Role Routes
 const roleRouter = express.Router();
-roleRouter.post('/', roleController.create);
-roleRouter.get('/', roleController.getAll);
-roleRouter.patch('/:id', roleController.update);
-roleRouter.delete('/:id', roleController.delete);
-roleRouter.get('/:id', roleController.getById);
+roleRouter.post('/', requirePermission('role:write'), roleController.create);
+roleRouter.get('/', requirePermission('role:read'), roleController.getAll);
+roleRouter.patch('/:id', requirePermission('role:write'), roleController.update);
+roleRouter.delete('/:id', requirePermission('role:delete'), roleController.delete);
+roleRouter.get('/:id', requirePermission('role:read'), roleController.getById);
 apiRouter.use('/roles', roleRouter);
 
 // Admin Routes (Tenants)
@@ -268,21 +266,21 @@ woRouter.post('/:workOrderId/pause', requireAuth, sessionController.pause);
 woRouter.post('/:workOrderId/complete', requireAuth, sessionController.complete);
 
 // General Routes
-woRouter.post('/', woController.create);
-woRouter.get('/', woController.getAll);
-woRouter.get('/:id', woController.getById); // Catch-all ID route last
-woRouter.patch('/:id', woController.patch);
-woRouter.delete('/:id', woController.delete);
+woRouter.post('/', requirePermission('work_order:write'), woController.create);
+woRouter.get('/', requirePermission('work_order:read'), woController.getAll);
+woRouter.get('/:id', requirePermission('work_order:read'), woController.getById); // Catch-all ID route last
+woRouter.patch('/:id', requirePermission('work_order:write'), woController.patch);
+woRouter.delete('/:id', requirePermission('work_order:delete'), woController.delete);
 
 apiRouter.use('/work-orders', woRouter);
 
 // Upload Routes
 const uploadRouter = express.Router();
-uploadRouter.post('/presign', uploadController.presign);
-uploadRouter.post('/confirm', uploadController.createAttachment);
-uploadRouter.put('/local-sink', uploadController.localSink); // [DEV] Local Upload
-uploadRouter.get('/local-sink', uploadController.localSink); // [DEV] Local Download
-uploadRouter.get('/proxy', uploadController.proxy); // [NEW] S3 Proxy
+uploadRouter.post('/presign', requireAuth, uploadController.presign);
+uploadRouter.post('/confirm', requireAuth, uploadController.createAttachment);
+uploadRouter.put('/local-sink', requireAuth, uploadController.localSink); // [DEV] Local Upload
+uploadRouter.get('/local-sink', requireAuth, uploadController.localSink); // [DEV] Local Download
+uploadRouter.get('/proxy', uploadController.proxy); // [NEW] S3 Proxy - Public with internal resolution
 apiRouter.use('/upload', uploadRouter);
 
 // Inventory/Parts Module
@@ -293,10 +291,10 @@ const partService = new PartService(prisma);
 const partController = new PartController(partService, prisma);
 
 const partRouter = express.Router();
-partRouter.post('/', partController.create);
-partRouter.get('/', partController.getAll);
-partRouter.patch('/:id', partController.update);
-partRouter.delete('/:id', partController.delete);
+partRouter.post('/', requirePermission('inventory:write'), partController.create);
+partRouter.get('/', requirePermission('inventory:read'), partController.getAll);
+partRouter.patch('/:id', requirePermission('inventory:write'), partController.update);
+partRouter.delete('/:id', requirePermission('inventory:delete'), partController.delete);
 apiRouter.use('/parts', partRouter);
 
 // Report Routes

@@ -13,15 +13,9 @@ export class AssetController {
 
     create = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'asset:write')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            // SECURITY: derive tenantId ONLY from secure session.
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             // [VALIDATION] Zod Check
             const result = createAssetSchema.safeParse(req.body);
@@ -56,15 +50,8 @@ export class AssetController {
 
     update = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'asset:write')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const { id } = req.params;
             const data = req.body;
@@ -89,15 +76,8 @@ export class AssetController {
 
     getTree = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'asset:read')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const { id } = req.params;
             const tree = await this.assetService.getAssetTree(id, tenantId);
@@ -109,15 +89,8 @@ export class AssetController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'asset:read')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const assets = await this.assetService.getAllAssets(tenantId);
             res.json(assets);
@@ -128,15 +101,8 @@ export class AssetController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'asset:delete')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const { id } = req.params;
             const asset = await this.prisma.asset.findFirst({

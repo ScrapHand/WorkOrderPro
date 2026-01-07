@@ -12,15 +12,9 @@ export class WorkOrderController {
 
     create = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'work_order:write')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            // SECURITY: derive tenantId ONLY from secure session.
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const { assetId, title, priority, description, assignedUserId } = req.body;
             console.log('[WorkOrderController] Create Request:', { assetId, title, priority, assignedUserId });
@@ -43,15 +37,8 @@ export class WorkOrderController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'work_order:read')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const filters = {
                 status: req.query.status as string | undefined,
@@ -71,15 +58,8 @@ export class WorkOrderController {
 
     getById = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'work_order:read')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const wo = await this.woService.getWorkOrderById(req.params.id, tenantId);
             if (!wo) return res.status(404).json({ error: 'Work order not found' });
@@ -92,15 +72,8 @@ export class WorkOrderController {
 
     patch = async (req: Request, res: Response) => {
         try {
-            if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
-            if (!hasPermission(req, 'work_order:write')) return res.status(403).json({ error: 'Forbidden' });
-
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
+            const sessionUser = (req.session as any).user;
+            const tenantId = sessionUser.tenantId;
 
             const { id } = req.params;
             const updates = req.body;

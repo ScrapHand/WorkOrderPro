@@ -49,12 +49,26 @@ api.interceptors.request.use((config) => {
 // Response Interceptor: Log results or errors
 api.interceptors.response.use(
     (response) => {
-        console.log(`[API] Success: ${response.status} ${response.config.url}`);
+        // console.log(`[API] Success: ${response.status} ${response.config.url}`);
         return response;
     },
     (error) => {
         if (error.response) {
             console.error(`[API] Error: ${error.response.status} ${error.config.url}`, error.response.data);
+
+            // [REMEDIATION] Handle Session Expiry
+            if (error.response.status === 401) {
+                // Prevent redirect loops if already on login page
+                if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
+                    console.warn('Session expired or unauthorized. Redirecting to login.');
+                    // window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
+                }
+            }
+
+            // [REMEDIATION] Handle Forbidden Access
+            if (error.response.status === 403) {
+                console.error('Access Forbidden: Insufficient Permissions');
+            }
         } else {
             console.error(`[API] Network Error: ${error.message}`);
         }
