@@ -39,6 +39,8 @@ model Tenant {
   inventoryTransactions InventoryTransaction[]
   pmSchedules       PMSchedule[]
   checklistTemplates ChecklistTemplate[]
+  productionLines   ProductionLine[]
+  assetConnections  AssetConnection[]
 }
 
 model User {
@@ -118,6 +120,15 @@ model Asset {
   workOrders  WorkOrder[]
   attachments Attachment[]
   pmSchedules PMSchedule[]
+  
+  // Production Line Integration
+  maxSpeed      Float?    @map("max_speed")
+  designOEE     Float?    @map("design_oee")
+  productionLineId String? @map("production_line_id")
+  productionLine   ProductionLine? @relation(fields: [productionLineId], references: [id])
+  
+  sourceConnections AssetConnection[] @relation("SourceConnections")
+  targetConnections AssetConnection[] @relation("TargetConnections")
 
   // Indexes for Performance
   @@index([tenantId])
@@ -372,4 +383,47 @@ model WorkOrderChecklistItem {
   order              Int      @default(0)
 
   checklist          WorkOrderChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+}
+
+model ProductionLine {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  description String?
+  
+  assets      Asset[]
+  connections AssetConnection[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model AssetConnection {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("tenant_id")
+  productionLineId String   @map("production_line_id")
+  
+  sourceAssetId    String   @map("source_asset_id")
+  targetAssetId    String   @map("target_asset_id")
+  
+  connectionType   String   @default("CONVEYOR") // CONVEYOR, SORTER, DIRECT
+  speedLimit       Float?   @map("speed_limit")  // e.g. units per minute
+  throughput       Float?                        // average measured throughput
+  
+  metadata         Json?                         // for react flow (edge labels, etc.)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant           Tenant         @relation(fields: [tenantId], references: [id])
+  productionLine   ProductionLine @relation(fields: [productionLineId], references: [id], onDelete: Cascade)
+  sourceAsset      Asset          @relation("SourceConnections", fields: [sourceAssetId], references: [id])
+  targetAsset      Asset          @relation("TargetConnections", fields: [targetAssetId], references: [id])
+
+  @@index([tenantId])
+  @@index([productionLineId])
 }

@@ -127,9 +127,20 @@ export function NewWorkOrderWizard() {
 
     return (
         <div className="max-w-5xl mx-auto min-h-screen bg-gray-50 flex flex-col">
-            <div className="bg-white p-4 border-b flex items-center justify-between sticky top-0 z-10">
-                <h1 className="text-xl font-bold text-gray-900">New Work Order</h1>
-                <div className="text-sm text-gray-500">Step {step} of 4</div>
+            <div className="bg-white p-4 border-b flex flex-col gap-4 sticky top-0 z-10 shadow-sm">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-xl font-bold text-gray-900">New Work Order</h1>
+                    <div className="text-sm font-medium text-gray-500">Step {step} of 4</div>
+                </div>
+                {/* Visual Progress Bar */}
+                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                    <motion.div
+                        className="bg-primary h-full"
+                        initial={{ width: "25%" }}
+                        animate={{ width: `${(step / 4) * 100}%` }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                    />
+                </div>
             </div>
 
             <main className="flex-1 p-4">

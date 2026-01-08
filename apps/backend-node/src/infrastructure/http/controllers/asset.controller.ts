@@ -112,7 +112,7 @@ export class AssetController {
             if (!asset) return res.status(404).json({ error: 'Asset not found' });
 
             await this.prisma.asset.update({
-                where: { id },
+                where: { id, tenantId },
                 data: { deletedAt: new Date() }
             });
 

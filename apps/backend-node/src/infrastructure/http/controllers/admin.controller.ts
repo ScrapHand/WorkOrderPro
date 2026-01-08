@@ -18,10 +18,24 @@ export class AdminController {
 
             if (branding) {
                 console.log("Updating Branding:", branding);
-                data.brandingConfig = branding;
-                // [Sync Legacy Fields]
-                if (branding.primaryColor) data.brandColor = branding.primaryColor;
-                if (branding.logoUrl) data.logoUrl = branding.logoUrl;
+
+                // [HARSH MERGE] Ensure we don't lose existing branding config
+                const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+                const existingConfig = (tenant?.brandingConfig as any) || {};
+
+                const newConfig = {
+                    ...existingConfig,
+                    ...branding,
+                    // Normalize standard keys
+                    primaryColor: branding.primaryColor || branding.brandColor || existingConfig.primaryColor,
+                    logoUrl: branding.logoUrl || existingConfig.logoUrl
+                };
+
+                data.brandingConfig = newConfig;
+
+                // [Sync Legacy Fields] for robust compatibility with older components
+                if (newConfig.primaryColor) data.brandColor = newConfig.primaryColor;
+                if (newConfig.logoUrl) data.logoUrl = newConfig.logoUrl;
             }
 
             if (rbac) {

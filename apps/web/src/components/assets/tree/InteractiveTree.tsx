@@ -112,7 +112,7 @@ const LayoutFlow = ({ assets, onNodeClick }: InteractiveTreeProps) => {
                     target: asset.id,
                     type: 'smoothstep',
                     animated: true,
-                    style: { stroke: '#b1b1b7' },
+                    style: { stroke: '#cbd5e1', strokeWidth: 2 },
                 });
             }
         });

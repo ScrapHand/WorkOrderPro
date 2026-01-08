@@ -17,6 +17,7 @@ import {
     Archive,
     Network,
     TrendingUp,
+    Layout,
     Calendar
 } from "lucide-react";
 import { RoleGuard } from "@/components/auth/role-guard";
@@ -32,8 +33,8 @@ const getSidebarLinks = (term: any, slug: string) => {
         { name: "Dashboard", href: prefix, icon: LayoutDashboard },
         { name: "Analytics", href: `${prefix}/analytics`, icon: TrendingUp },
         { name: term?.workOrders || "Work Orders", href: `${prefix}/work-orders`, icon: ClipboardList },
-        { name: "Maintenance Calendar", href: `${prefix}/planner`, icon: Calendar },
-        { name: "PM Planner", href: `${prefix}/pm`, icon: ClipboardList },
+        { name: "Maintenance Calendar", href: `/${slug}/dashboard/planner`, icon: Calendar },
+        { name: "Production Lines", href: `/${slug}/dashboard/production`, icon: Layout },
         { name: `Archived ${term?.workOrders || "Jobs"}`, href: `${prefix}/work-orders/archive`, icon: Archive },
         { name: term?.assets || "Assets", href: `${prefix}/assets`, icon: Box },
         { name: `${term?.assets || "Asset"} Hierarchy`, href: `${prefix}/assets/tree`, icon: Network },

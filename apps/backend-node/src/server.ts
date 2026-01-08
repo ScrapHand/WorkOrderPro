@@ -38,6 +38,7 @@ import { PMService } from './application/services/pm.service';
 import { ChecklistTemplateService } from './application/services/checklist-template.service';
 import { TenantService } from './application/services/tenant.service';
 import { AnalyticsService } from './application/services/analytics.service';
+import { ProductionLineService } from './application/services/production-line.service';
 
 // Controllers
 import { AssetController } from './infrastructure/http/controllers/asset.controller';
@@ -55,6 +56,7 @@ import { AuthController } from './infrastructure/http/controllers/auth.controlle
 import { PlatformAdminController } from './infrastructure/http/controllers/platform-admin.controller';
 import { TenantController } from './infrastructure/http/controllers/tenant.controller';
 import { AnalyticsController } from './infrastructure/http/controllers/analytics.controller';
+import { ProductionLineController } from './infrastructure/http/controllers/production-line.controller';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -174,6 +176,9 @@ const platformAdminController = new PlatformAdminController(prisma);
 const analyticsService = new AnalyticsService(prisma);
 const analyticsController = new AnalyticsController(analyticsService);
 
+const lineService = new ProductionLineService(prisma);
+const lineController = new ProductionLineController(lineService);
+
 // Define Routers
 const apiRouter = express.Router();
 
@@ -283,6 +288,15 @@ apiRouter.use('/debug', debugRouter);
 const analyticsRouter = express.Router();
 analyticsRouter.get('/stats', analyticsController.getStats);
 apiRouter.use('/analytics', analyticsRouter);
+
+// Production Line Routes
+const lineRouter = express.Router();
+lineRouter.get('/', requireAuth, lineController.getAll);
+lineRouter.post('/', requireAuth, lineController.create);
+lineRouter.get('/:id', requireAuth, lineController.getById);
+lineRouter.post('/:id/connections', requireAuth, lineController.addConnection);
+lineRouter.get('/:id/analyze', requireAuth, lineController.analyze);
+apiRouter.use('/production-lines', lineRouter);
 
 // Mount API
 app.use('/api/v1', apiRouter);
