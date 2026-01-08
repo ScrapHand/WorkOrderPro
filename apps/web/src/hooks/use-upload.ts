@@ -17,7 +17,7 @@ export function useUpload(options: UploadOptions = {}) {
 
         try {
             // 1. Get Presigned URL
-            const { data: presignedData } = await api.post('/v1/upload/presign', {
+            const { data: presignedData } = await api.post('/upload/presign', {
                 fileName: file.name,
                 mimeType: file.type, // Use mimeType to match backend schema
                 entityType,
