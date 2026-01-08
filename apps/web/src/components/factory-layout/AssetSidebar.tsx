@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Asset {
     id: string;
@@ -77,7 +76,7 @@ export function AssetSidebar({ onClose, existingAssetIds }: AssetSidebarProps) {
             </div>
 
             {/* Asset List */}
-            <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-auto">
                 <div className="p-4 space-y-2">
                     {isLoading ? (
                         <div className="text-sm text-muted-foreground">Loading assets...</div>
@@ -106,10 +105,10 @@ export function AssetSidebar({ onClose, existingAssetIds }: AssetSidebarProps) {
                                         )}
                                         <div
                                             className={`text-xs inline-block mt-1 px-2 py-0.5 rounded ${asset.status === 'OPERATIONAL'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : asset.status === 'DOWN'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-yellow-100 text-yellow-800'
+                                                ? 'bg-green-100 text-green-800'
+                                                : asset.status === 'DOWN'
+                                                    ? 'bg-red-100 text-red-800'
+                                                    : 'bg-yellow-100 text-yellow-800'
                                                 }`}
                                         >
                                             {asset.status}
@@ -124,7 +123,7 @@ export function AssetSidebar({ onClose, existingAssetIds }: AssetSidebarProps) {
                         </div>
                     )}
                 </div>
-            </ScrollArea>
+            </div>
 
             <div className="p-4 border-t bg-gray-50 text-xs text-muted-foreground">
                 Drag assets onto the canvas to add them to the layout
