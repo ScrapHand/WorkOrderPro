@@ -41,6 +41,8 @@ model Tenant {
   checklistTemplates ChecklistTemplate[]
   productionLines   ProductionLine[]
   assetConnections  AssetConnection[]
+  factoryLayouts    FactoryLayout[]
+  conveyorSystems   ConveyorSystem[]
 }
 
 model User {
@@ -129,6 +131,7 @@ model Asset {
   
   sourceConnections AssetConnection[] @relation("SourceConnections")
   targetConnections AssetConnection[] @relation("TargetConnections")
+  factoryLayoutNodes FactoryLayoutNode[]
 
   // Indexes for Performance
   @@index([tenantId])
@@ -426,4 +429,92 @@ model AssetConnection {
 
   @@index([tenantId])
   @@index([productionLineId])
+}
+
+// ===== FACTORY LAYOUT DESIGNER MODELS =====
+
+model FactoryLayout {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  name          String
+  description   String?
+  isLocked      Boolean  @default(false) @map("is_locked")
+  version       Int      @default(1) // Optimistic concurrency control
+  viewportJson  Json?    @map("viewport_json") // { x, y, zoom }
+  
+  nodes         FactoryLayoutNode[]
+  edges         FactoryLayoutEdge[]
+  
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+}
+
+model FactoryLayoutNode {
+  id        String   @id @default(uuid())
+  layoutId  String   @map("layout_id")
+  tenantId  String   @map("tenant_id")
+  assetId   String   @map("asset_id")
+  x         Float
+  y         Float
+  width     Int?
+  height    Int?
+  rotation  Int?     @default(0)
+  metaJson  Json?    @map("meta_json") // Visual overrides
+
+  layout    FactoryLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  asset     Asset         @relation(fields: [assetId], references: [id])
+  
+  // Relations for edges
+  outgoingEdges FactoryLayoutEdge[] @relation("SourceNode")
+  incomingEdges FactoryLayoutEdge[] @relation("TargetNode")
+
+  @@index([layoutId])
+  @@index([tenantId])
+  @@index([assetId])
+}
+
+enum EdgeType {
+  CONVEYOR
+  MODULE
+}
+
+model FactoryLayoutEdge {
+  id               String   @id @default(uuid())
+  layoutId         String   @map("layout_id")
+  tenantId         String   @map("tenant_id")
+  sourceNodeId     String   @map("source_node_id")
+  targetNodeId     String   @map("target_node_id")
+  type             EdgeType @default(CONVEYOR)
+  conveyorSystemId String?  @map("conveyor_system_id")
+  label            String?
+  metaJson         Json?    @map("meta_json") // Path points for custom routing
+
+  layout           FactoryLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  sourceNode       FactoryLayoutNode @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode       FactoryLayoutNode @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  conveyorSystem   ConveyorSystem?   @relation(fields: [conveyorSystemId], references: [id])
+
+  @@index([layoutId])
+  @@index([tenantId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+model ConveyorSystem {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  color       String   @default("#808080")
+  description String?
+  
+  edges       FactoryLayoutEdge[]
+  
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
 }

@@ -39,6 +39,8 @@ import { ChecklistTemplateService } from './application/services/checklist-templ
 import { TenantService } from './application/services/tenant.service';
 import { AnalyticsService } from './application/services/analytics.service';
 import { ProductionLineService } from './application/services/production-line.service';
+import { FactoryLayoutService } from './application/services/factory-layout.service';
+import { ConveyorSystemService } from './application/services/conveyor-system.service';
 
 // Controllers
 import { AssetController } from './infrastructure/http/controllers/asset.controller';
@@ -57,6 +59,8 @@ import { PlatformAdminController } from './infrastructure/http/controllers/platf
 import { TenantController } from './infrastructure/http/controllers/tenant.controller';
 import { AnalyticsController } from './infrastructure/http/controllers/analytics.controller';
 import { ProductionLineController } from './infrastructure/http/controllers/production-line.controller';
+import { FactoryLayoutController } from './infrastructure/http/controllers/factory-layout.controller';
+import { ConveyorSystemController } from './infrastructure/http/controllers/conveyor-system.controller';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -180,6 +184,12 @@ const analyticsController = new AnalyticsController(analyticsService);
 const lineService = new ProductionLineService(prisma);
 const lineController = new ProductionLineController(lineService);
 
+const factoryLayoutService = new FactoryLayoutService(prisma);
+const factoryLayoutController = new FactoryLayoutController(factoryLayoutService);
+
+const conveyorSystemService = new ConveyorSystemService(prisma);
+const conveyorSystemController = new ConveyorSystemController(conveyorSystemService);
+
 // Define Routers
 const apiRouter = express.Router();
 
@@ -301,6 +311,26 @@ lineRouter.get('/:id', requireAuth, lineController.getById);
 lineRouter.post('/:id/connections', requireAuth, lineController.addConnection);
 lineRouter.get('/:id/analyze', requireAuth, lineController.analyze);
 apiRouter.use('/production-lines', lineRouter);
+
+// Factory Layout Routes
+const factoryLayoutRouter = express.Router();
+factoryLayoutRouter.get('/', requireAuth, factoryLayoutController.listLayouts);
+factoryLayoutRouter.post('/', requireAuth, factoryLayoutController.createLayout);
+factoryLayoutRouter.get('/:id', requireAuth, factoryLayoutController.getLayout);
+factoryLayoutRouter.patch('/:id', requireAuth, factoryLayoutController.updateMetadata);
+factoryLayoutRouter.put('/:id/graph', requireAuth, factoryLayoutController.bulkSaveGraph);
+factoryLayoutRouter.post('/:id/lock', requireAuth, factoryLayoutController.toggleLock);
+factoryLayoutRouter.delete('/:id', requireAuth, factoryLayoutController.deleteLayout);
+apiRouter.use('/factory-layouts', factoryLayoutRouter);
+
+// Conveyor System Routes
+const conveyorSystemRouter = express.Router();
+conveyorSystemRouter.get('/', requireAuth, conveyorSystemController.listSystems);
+conveyorSystemRouter.post('/', requireAuth, conveyorSystemController.createSystem);
+conveyorSystemRouter.get('/:id', requireAuth, conveyorSystemController.getSystem);
+conveyorSystemRouter.patch('/:id', requireAuth, conveyorSystemController.updateSystem);
+conveyorSystemRouter.delete('/:id', requireAuth, conveyorSystemController.deleteSystem);
+apiRouter.use('/conveyor-systems', conveyorSystemRouter);
 
 // Mount API
 app.use('/api/v1', apiRouter);
