@@ -33,6 +33,23 @@ import { UserRole } from '@/lib/auth/types';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { formatDistanceToNow } from 'date-fns';
 
+// Type definitions for React Flow data
+interface AssetNodeData {
+    asset: {
+        id: string;
+        name: string;
+        status: string;
+        imageUrl?: string;
+    };
+}
+
+interface ConveyorEdgeData {
+    systemColor?: string;
+    label?: string;
+    type?: string;
+    conveyorSystemId?: string | null;
+}
+
 const nodeTypes = {
     assetNode: AssetNode,
 };
@@ -52,8 +69,8 @@ export default function FactoryLayoutEditorPage() {
     const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
     const { data: user } = useUser();
 
-    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node<AssetNodeData>>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge<ConveyorEdgeData>>([]);
     const [showSidebar, setShowSidebar] = useState(false);
     const [showSystemPanel, setShowSystemPanel] = useState(false);
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
