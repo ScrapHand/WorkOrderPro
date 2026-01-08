@@ -14,7 +14,10 @@ export class AssetController {
     create = async (req: Request, res: Response) => {
         try {
             // SECURITY: derive tenantId ONLY from secure session.
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
+            if (!sessionUser?.tenantId) {
+                return res.status(401).json({ error: 'Unauthorized: No tenant context' });
+            }
             const tenantId = sessionUser.tenantId;
 
             // [VALIDATION] Zod Check
@@ -50,7 +53,10 @@ export class AssetController {
 
     update = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
+            if (!sessionUser?.tenantId) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
             const tenantId = sessionUser.tenantId;
 
             const { id } = req.params;
@@ -76,7 +82,10 @@ export class AssetController {
 
     getTree = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
+            if (!sessionUser?.tenantId) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
             const tenantId = sessionUser.tenantId;
 
             const { id } = req.params;
@@ -89,7 +98,10 @@ export class AssetController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
+            if (!sessionUser?.tenantId) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
             const tenantId = sessionUser.tenantId;
 
             const assets = await this.assetService.getAllAssets(tenantId);
@@ -119,7 +131,10 @@ export class AssetController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
+            if (!sessionUser?.tenantId) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
             const tenantId = sessionUser.tenantId;
 
             const { id } = req.params;

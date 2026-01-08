@@ -131,9 +131,10 @@ export class UploadController {
             if (!key) return res.status(400).json({ error: 'Missing key' });
 
             // [FIX] Allow Cross-Origin usage (e.g. <img> tags on different domains)
+            // Critical for OpaqueResponseBlocking (ORB) / CORB
             res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
             res.setHeader('Access-Control-Allow-Origin', '*');
-            // Note: global CORS might override ACAO, but CORP is critical for CORB.
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // Aggressive caching for images
 
             // Security Check: Key must belong to tenant
             // Key format: tenants/{tid}/...
@@ -152,17 +153,25 @@ export class UploadController {
                 const filePath = path.join(uploadDir, key);
                 if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
 
-                res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-                res.setHeader('Access-Control-Allow-Origin', '*');
+                // Infer mime type for local files if possible, or fallback
+                // (Optimally we should store mime in DB, but for now fallback is okay for dev)
+                if (key.endsWith('.png')) res.setHeader('Content-Type', 'image/png');
+                if (key.endsWith('.jpg') || key.endsWith('.jpeg')) res.setHeader('Content-Type', 'image/jpeg');
+
                 return res.sendFile(filePath);
             }
 
             // Real S3 or MinIO
             const { body, contentType } = await this.s3Service.getObjectStream(key);
 
-            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            if (contentType) res.setHeader('Content-Type', contentType);
+            if (contentType) {
+                res.setHeader('Content-Type', contentType);
+            } else {
+                // [FIX] Fallback Content-Type prevents browser from guessing and blocking as ORB
+                if (key.endsWith('.png')) res.setHeader('Content-Type', 'image/png');
+                else if (key.endsWith('.jpg') || key.endsWith('.jpeg')) res.setHeader('Content-Type', 'image/jpeg');
+                else res.setHeader('Content-Type', 'application/octet-stream');
+            }
 
             // Pipe the stream to the response
             if (body && typeof (body as any).pipe === 'function') {
@@ -170,12 +179,13 @@ export class UploadController {
             } else {
                 // SdkStream can sometimes be different depending on platform, 
                 // but in Node.js it implements the Readable interface.
-                res.end(await (body as any).transformToByteArray());
+                const buffer = await (body as any).transformToByteArray();
+                res.end(buffer);
             }
 
         } catch (error: any) {
             console.error('Proxy Error:', error);
-            res.status(500).send('File Access Error');
+            if (!res.headersSent) res.status(500).send('File Access Error');
         }
     };
 
