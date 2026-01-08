@@ -11,8 +11,9 @@ export class ReportController {
 
     getWorkOrderSummary = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const sessionUser = (req.session as any)?.user;
+            const tenantId = sessionUser?.tenantId;
+            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
             const start = req.query.start ? new Date(req.query.start as string) : new Date(new Date().setDate(new Date().getDate() - 30));
             const end = req.query.end ? new Date(req.query.end as string) : new Date();
@@ -38,8 +39,9 @@ export class ReportController {
 
     getInventorySnapshot = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const sessionUser = (req.session as any)?.user;
+            const tenantId = sessionUser?.tenantId;
+            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
             const snapshot = await this.reportService.getInventorySnapshot(tenantId);
             res.json(snapshot);
@@ -50,8 +52,9 @@ export class ReportController {
 
     getAdvancedMetrics = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const sessionUser = (req.session as any)?.user;
+            const tenantId = sessionUser?.tenantId;
+            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
             const [pmCompliance, costByManufacturer, mtbf, mttr] = await Promise.all([
                 this.reportService.getPMCompliance(tenantId),

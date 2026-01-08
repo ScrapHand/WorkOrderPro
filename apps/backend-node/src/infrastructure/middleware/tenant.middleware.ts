@@ -12,7 +12,18 @@ export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     // 1. Extract Slug - PRIORITIZE Query Params for linked assets/proxies
-    let slug = (req.query.tenant as string) || (req.query.slug as string) || req.get('x-tenant-slug') || 'default';
+    // 1. Extract Slug - PRIORITIZE Query Params for linked assets/proxies
+    let slugParam = req.query.tenant || req.query.slug;
+    let slug = 'default';
+
+    if (Array.isArray(slugParam)) {
+        slug = (slugParam[0] as string) || 'default';
+    } else if (typeof slugParam === 'string') {
+        slug = slugParam;
+    } else {
+        slug = req.get('x-tenant-slug') || 'default';
+    }
+
     slug = slug.toLowerCase().trim();
 
     // [DEBUG] Log resolution source for Proxies

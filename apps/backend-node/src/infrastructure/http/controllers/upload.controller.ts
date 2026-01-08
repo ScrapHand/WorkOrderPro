@@ -14,6 +14,7 @@ export class UploadController {
 
     presign = async (req: Request, res: Response) => {
         try {
+            console.log('[Upload] presign called with body:', req.body); // [DEBUG]
             const tenant = getCurrentTenant();
             if (!tenant) return res.status(401).json({ error: 'Tenant context missing' });
 
@@ -164,7 +165,7 @@ export class UploadController {
             // Real S3 or MinIO
             const { body, contentType } = await this.s3Service.getObjectStream(key);
 
-            if (contentType) {
+            if (contentType && contentType !== 'application/octet-stream' && contentType !== 'binary/octet-stream') {
                 res.setHeader('Content-Type', contentType);
             } else {
                 // [FIX] Fallback Content-Type prevents browser from guessing and blocking as ORB

@@ -8,7 +8,7 @@ export class TenantController {
     getAll = async (req: Request, res: Response) => {
         try {
             console.log('[TenantController] getAll called');
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
             console.log('[TenantController] Session:', JSON.stringify(sessionUser));
 
             // Security: SUPER_ADMIN, GLOBAL_ADMIN, or Default Admin
@@ -60,7 +60,7 @@ export class TenantController {
     seedDemo = async (req: Request, res: Response) => {
         try {
             // Demo seeding is a destructive/write op.
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
             const isMaster = ['SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(sessionUser?.role);
 
             if (!isMaster && !hasPermission(req, 'tenant:write')) {

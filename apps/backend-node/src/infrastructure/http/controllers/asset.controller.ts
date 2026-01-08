@@ -113,10 +113,13 @@ export class AssetController {
 
     getById = async (req: Request, res: Response) => {
         try {
+            console.log(`[Asset] getById: ${req.params.id}`); // [DEBUG]
             const ctx = getCurrentTenant();
             if (!ctx) return res.status(401).json({ error: 'Unauthorized' });
 
             const { id } = req.params;
+            if (!id || id === 'undefined') return res.status(400).json({ error: 'Invalid ID' });
+
             const asset = await this.assetService.getAssetById(id, ctx.id);
 
             if (!asset) {
@@ -165,7 +168,7 @@ export class AssetController {
             if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
 
             const { layout, scope } = req.body;
-            const user = (req.session as any).user;
+            const user = (req.session as any)?.user;
             if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
             if (scope === 'user') {

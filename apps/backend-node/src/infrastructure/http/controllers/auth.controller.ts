@@ -126,10 +126,10 @@ export class AuthController {
 
     // Check if session is valid
     me = async (req: Request, res: Response) => {
-        if ((req.session as any).user) {
+        if ((req.session as any)?.user) {
             res.json({ isAuthenticated: true, user: (req.session as any).user });
         } else {
-            console.log('❌ Auth Check Failed. Session:', req.session); // [LOGGING] Phase 14
+            console.log('❌ Auth Check Failed or Session Expired.'); // [LOGGING] Phase 14
             res.status(401).json({ isAuthenticated: false });
         }
     };

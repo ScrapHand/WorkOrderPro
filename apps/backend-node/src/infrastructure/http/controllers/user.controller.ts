@@ -10,7 +10,7 @@ export class UserController {
         try {
             if (!hasPermission(req, 'user:write')) return res.status(403).json({ error: 'Forbidden' });
 
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
             const tenantCtx = getCurrentTenant();
             const { email, role, password, username, tenantSlug: bodyTenantSlug } = req.body;
 
@@ -48,7 +48,7 @@ export class UserController {
     update = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const sessionUser = (req.session as any).user;
+            const sessionUser = (req.session as any)?.user;
 
             // Security: Allow if having 'user:write' OR if updating self
             const isSelf = sessionUser?.id === id;
