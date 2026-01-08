@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/auth/role-guard";
+import { UserRole } from "@/lib/auth/types";
 import {
     Card,
     CardContent,
@@ -78,7 +79,7 @@ export default function FactoryLayoutsPage() {
                         Visual factory floor maps and production line designs
                     </p>
                 </div>
-                <RoleGuard requiredRole="TENANT_ADMIN">
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
                     <Link href={`/${tenantSlug}/dashboard/factory-layouts/new`}>
                         <Button className="gap-2">
                             <Plus className="w-4 h-4" />
@@ -100,7 +101,7 @@ export default function FactoryLayoutsPage() {
                                 Create your first factory layout to visualize your production flow
                             </p>
                         </div>
-                        <RoleGuard requiredRole="TENANT_ADMIN">
+                        <RoleGuard allowedRoles={[UserRole.ADMIN]}>
                             <Link href={`/${tenantSlug}/dashboard/factory-layouts/new`}>
                                 <Button>Create First Layout</Button>
                             </Link>
@@ -140,7 +141,7 @@ export default function FactoryLayoutsPage() {
                                             {formatDistanceToNow(new Date(layout.updatedAt), { addSuffix: true })}
                                         </span>
                                     </div>
-                                    <RoleGuard requiredRole="TENANT_ADMIN">
+                                    <RoleGuard allowedRoles={[UserRole.ADMIN]}>
                                         <Button
                                             variant="ghost"
                                             size="sm"
