@@ -60,28 +60,34 @@ export function NewWorkOrderWizard() {
             queryClient.setQueryData(["work-orders"], (old: any) => [...(old || []), { ...newWo, id: "temp-" + Date.now(), status: "OPEN" }]);
         },
         onSuccess: async (data) => {
+            const tenantSlug = (params?.tenantSlug as string) || 'default';
+
             // [NEW] Upload Photos if any
             if (selectedFiles.length > 0 && data?.id) {
                 setIsUploading(true);
                 try {
                     toast.loading("Uploading photos...");
                     for (const file of selectedFiles) {
-                        const { url, key } = await UploadService.getPresignedUrl('work-orders', data.id, file);
-                        await UploadService.uploadToS3(url, file);
-                        await UploadService.confirmUpload({
-                            entityType: 'work-orders',
-                            entityId: data.id,
-                            key,
-                            fileName: file.name,
-                            mimeType: file.type,
-                            size: file.size
-                        });
+                        try {
+                            const { url, key } = await UploadService.getPresignedUrl('work-orders', data.id, file);
+                            await UploadService.uploadToS3(url, file);
+                            await UploadService.confirmUpload({
+                                entityType: 'work-orders',
+                                entityId: data.id,
+                                key,
+                                fileName: file.name,
+                                mimeType: file.type,
+                                size: file.size
+                            });
+                        } catch (itemErr) {
+                            console.error(`Failed to upload file ${file.name}:`, itemErr);
+                        }
                     }
                     toast.dismiss();
-                    toast.success("Photos uploaded!");
+                    toast.success("Work Order created and photos uploaded (if any)!");
                 } catch (err) {
-                    console.error("Upload failed", err);
-                    toast.error("Work Order created, but some photos failed to upload.");
+                    console.error("Critical Upload Error:", err);
+                    toast.error("Work Order created, but photo upload system failed.");
                 } finally {
                     setIsUploading(false);
                 }
@@ -89,12 +95,13 @@ export function NewWorkOrderWizard() {
                 toast.success("Work Order created successfully");
             }
 
+            // [CRITICAL] Ensure state is cleared
             reset();
             setStep(1);
             setShowDescription(false);
             setSelectedFiles([]);
 
-            const tenantSlug = (params?.tenantSlug as string) || 'default';
+            // [NAVIGATION] Redirect to the new WO or the list
             if (data?.id) {
                 router.push(`/${tenantSlug}/dashboard/work-orders/${data.id}`);
             } else {

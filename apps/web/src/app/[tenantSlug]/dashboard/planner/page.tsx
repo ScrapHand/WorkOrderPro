@@ -193,7 +193,11 @@ export default function CalendarPlannerPage() {
                                             className={`px-2 py-1 rounded text-[10px] font-medium border truncate cursor-pointer transition-all hover:scale-[1.02] active:scale-95
                                                 ${event.type === 'pm'
                                                     ? 'bg-blue-50 text-blue-700 border-blue-100'
-                                                    : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                                    : event.priority === 'CRITICAL'
+                                                        ? 'bg-red-50 text-red-700 border-red-200 font-bold'
+                                                        : event.priority === 'HIGH'
+                                                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                            : 'bg-indigo-50 text-indigo-700 border-indigo-100'
                                                 }
                                             `}
                                         >

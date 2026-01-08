@@ -8,8 +8,9 @@ export class AdminController {
     updateConfig = async (req: Request, res: Response, next: any) => {
         try {
             console.log("AdminController.updateConfig: Body:", JSON.stringify(req.body, null, 2));
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const { branding, rbac, notifications, secrets } = req.body;
 
@@ -90,8 +91,9 @@ export class AdminController {
 
     getConfig = async (req: Request, res: Response, next: any) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });

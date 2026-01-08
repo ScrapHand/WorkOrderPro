@@ -14,13 +14,41 @@ export class ProductionLineService {
     }
 
     async getLines(tenantId: string) {
-        return this.prisma.productionLine.findMany({
+        const lines = await this.prisma.productionLine.findMany({
             where: { tenantId },
             include: {
                 _count: {
                     select: { assets: true }
+                },
+                assets: {
+                    select: { status: true }
+                },
+                connections: {
+                    select: { speedLimit: true, sourceAsset: { select: { maxSpeed: true } } }
                 }
             }
+        });
+
+        // Add virtual bottleneckCount
+        return lines.map(line => {
+            let bottleneckCount = 0;
+
+            // Count DOWN assets
+            bottleneckCount += line.assets.filter(a => a.status === 'DOWN' || a.status === 'MAINTENANCE').length;
+
+            // Count speed mismatches
+            line.connections.forEach(conn => {
+                const sourceMaxSpeed = (conn.sourceAsset as any)?.maxSpeed || 0;
+                if (conn.speedLimit && sourceMaxSpeed > conn.speedLimit) {
+                    bottleneckCount++;
+                }
+            });
+
+            return {
+                ...line,
+                assetCount: line._count.assets,
+                bottleneckCount
+            };
         });
     }
 
@@ -80,23 +108,43 @@ export class ProductionLineService {
         if (!line) throw new Error('Line not found');
 
         const bottlenecks: any[] = [];
+        const assetThroughputs: Record<string, number> = {};
 
-        // 1. Check connections (Conveyors)
+        // 1. Calculate base throughputs and identify immediate constraints
         for (const conn of line.connections) {
             const source = conn.sourceAsset;
-            if (source.maxSpeed && conn.speedLimit && source.maxSpeed > conn.speedLimit) {
+            const sourceMaxSpeed = (source as any).maxSpeed || 0;
+            const speedLimit = conn.speedLimit || sourceMaxSpeed;
+
+            // Efficiency = Actual Limit / Source Potential
+            const efficiency = sourceMaxSpeed > 0 ? Math.min(100, (speedLimit / sourceMaxSpeed) * 100) : 100;
+
+            if (efficiency < 100) {
                 bottlenecks.push({
                     type: 'CONVEYOR_LIMIT',
-                    severity: 'HIGH',
+                    severity: efficiency < 50 ? 'HIGH' : 'MEDIUM',
                     assetId: source.id,
                     connectionId: conn.id,
-                    message: `Machine '${source.name}' max speed (${source.maxSpeed}) exceeds conveyor limit (${conn.speedLimit}).`
+                    efficiency,
+                    message: `Connection limits ${source.name}'s output to ${efficiency.toFixed(1)}% efficiency.`
+                });
+            }
+
+            assetThroughputs[source.id] = speedLimit;
+        }
+
+        // 2. Identify "Starved" or "Blocked" nodes
+        // (Simplified for MVP: Any machine in MAINTENANCE or DOWN is a HIGH severity bottleneck)
+        for (const asset of line.assets) {
+            if (asset.status === 'DOWN' || asset.status === 'MAINTENANCE') {
+                bottlenecks.push({
+                    type: 'MACHINE_STATUS',
+                    severity: asset.status === 'DOWN' ? 'HIGH' : 'MEDIUM',
+                    assetId: asset.id,
+                    message: `System Flow Interrupted: ${asset.name} is ${asset.status}.`
                 });
             }
         }
-
-        // 2. Identify "Slowest" machine relative to flow
-        // (More complex logic would go here)
 
         return {
             lineId: id,

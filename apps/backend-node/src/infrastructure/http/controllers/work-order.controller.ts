@@ -12,9 +12,9 @@ export class WorkOrderController {
 
     create = async (req: Request, res: Response) => {
         try {
-            // SECURITY: derive tenantId ONLY from secure session.
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const { assetId, title, priority, description, assignedUserId } = req.body;
             console.log('[WorkOrderController] Create Request:', { assetId, title, priority, assignedUserId });
@@ -37,8 +37,9 @@ export class WorkOrderController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const filters = {
                 status: req.query.status as string | undefined,
@@ -58,8 +59,9 @@ export class WorkOrderController {
 
     getById = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const wo = await this.woService.getWorkOrderById(req.params.id, tenantId);
             if (!wo) return res.status(404).json({ error: 'Work order not found' });
@@ -72,8 +74,9 @@ export class WorkOrderController {
 
     patch = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const { id } = req.params;
             const updates = req.body;

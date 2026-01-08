@@ -12,8 +12,9 @@ export class PartController {
 
     create = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const part = await this.partService.create(tenantId, req.body);
             res.status(201).json(part);
@@ -25,8 +26,9 @@ export class PartController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const parts = await this.partService.getAll(tenantId);
             res.json(parts);
@@ -38,8 +40,9 @@ export class PartController {
 
     update = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             const part = await this.partService.update(req.params.id, tenantId, req.body);
             res.json(part);
@@ -51,14 +54,29 @@ export class PartController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            const sessionUser = (req.session as any).user;
-            const tenantId = sessionUser.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
 
             await this.partService.delete(req.params.id, tenantId);
             res.status(204).send();
         } catch (error) {
             console.error(error);
             res.status(500).json({ error: 'Failed to delete part' });
+        }
+    };
+
+    getTransactions = async (req: Request, res: Response) => {
+        try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
+
+            const transactions = await this.partService.getTransactions(tenantId);
+            res.json(transactions);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Failed to fetch inventory transactions' });
         }
     };
 }

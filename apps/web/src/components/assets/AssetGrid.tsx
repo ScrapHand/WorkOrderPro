@@ -13,6 +13,8 @@ import { AssetService } from "@/services/asset.service";
 
 import { useAuth } from "@/hooks/use-auth"; // [RBAC]
 import { UserRole } from "@/lib/auth/types";
+import { Button } from "@/components/ui/button";
+import { Plus, Box } from "lucide-react";
 
 interface AssetGridProps {
     assets: Asset[];
@@ -59,9 +61,22 @@ export function AssetGrid({ assets, onEdit }: AssetGridProps) {
 
     return (
         <>
+
             {assets.length === 0 ? (
-                <div className="text-center p-12 bg-muted/30 rounded-xl border border-dashed">
-                    <p className="text-muted-foreground">No assets found. Create your first asset to get started.</p>
+                <div className="flex flex-col items-center justify-center p-12 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                    <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                        <Box className="h-10 w-10 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900">No assets found</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm text-center mt-1 mb-6">
+                        Get started by adding your first machine, facility, or equipment to the registry.
+                    </p>
+                    {canEdit && (
+                        <Button onClick={() => onEdit?.({} as any)} disabled={!onEdit}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add First Asset
+                        </Button>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

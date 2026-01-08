@@ -1,8 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
 export class ChecklistTemplateService {
+    constructor(private prisma: PrismaClient) { }
+
     /**
      * Create a template with items
      */
@@ -13,7 +13,7 @@ export class ChecklistTemplateService {
         createdById?: string;
         items: { task: string; isRequired: boolean; order: number }[];
     }) {
-        return prisma.checklistTemplate.create({
+        return this.prisma.checklistTemplate.create({
             data: {
                 tenantId: data.tenantId,
                 name: data.name,
@@ -31,7 +31,7 @@ export class ChecklistTemplateService {
      * Get all templates for a tenant
      */
     async getTemplates(tenantId: string) {
-        return prisma.checklistTemplate.findMany({
+        return this.prisma.checklistTemplate.findMany({
             where: { tenantId },
             include: { items: { orderBy: { order: 'asc' } } }
         });
@@ -41,7 +41,7 @@ export class ChecklistTemplateService {
      * Delete a template
      */
     async deleteTemplate(id: string, tenantId: string) {
-        return prisma.checklistTemplate.delete({
+        return this.prisma.checklistTemplate.delete({
             where: { id, tenantId }
         });
     }

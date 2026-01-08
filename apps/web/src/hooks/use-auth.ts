@@ -45,14 +45,11 @@ export function useLogin() {
             const res = await api.post("/auth/login", credentials, config);
             return res.data;
         },
-        onSuccess: async (_, variables) => {
-            // Store Tenant Slug for future requests
-            const tenantSlug = variables.get("tenant_slug")?.toString();
-            if (tenantSlug) {
-                localStorage.setItem("tenant_slug", tenantSlug);
-            } else {
-                localStorage.setItem("tenant_slug", "default");
-            }
+        onSuccess: async (data, variables) => {
+            // [HARDENING] Intelligently resolve tenant slug
+            const tenantSlug = variables.get("tenant_slug")?.toString() || data.tenant?.slug || "default";
+
+            localStorage.setItem("tenant_slug", tenantSlug);
 
             // Invalidate to ensure we don't have stale guest data
             await queryClient.invalidateQueries({ queryKey: ["user"] });
@@ -69,16 +66,18 @@ export function useLogin() {
                     staleTime: 0 // Ensure fresh
                 });
 
-                const slug = tenantSlug || "default";
+                const finalSlug = variables.get("tenant_slug")?.toString() || data.tenant?.slug || user.tenantSlug || "default";
+
                 if (user.role === UserRole.TECHNICIAN) {
-                    router.push(`/${slug}/dashboard/work-orders`);
+                    router.push(`/${finalSlug}/dashboard/work-orders`);
                 } else {
-                    router.push(`/${slug}/dashboard`);
+                    router.push(`/${finalSlug}/dashboard`);
                 }
             } catch (error) {
                 // Fallback if user fetch fails (weird edge case)
                 console.error("Failed to fetch user after login", error);
-                router.push(`/${tenantSlug || "default"}/dashboard`);
+                const fallbackSlug = variables.get("tenant_slug")?.toString() || data.tenant?.slug || "default";
+                router.push(`/${fallbackSlug}/dashboard`);
             }
         },
     });

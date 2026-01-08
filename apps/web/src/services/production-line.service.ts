@@ -5,6 +5,7 @@ export interface ProductionLine {
     name: string;
     description?: string;
     assetCount?: number;
+    bottleneckCount?: number;
     createdAt: string;
 }
 

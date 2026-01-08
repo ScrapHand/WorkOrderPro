@@ -3,20 +3,22 @@ import { PMService } from '../../../application/services/pm.service';
 import { ChecklistTemplateService } from '../../../application/services/checklist-template.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 
-const pmService = new PMService();
-const templateService = new ChecklistTemplateService();
-
 export class PMController {
+    constructor(
+        private pmService: PMService,
+        private templateService: ChecklistTemplateService
+    ) { }
     /**
      * Schedules
      */
     createSchedule = async (req: Request, res: Response) => {
         try {
-            const tenantId = (req.session as any)?.user?.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(401).json({ error: 'Unauthorized' });
+            const tenantId = tenantCtx.id;
             const userId = (req.session as any)?.user?.id;
-            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
-            const schedule = await pmService.createSchedule({
+            const schedule = await this.pmService.createSchedule({
                 ...req.body,
                 tenantId,
                 createdById: userId
@@ -29,10 +31,11 @@ export class PMController {
 
     getSchedules = async (req: Request, res: Response) => {
         try {
-            const tenantId = (req.session as any)?.user?.tenantId;
-            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(401).json({ error: 'Unauthorized' });
+            const tenantId = tenantCtx.id;
 
-            const schedules = await pmService.getSchedules(tenantId);
+            const schedules = await this.pmService.getSchedules(tenantId);
             res.json(schedules);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -44,11 +47,12 @@ export class PMController {
      */
     createTemplate = async (req: Request, res: Response) => {
         try {
-            const tenantId = (req.session as any)?.user?.tenantId;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(401).json({ error: 'Unauthorized' });
+            const tenantId = tenantCtx.id;
             const userId = (req.session as any)?.user?.id;
-            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
-            const template = await templateService.createTemplate({
+            const template = await this.templateService.createTemplate({
                 ...req.body,
                 tenantId,
                 createdById: userId
@@ -61,10 +65,11 @@ export class PMController {
 
     getTemplates = async (req: Request, res: Response) => {
         try {
-            const tenantId = (req.session as any)?.user?.tenantId;
-            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(401).json({ error: 'Unauthorized' });
+            const tenantId = tenantCtx.id;
 
-            const templates = await templateService.getTemplates(tenantId);
+            const templates = await this.templateService.getTemplates(tenantId);
             res.json(templates);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -77,7 +82,7 @@ export class PMController {
     getWorkOrderChecklist = async (req: Request, res: Response) => {
         try {
             const { workOrderId } = req.params;
-            const checklist = await pmService.getWorkOrderChecklist(workOrderId);
+            const checklist = await this.pmService.getWorkOrderChecklist(workOrderId);
             res.json(checklist);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -90,7 +95,7 @@ export class PMController {
             const { isCompleted } = req.body;
             const userId = (req.session as any)?.user?.id;
 
-            const item = await pmService.signOffChecklistItem(itemId, userId, isCompleted);
+            const item = await this.pmService.signOffChecklistItem(itemId, userId, isCompleted);
             res.json(item);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -102,8 +107,9 @@ export class PMController {
      */
     triggerPMs = async (req: Request, res: Response) => {
         try {
-            const tenantId = (req.session as any)?.user?.tenantId;
-            const count = await pmService.processDuePMs(tenantId);
+            const tenantCtx = getCurrentTenant();
+            const tenantId = tenantCtx?.id;
+            const count = await this.pmService.processDuePMs(tenantId);
             res.json({ message: `Processed ${count} due PM schedules.` });
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -116,7 +122,7 @@ export class PMController {
             if (!ctx) return res.status(401).json({ error: 'Unauthorized' });
 
             const { id } = req.params;
-            const workOrder = await pmService.processScheduleById(id, ctx.id);
+            const workOrder = await this.pmService.processScheduleById(id, ctx.id);
             res.status(201).json(workOrder);
         } catch (error: any) {
             res.status(500).json({ error: error.message });

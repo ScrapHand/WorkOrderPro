@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetService } from "@/services/asset.service";
-import { Trash2, Search, ArrowUpDown, Calendar, AlertTriangle, CheckCircle } from "lucide-react";
+import { Trash2, Search, ArrowUpDown, Calendar, AlertTriangle, CheckCircle, ClipboardList } from "lucide-react";
 import { useTerminology } from "@/hooks/use-terminology";
 import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -243,8 +243,29 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
                             ))
                         ) : filteredOrders?.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-64 text-center text-muted-foreground italic">
-                                    {searchTerm ? `No ${t.workOrders.toLowerCase()} match your search.` : (filterMode === 'me' ? "No tasks assigned to you." : `No ${t.workOrders.toLowerCase()} found.`)}
+                                <TableCell colSpan={7} className="h-96 text-center">
+                                    <div className="flex flex-col items-center justify-center p-8">
+                                        <div className="bg-slate-50 p-4 rounded-full mb-4">
+                                            <ClipboardList className="h-10 w-10 text-slate-300" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                                            {searchTerm ? "No matching work orders" : "No work orders found"}
+                                        </h3>
+                                        <p className="text-slate-500 max-w-sm mb-6">
+                                            {searchTerm
+                                                ? `We couldn't find any work orders matching "${searchTerm}". Try adjusting your search terms.`
+                                                : "There are no work orders matching your current filters."}
+                                        </p>
+                                        {(searchTerm || dateFrom || dateTo) && (
+                                            <Button variant="outline" onClick={() => {
+                                                setSearchTerm("");
+                                                setDateFrom("");
+                                                setDateTo("");
+                                            }}>
+                                                Clear all filters
+                                            </Button>
+                                        )}
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ) : (

@@ -151,8 +151,9 @@ const debugController = new DebugController(prisma);
 const partService = new PartService(prisma);
 const partController = new PartController(partService, prisma);
 
-const pmService = new PMService();
-const pmController = new PMController();
+const templateService = new ChecklistTemplateService(prisma);
+const pmService = new PMService(prisma, rimeService);
+const pmController = new PMController(pmService, templateService);
 
 const reportService = new ReportService(prisma);
 const reportController = new ReportController(reportService, prisma);
@@ -259,6 +260,7 @@ partRouter.post('/', requirePermission('inventory:write'), partController.create
 partRouter.get('/', requirePermission('inventory:read'), partController.getAll);
 partRouter.patch('/:id', requirePermission('inventory:write'), partController.update);
 partRouter.delete('/:id', requirePermission('inventory:delete'), partController.delete);
+partRouter.get('/transactions', requirePermission('inventory:read'), partController.getTransactions);
 apiRouter.use('/parts', partRouter);
 
 // Report Routes

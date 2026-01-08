@@ -1,14 +1,19 @@
 import { Request, Response } from 'express';
 import { WorkOrderSessionService } from '../../../application/services/work-order-session.service';
+import { getCurrentTenant } from '../../middleware/tenant.middleware';
 
 export class WorkOrderSessionController {
     constructor(private service: WorkOrderSessionService) { }
 
     start = async (req: Request, res: Response) => {
         try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
+
             const user = (req as any).user;
             const { workOrderId } = req.params;
-            const session = await this.service.startSession(user.tenantId, workOrderId, user.id);
+            const session = await this.service.startSession(tenantId, workOrderId, user.id);
             res.status(201).json(session);
         } catch (error) {
             console.error('Start Session Error:', error);
@@ -18,9 +23,13 @@ export class WorkOrderSessionController {
 
     stop = async (req: Request, res: Response) => {
         try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
+
             const user = (req as any).user;
             const { workOrderId } = req.params;
-            const session = await this.service.stopSession(user.tenantId, workOrderId, user.id);
+            const session = await this.service.stopSession(tenantId, workOrderId, user.id);
             res.json(session);
         } catch (error) {
             console.error('Stop Session Error:', error);
@@ -30,9 +39,12 @@ export class WorkOrderSessionController {
 
     pause = async (req: Request, res: Response) => {
         try {
-            const user = (req as any).user;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
+
             const { workOrderId } = req.params;
-            await this.service.pauseWorkOrder(user.tenantId, workOrderId);
+            await this.service.pauseWorkOrder(tenantId, workOrderId);
             res.json({ message: 'Work Order paused' });
         } catch (error) {
             console.error('Pause Session Error:', error);
@@ -42,10 +54,13 @@ export class WorkOrderSessionController {
 
     complete = async (req: Request, res: Response) => {
         try {
-            const user = (req as any).user;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
+
             const { workOrderId } = req.params;
             const { notes, parts } = req.body;
-            await this.service.completeWorkOrder(user.tenantId, workOrderId, notes, parts);
+            await this.service.completeWorkOrder(tenantId, workOrderId, notes, parts);
             res.json({ message: 'Work Order completed' });
         } catch (error) {
             console.error('Complete Session Error:', error);
@@ -55,9 +70,12 @@ export class WorkOrderSessionController {
 
     getSessions = async (req: Request, res: Response) => {
         try {
-            const user = (req as any).user;
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
+
             const { workOrderId } = req.params;
-            const sessions = await this.service.getSessions(user.tenantId, workOrderId);
+            const sessions = await this.service.getSessions(tenantId, workOrderId);
             res.json(sessions);
         } catch (error) {
             console.error('Get Sessions Error:', error);
@@ -67,8 +85,12 @@ export class WorkOrderSessionController {
 
     myActive = async (req: Request, res: Response) => {
         try {
+            const tenantCtx = getCurrentTenant();
+            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            const tenantId = tenantCtx.id;
+
             const user = (req as any).user;
-            const activeItems = await this.service.getActiveWorkOrdersForUser(user.tenantId, user.id);
+            const activeItems = await this.service.getActiveWorkOrdersForUser(tenantId, user.id);
             res.json(activeItems);
         } catch (error) {
             console.error('My Active Sessions Error:', error);

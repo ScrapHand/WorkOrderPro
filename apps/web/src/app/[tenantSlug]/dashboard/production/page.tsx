@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ProductionLineService } from "@/services/production-line.service";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Plus, Layout, Activity, ChevronRight, Loader2 } from "lucide-react";
+import { Plus, Layout, Activity, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -73,9 +73,19 @@ export default function ProductionLinesPage() {
                                 <div className="bg-primary/10 p-2 rounded-lg">
                                     <Layout className="h-5 w-5 text-primary" />
                                 </div>
-                                <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-100 flex gap-1 items-center">
-                                    <Activity className="h-3 w-3" /> Balanced
-                                </Badge>
+                                {!line.bottleneckCount || line.bottleneckCount === 0 ? (
+                                    <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-100 flex gap-1 items-center">
+                                        <Activity className="h-3 w-3" /> Balanced
+                                    </Badge>
+                                ) : line.bottleneckCount <= 2 ? (
+                                    <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-100 flex gap-1 items-center">
+                                        <AlertTriangle className="h-3 w-3" /> Constrained
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="secondary" className="bg-red-50 text-red-700 border-red-100 flex gap-1 items-center">
+                                        <AlertTriangle className="h-3 w-3" /> Obstructed
+                                    </Badge>
+                                )}
                             </div>
                             <CardTitle className="mt-4">{line.name}</CardTitle>
                             <CardDescription>{line.description || "No description provided."}</CardDescription>

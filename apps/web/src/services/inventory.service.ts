@@ -2,9 +2,28 @@
 import { api } from "@/lib/api";
 import { Part, CreatePartDTO } from "@/types/inventory";
 
+export interface InventoryTransaction {
+    id: string;
+    partId: string;
+    changeQuantity: number;
+    type: 'IN' | 'OUT' | 'AUDIT';
+    reason?: string;
+    performedAt: string;
+    performedBy?: string;
+    part?: {
+        name: string;
+        sku?: string;
+    };
+}
+
 export const InventoryService = {
     getAll: async (): Promise<Part[]> => {
         const { data } = await api.get<Part[]>("/parts");
+        return data;
+    },
+
+    getTransactions: async (): Promise<InventoryTransaction[]> => {
+        const { data } = await api.get<InventoryTransaction[]>("/parts/transactions");
         return data;
     },
 

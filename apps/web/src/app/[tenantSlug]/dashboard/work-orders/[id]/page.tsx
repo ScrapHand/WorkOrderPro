@@ -175,7 +175,14 @@ export default function WorkOrderDetailsPage() {
                                     <div>
                                         <div className="font-bold text-lg">{wo.asset.name}</div>
                                         <div className="text-sm text-muted-foreground">ID: {wo.asset.id}</div>
-                                        <Button variant="link" size="sm" className="px-0 h-auto text-blue-600">View Asset Lifecycle</Button>
+                                        <Button
+                                            variant="link"
+                                            size="sm"
+                                            className="px-0 h-auto text-blue-600"
+                                            onClick={() => router.push(`/${params.tenantSlug}/dashboard/assets/${wo.asset?.id}`)}
+                                        >
+                                            View Asset Lifecycle
+                                        </Button>
                                     </div>
                                 </div>
                             ) : (

@@ -5,7 +5,7 @@ import { ProductionLineService } from "@/services/production-line.service";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Zap, Info, Plus } from "lucide-react";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import ReactFlow, {
     Background,
     Controls,
@@ -120,20 +120,30 @@ function FlowEditor({ line, allAssets }: { line: any, allAssets: Asset[] }) {
 
     const initialEdges = useMemo(() => {
         return line.connections.map((conn: any) => {
-            const isRestricted = bottlenecks.some((b: any) => b.connectionId === conn.id);
+            const bottleneck = bottlenecks.find((b: any) => b.connectionId === conn.id);
+            const efficiency = bottleneck?.efficiency || 100;
+            const isRestricted = efficiency < 100;
+
+            // Calculate stroke color based on efficiency
+            let stroke = '#6366f1'; // Default Indigo
+            if (efficiency < 50) stroke = '#ef4444'; // Red
+            else if (efficiency < 100) stroke = '#f59e0b'; // Amber
+
             return {
                 id: conn.id,
                 source: conn.sourceAssetId,
                 target: conn.targetAssetId,
-                label: conn.connectionType,
-                animated: true,
+                label: `${conn.connectionType} (${efficiency.toFixed(0)}%)`,
+                animated: efficiency > 0,
                 style: {
-                    strokeWidth: isRestricted ? 4 : 2,
-                    stroke: isRestricted ? '#ef4444' : '#6366f1'
+                    strokeWidth: isRestricted ? 3 : 2,
+                    stroke,
+                    // Speed animation based on efficiency
+                    animationDuration: `${Math.max(0.5, (100 / efficiency) * 2)}s`
                 },
                 markerEnd: {
                     type: MarkerType.ArrowClosed,
-                    color: isRestricted ? '#ef4444' : '#6366f1'
+                    color: stroke
                 },
             };
         });
@@ -143,10 +153,19 @@ function FlowEditor({ line, allAssets }: { line: any, allAssets: Asset[] }) {
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
     // Sync state when data changes
-    useMemo(() => {
+    useEffect(() => {
         setNodes(initialNodes);
         setEdges(initialEdges);
     }, [initialNodes, initialEdges, setNodes, setEdges]);
+
+    const systemEfficiency = useMemo(() => {
+        if (line.connections.length === 0) return 100;
+        const totalEff = line.connections.reduce((acc: number, conn: any) => {
+            const b = bottlenecks.find((bn: any) => bn.connectionId === conn.id);
+            return acc + (b?.efficiency || 100);
+        }, 0);
+        return totalEff / line.connections.length;
+    }, [line.connections, bottlenecks]);
 
     return (
         <ReactFlow
@@ -157,10 +176,25 @@ function FlowEditor({ line, allAssets }: { line: any, allAssets: Asset[] }) {
             nodeTypes={nodeTypes}
             fitView
         >
-            <Background color="#f1f5f9" gap={20} />
+            <Background color="#cbd5e1" gap={20} size={1} />
             <Controls />
-            <Panel position="bottom-left" className="bg-white/80 backdrop-blur p-2 rounded-lg border text-[10px] uppercase font-bold tracking-wider text-muted-foreground shadow-sm">
-                Production Flow Modeling Mode
+            <Panel position="top-right" className="bg-white/90 backdrop-blur p-4 rounded-xl border-2 shadow-xl flex gap-6">
+                <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">System Efficiency</span>
+                    <span className={`text-2xl font-black ${systemEfficiency > 90 ? 'text-green-600' : systemEfficiency > 60 ? 'text-orange-600' : 'text-red-600'}`}>
+                        {systemEfficiency.toFixed(1)}%
+                    </span>
+                </div>
+                <div className="w-px bg-slate-200" />
+                <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Active Bottlenecks</span>
+                    <span className={`text-2xl font-black ${bottlenecks.length === 0 ? 'text-slate-400' : 'text-red-600'}`}>
+                        {bottlenecks.length}
+                    </span>
+                </div>
+            </Panel>
+            <Panel position="bottom-left" className="bg-black/80 text-white p-2 px-3 rounded-full text-[10px] uppercase font-bold tracking-widest shadow-2xl">
+                Factory Floor Engine v1.2
             </Panel>
         </ReactFlow>
     );

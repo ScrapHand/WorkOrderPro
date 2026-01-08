@@ -1,9 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { addDays, addWeeks, addMonths, addQuarters, addYears } from 'date-fns';
-
-const prisma = new PrismaClient();
+import { RimeService } from './rime.service';
 
 export class PMService {
+    constructor(
+        private prisma: PrismaClient,
+        private rimeService: RimeService
+    ) { }
+
     /**
      * Calculate next due date based on frequency
      */
@@ -39,7 +43,7 @@ export class PMService {
     }) {
         const startDate = new Date(data.startDate);
 
-        return prisma.pMSchedule.create({
+        return this.prisma.pMSchedule.create({
             data: {
                 tenantId: data.tenantId,
                 assetId: data.assetId,
@@ -58,10 +62,10 @@ export class PMService {
      * Get all schedules for a tenant
      */
     async getSchedules(tenantId: string) {
-        return prisma.pMSchedule.findMany({
+        return this.prisma.pMSchedule.findMany({
             where: { tenantId },
             include: {
-                asset: { select: { name: true } },
+                asset: { select: { name: true, criticality: true } },
                 checklistTemplate: { select: { name: true } }
             }
         });
@@ -69,7 +73,6 @@ export class PMService {
 
     /**
      * Process due PMs and generate Work Orders
-     * This would typically be called by a cron job
      */
     async processDuePMs(tenantId?: string) {
         const where: any = {
@@ -78,9 +81,12 @@ export class PMService {
         };
         if (tenantId) where.tenantId = tenantId;
 
-        const dueSchedules = await prisma.pMSchedule.findMany({
+        const dueSchedules = await this.prisma.pMSchedule.findMany({
             where,
-            include: { checklistTemplate: { include: { items: true } } }
+            include: {
+                asset: true,
+                checklistTemplate: { include: { items: true } }
+            }
         });
 
         for (const schedule of dueSchedules) {
@@ -94,9 +100,12 @@ export class PMService {
      * Process a specific PM Schedule by ID
      */
     async processScheduleById(id: string, tenantId: string) {
-        const schedule = await prisma.pMSchedule.findFirst({
+        const schedule = await this.prisma.pMSchedule.findFirst({
             where: { id, tenantId },
-            include: { checklistTemplate: { include: { items: true } } }
+            include: {
+                asset: true,
+                checklistTemplate: { include: { items: true } }
+            }
         });
 
         if (!schedule) throw new Error('PM Schedule not found');
@@ -108,7 +117,12 @@ export class PMService {
      * Generate a Work Order from a schedule
      */
     private async generateWorkOrder(schedule: any) {
-        return prisma.$transaction(async (tx) => {
+        return this.prisma.$transaction(async (tx) => {
+            // [ENHANCEMENT] Calculate Dynamic RIME Score
+            // Priority is default MEDIUM (3) for PMs unless logic dictates otherwise
+            const priority = 'MEDIUM';
+            const rimeScore = await this.rimeService.calculateScore(schedule.assetId, schedule.tenantId, priority);
+
             // 1. Create Work Order
             const workOrder = await tx.workOrder.create({
                 data: {
@@ -116,10 +130,10 @@ export class PMService {
                     assetId: schedule.assetId,
                     title: `[PM] ${schedule.title}`,
                     description: schedule.description,
-                    priority: 'MEDIUM',
+                    priority,
                     status: 'OPEN',
                     type: 'PREVENTIVE',
-                    rimeScore: 10, // Default for now
+                    rimeScore,
                     pmScheduleId: schedule.id,
                 }
             });
@@ -160,7 +174,7 @@ export class PMService {
      * Get checklist for a specific Work Order
      */
     async getWorkOrderChecklist(workOrderId: string) {
-        return prisma.workOrderChecklist.findFirst({
+        return this.prisma.workOrderChecklist.findFirst({
             where: { workOrderId },
             include: { items: { orderBy: { order: 'asc' } } }
         });
@@ -170,7 +184,7 @@ export class PMService {
      * Update checklist item (Sign-off)
      */
     async signOffChecklistItem(itemId: string, userId: string, isCompleted: boolean) {
-        return prisma.workOrderChecklistItem.update({
+        return this.prisma.workOrderChecklistItem.update({
             where: { id: itemId },
             data: {
                 isCompleted,
