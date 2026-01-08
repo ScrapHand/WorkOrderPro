@@ -34,7 +34,7 @@ import { useAutoSave } from '@/hooks/use-auto-save';
 import { formatDistanceToNow } from 'date-fns';
 
 // Type definitions for React Flow data
-interface AssetNodeData {
+interface AssetNodeData extends Record<string, unknown> {
     asset: {
         id: string;
         name: string;
@@ -43,7 +43,7 @@ interface AssetNodeData {
     };
 }
 
-interface ConveyorEdgeData {
+interface ConveyorEdgeData extends Record<string, unknown> {
     systemColor?: string;
     label?: string;
     type?: string;
