@@ -16,7 +16,7 @@ export function ConveyorEdge({
     targetPosition,
     markerEnd,
     data,
-}: EdgeProps<ConveyorEdgeData>) {
+}: EdgeProps<any>) {
     const [edgePath, labelX, labelY] = getBezierPath({
         sourceX,
         sourceY,

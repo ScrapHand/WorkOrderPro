@@ -11,7 +11,7 @@ interface AssetNodeData {
     };
 }
 
-export function AssetNode({ data, selected }: NodeProps<AssetNodeData>) {
+export function AssetNode({ data, selected }: NodeProps<any>) {
     const { asset } = data;
 
     const getStatusColor = () => {
