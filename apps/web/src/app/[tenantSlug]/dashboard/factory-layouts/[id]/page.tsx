@@ -163,7 +163,7 @@ export default function FactoryLayoutEditorPage() {
                 y: event.clientY,
             });
 
-            const newNode: Node = {
+            const newNode: Node<AssetNodeData> = {
                 id: `node_${nodeId++}_${Date.now()}`,
                 type,
                 position,
@@ -225,7 +225,7 @@ export default function FactoryLayoutEditorPage() {
         const nodeToDuplicate = nodes.find((n) => n.id === contextMenu.nodeId);
         if (!nodeToDuplicate) return;
 
-        const newNode: Node = {
+        const newNode: Node<AssetNodeData> = {
             ...nodeToDuplicate,
             id: `node_${nodeId++}_${Date.now()}`,
             position: {
