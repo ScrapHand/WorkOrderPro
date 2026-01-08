@@ -52,8 +52,8 @@ export default function FactoryLayoutEditorPage() {
     const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
     const { data: user } = useUser();
 
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [showSidebar, setShowSidebar] = useState(false);
     const [showSystemPanel, setShowSystemPanel] = useState(false);
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
