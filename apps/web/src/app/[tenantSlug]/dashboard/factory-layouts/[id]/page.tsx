@@ -52,11 +52,11 @@ interface ConveyorEdgeData extends Record<string, unknown> {
 
 const nodeTypes = {
     assetNode: AssetNode,
-};
+} as any;
 
 const edgeTypes = {
     conveyorEdge: ConveyorEdge,
-};
+} as any;
 
 let nodeId = 0;
 
