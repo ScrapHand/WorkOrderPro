@@ -29,6 +29,7 @@ import { ArrowLeft, Plus, Network } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useUser } from '@/hooks/use-auth';
+import { UserRole } from '@/lib/auth/types';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -58,7 +59,7 @@ export default function FactoryLayoutEditorPage() {
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
     const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
 
-    const canEdit = user?.role === 'TENANT_ADMIN';
+    const canEdit = user?.role === UserRole.ADMIN;
 
     // Fetch layout data
     const { data: layout, isLoading } = useQuery({
