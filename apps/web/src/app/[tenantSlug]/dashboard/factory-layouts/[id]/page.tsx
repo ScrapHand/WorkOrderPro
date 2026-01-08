@@ -100,14 +100,14 @@ export default function FactoryLayoutEditorPage() {
     useEffect(() => {
         if (!layout) return;
 
-        const initialNodes: Node[] = layout.nodes?.map((node: any) => ({
+        const initialNodes: Node<AssetNodeData>[] = layout.nodes?.map((node: any) => ({
             id: node.id,
             type: 'assetNode',
             position: { x: node.x, y: node.y },
             data: { asset: node.asset },
         })) || [];
 
-        const initialEdges: Edge[] = layout.edges?.map((edge: any) => ({
+        const initialEdges: Edge<ConveyorEdgeData>[] = layout.edges?.map((edge: any) => ({
             id: edge.id,
             source: edge.sourceNodeId,
             target: edge.targetNodeId,
