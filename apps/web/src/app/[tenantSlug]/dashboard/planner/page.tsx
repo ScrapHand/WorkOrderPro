@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PMService } from "@/services/pm.service";
 import { AssetService } from "@/services/asset.service";
 import {
@@ -10,7 +10,9 @@ import {
     Calendar as CalendarIcon,
     Filter,
     Clock,
-    CheckCircle2
+    CheckCircle2,
+    Loader2,
+    ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,9 +28,26 @@ import {
     eachDayOfInterval,
     isToday
 } from "date-fns";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { useRouter, useParams } from "next/navigation";
 
 export default function CalendarPlannerPage() {
+    const router = useRouter();
+    const params = useParams();
+    const tenantSlug = params.tenantSlug as string;
+    const queryClient = useQueryClient();
+
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedEvent, setSelectedEvent] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const { data: schedules } = useQuery({
         queryKey: ["pm-schedules"],
@@ -38,6 +57,17 @@ export default function CalendarPlannerPage() {
     const { data: workOrders } = useQuery({
         queryKey: ["planner-work-orders", format(currentDate, "yyyy-MM")],
         queryFn: () => AssetService.getWorkOrders(),
+    });
+
+    const triggerMutation = useMutation({
+        mutationFn: (id: string) => PMService.triggerSchedule(id),
+        onSuccess: (newWO) => {
+            queryClient.invalidateQueries({ queryKey: ["planner-work-orders"] });
+            queryClient.invalidateQueries({ queryKey: ["pm-schedules"] });
+            setIsModalOpen(false);
+            // Optional: Redirect to the new work order
+            router.push(`/${tenantSlug}/dashboard/work-orders/${newWO.id}`);
+        }
     });
 
     const monthStart = startOfMonth(currentDate);
@@ -59,11 +89,14 @@ export default function CalendarPlannerPage() {
         schedules?.forEach(pm => {
             if (isSameDay(new Date(pm.nextDueDate), day)) {
                 events.push({
-                    id: `pm-${pm.id}`,
+                    id: pm.id,
+                    dbId: pm.id,
                     title: pm.title,
                     type: 'pm',
                     status: 'scheduled',
-                    asset: pm.asset?.name
+                    asset: pm.asset?.name,
+                    frequency: pm.frequency,
+                    description: pm.description
                 });
             }
         });
@@ -71,16 +104,29 @@ export default function CalendarPlannerPage() {
         workOrders?.forEach(wo => {
             if (wo.dueDate && isSameDay(new Date(wo.dueDate), day)) {
                 events.push({
-                    id: `wo-${wo.id}`,
+                    id: wo.id,
+                    dbId: wo.id,
                     title: wo.title,
                     type: 'wo',
                     status: wo.status,
-                    priority: wo.priority
+                    priority: wo.priority,
+                    assetId: wo.assetId
                 });
             }
         });
 
         return events;
+    };
+
+    const handleEventClick = (event: any) => {
+        setSelectedEvent(event);
+        setIsModalOpen(true);
+    };
+
+    const handleImplement = () => {
+        if (selectedEvent?.type === 'pm') {
+            triggerMutation.mutate(selectedEvent.dbId);
+        }
     };
 
     return (
@@ -143,6 +189,7 @@ export default function CalendarPlannerPage() {
                                     {dayEvents.map((event, eIdx) => (
                                         <div
                                             key={eIdx}
+                                            onClick={() => handleEventClick(event)}
                                             className={`px-2 py-1 rounded text-[10px] font-medium border truncate cursor-pointer transition-all hover:scale-[1.02] active:scale-95
                                                 ${event.type === 'pm'
                                                     ? 'bg-blue-50 text-blue-700 border-blue-100'
@@ -166,6 +213,79 @@ export default function CalendarPlannerPage() {
                     })}
                 </div>
             </div>
+
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {selectedEvent?.type === 'pm' ? <Clock className="h-5 w-5 text-blue-500" /> : <CalendarIcon className="h-5 w-5 text-indigo-500" />}
+                            {selectedEvent?.title}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedEvent?.type === 'pm' ? 'Preventive Maintenance Schedule' : 'Corrective Work Order'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Asset</h4>
+                                <p className="text-sm font-medium">{selectedEvent?.asset || 'System Wide'}</p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Status</h4>
+                                <Badge variant="secondary" className="capitalize">{selectedEvent?.status}</Badge>
+                            </div>
+                            {selectedEvent?.frequency && (
+                                <div>
+                                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Frequency</h4>
+                                    <p className="text-sm font-medium">{selectedEvent.frequency}</p>
+                                </div>
+                            )}
+                            {selectedEvent?.priority && (
+                                <div>
+                                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Priority</h4>
+                                    <Badge variant={selectedEvent.priority === 'CRITICAL' ? 'destructive' : 'outline'}>
+                                        {selectedEvent.priority}
+                                    </Badge>
+                                </div>
+                            )}
+                        </div>
+
+                        {selectedEvent?.description && (
+                            <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Description</h4>
+                                <p className="text-sm text-gray-600 line-clamp-3">{selectedEvent.description}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        {selectedEvent?.type === 'pm' ? (
+                            <Button
+                                onClick={handleImplement}
+                                disabled={triggerMutation.isPending}
+                                className="w-full sm:w-auto"
+                            >
+                                {triggerMutation.isPending ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <>Implement Now <ArrowRight className="ml-2 h-4 w-4" /></>
+                                )}
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                                onClick={() => router.push(`/${tenantSlug}/dashboard/work-orders/${selectedEvent?.dbId}`)}
+                            >
+                                View Detailed Record
+                            </Button>
+                        )}
+                        <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

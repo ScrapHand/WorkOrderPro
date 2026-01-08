@@ -64,4 +64,8 @@ export class AssetService {
     async getAllAssets(tenantId: string): Promise<Asset[]> {
         return this.assetRepo.findAll(tenantId);
     }
+
+    async getAssetById(id: string, tenantId: string): Promise<Asset | null> {
+        return this.assetRepo.findById(id, tenantId);
+    }
 }

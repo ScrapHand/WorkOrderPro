@@ -99,6 +99,24 @@ export class AssetController {
         }
     };
 
+    getById = async (req: Request, res: Response) => {
+        try {
+            const ctx = getCurrentTenant();
+            if (!ctx) return res.status(401).json({ error: 'Unauthorized' });
+
+            const { id } = req.params;
+            const asset = await this.assetService.getAssetById(id, ctx.id);
+
+            if (!asset) {
+                return res.status(404).json({ error: 'Asset not found' });
+            }
+
+            res.json(asset);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    };
+
     delete = async (req: Request, res: Response) => {
         try {
             const sessionUser = (req.session as any).user;

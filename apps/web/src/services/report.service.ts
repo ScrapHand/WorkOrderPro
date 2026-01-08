@@ -54,24 +54,24 @@ export interface ReliabilityTrend {
 
 export const ReportService = {
     getWorkOrderSummary: async (start?: string, end?: string): Promise<WOSummary> => {
-        const res = await api.get("/v1/reports/work-orders", {
+        const res = await api.get("/reports/work-orders", {
             params: { start, end }
         });
         return res.data;
     },
 
     getInventorySnapshot: async (): Promise<InventorySnapshot> => {
-        const res = await api.get("/v1/reports/inventory");
+        const res = await api.get("/reports/inventory");
         return res.data;
     },
 
     getAdvancedMetrics: async () => {
-        const response = await api.get<AdvancedMetrics>('/v1/reports/advanced');
+        const response = await api.get<AdvancedMetrics>('/reports/advanced');
         return response.data;
     },
 
     getTrends: async () => {
-        const response = await api.get<ReliabilityTrend>('/v1/reports/trends');
+        const response = await api.get<ReliabilityTrend>('/reports/trends');
         return response.data;
     }
 };

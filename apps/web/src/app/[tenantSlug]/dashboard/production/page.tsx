@@ -1,22 +1,55 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ProductionLineService } from "@/services/production-line.service";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Plus, Layout, Activity, ChevronRight } from "lucide-react";
+import { Plus, Layout, Activity, ChevronRight, Loader2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function ProductionLinesPage() {
     const params = useParams();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const tenantSlug = params.tenantSlug as string;
+
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [newName, setNewName] = useState("");
+    const [newDesc, setNewDesc] = useState("");
 
     const { data: lines, isLoading } = useQuery({
         queryKey: ["production-lines"],
         queryFn: ProductionLineService.getAll
     });
+
+    const createMutation = useMutation({
+        mutationFn: ProductionLineService.create,
+        onSuccess: (newLine) => {
+            queryClient.invalidateQueries({ queryKey: ["production-lines"] });
+            setIsCreateOpen(false);
+            setNewName("");
+            setNewDesc("");
+            router.push(`/${tenantSlug}/dashboard/production/${newLine.id}`);
+        }
+    });
+
+    const handleCreate = () => {
+        if (!newName.trim()) return;
+        createMutation.mutate({ name: newName, description: newDesc });
+    };
 
     if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading production lines...</div>;
 
@@ -27,7 +60,7 @@ export default function ProductionLinesPage() {
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900">Production Lines</h1>
                     <p className="text-muted-foreground">Model and analyze your factory flow for bottleneck optimization.</p>
                 </div>
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
                     <Plus className="h-4 w-4" /> New Line
                 </Button>
             </div>
@@ -69,10 +102,50 @@ export default function ProductionLinesPage() {
                         <p className="text-muted-foreground max-w-sm mt-2">
                             Start by creating a visual model of your assembly or processing line to identify bottlenecks and optimize OEE.
                         </p>
-                        <Button className="mt-6">Create Your First Line</Button>
+                        <Button className="mt-6" onClick={() => setIsCreateOpen(true)}>Create Your First Line</Button>
                     </Card>
                 )}
             </div>
+
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Create Production Line</DialogTitle>
+                        <DialogDescription>
+                            Define a new manufacturing flow to map your assets.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Line Name</Label>
+                            <Input
+                                id="name"
+                                placeholder="Assembly Line A"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="desc">Description (Optional)</Label>
+                            <Textarea
+                                id="desc"
+                                placeholder="Primary bottling and labeling line..."
+                                value={newDesc}
+                                onChange={(e) => setNewDesc(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleCreate}
+                            disabled={!newName.trim() || createMutation.isPending}
+                        >
+                            {createMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create & Open Flow Editor"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PMService } from '../../../application/services/pm.service';
 import { ChecklistTemplateService } from '../../../application/services/checklist-template.service';
+import { getCurrentTenant } from '../../middleware/tenant.middleware';
 
 const pmService = new PMService();
 const templateService = new ChecklistTemplateService();
@@ -104,6 +105,19 @@ export class PMController {
             const tenantId = (req.session as any)?.user?.tenantId;
             const count = await pmService.processDuePMs(tenantId);
             res.json({ message: `Processed ${count} due PM schedules.` });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    triggerSchedule = async (req: Request, res: Response) => {
+        try {
+            const ctx = getCurrentTenant();
+            if (!ctx) return res.status(401).json({ error: 'Unauthorized' });
+
+            const { id } = req.params;
+            const workOrder = await pmService.processScheduleById(id, ctx.id);
+            res.status(201).json(workOrder);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
         }

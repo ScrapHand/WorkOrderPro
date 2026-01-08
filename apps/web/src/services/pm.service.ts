@@ -78,5 +78,9 @@ export const PMService = {
     triggerPMs: async (): Promise<{ message: string }> => {
         const { data } = await api.post('/pm/trigger');
         return data;
+    },
+    triggerSchedule: async (id: string): Promise<any> => {
+        const { data } = await api.post(`/pm/schedules/${id}/trigger`);
+        return data;
     }
 };

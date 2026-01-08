@@ -91,6 +91,20 @@ export class PMService {
     }
 
     /**
+     * Process a specific PM Schedule by ID
+     */
+    async processScheduleById(id: string, tenantId: string) {
+        const schedule = await prisma.pMSchedule.findFirst({
+            where: { id, tenantId },
+            include: { checklistTemplate: { include: { items: true } } }
+        });
+
+        if (!schedule) throw new Error('PM Schedule not found');
+
+        return this.generateWorkOrder(schedule);
+    }
+
+    /**
      * Generate a Work Order from a schedule
      */
     private async generateWorkOrder(schedule: any) {

@@ -62,6 +62,10 @@ export class UploadController {
 
             const { entityType, entityId, key, fileName, mimeType, size } = req.body;
 
+            if (!key) {
+                return res.status(400).json({ error: 'Missing S3 key' });
+            }
+
             console.log(`[Upload] Creating Attachment:`, { entityType, entityId, fileName }); // [DEBUG]
 
             // Resolve Tenant ID
