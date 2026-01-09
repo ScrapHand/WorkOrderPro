@@ -37,6 +37,7 @@ const getSidebarLinks = (term: any, slug: string) => {
         { name: term?.assets || "Assets", href: `${prefix}/assets`, icon: Box },
         { name: term?.inventory || "Inventory", href: `${prefix}/inventory`, icon: Wrench },
         { name: term?.reports || "Reports", href: `${prefix}/reports`, icon: ClipboardList },
+        { name: "Archived Jobs", href: `${prefix}/work-orders/archive`, icon: Archive },
     ];
 };
 
