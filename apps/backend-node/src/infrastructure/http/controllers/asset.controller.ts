@@ -99,6 +99,21 @@ export class AssetController {
         }
     };
 
+    importTemplate = async (req: Request, res: Response) => {
+        try {
+            const { tenantId } = (req.session as any).user;
+            const { template } = req.body;
+            if (!template || !template.structure) {
+                return res.status(400).json({ error: 'Template structure required' });
+            }
+            await this.assetService.importTemplate(tenantId, template.structure);
+            res.status(201).json({ message: 'Template imported successfully' });
+        } catch (error: any) {
+            console.error('Import Template Error:', error);
+            res.status(500).json({ error: 'Failed to import template' });
+        }
+    }
+
     getAll = async (req: Request, res: Response) => {
         try {
             const sessionUser = (req.session as any)?.user;

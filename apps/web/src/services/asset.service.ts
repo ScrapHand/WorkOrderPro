@@ -59,5 +59,9 @@ export const AssetService = {
 
     deleteWorkOrder: async (id: string): Promise<void> => {
         await api.delete(`/work-orders/${id}`);
+    },
+
+    importTemplate: async (template: any): Promise<void> => {
+        await api.post("/assets/import-template", { template });
     }
 };

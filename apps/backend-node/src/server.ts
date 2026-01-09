@@ -207,6 +207,7 @@ assetRouter.post('/layout', requireAuth, assetController.saveLayout);
 assetRouter.get('/', requirePermission('asset:read'), assetController.getAll);
 assetRouter.get('/:id', requirePermission('asset:read'), assetController.getById);
 assetRouter.get('/:id/tree', requirePermission('asset:read'), assetController.getTree);
+assetRouter.post('/import-template', requirePermission('asset:write'), assetController.importTemplate);
 assetRouter.patch('/:id', requirePermission('asset:write'), assetController.update);
 apiRouter.use('/assets', assetRouter);
 

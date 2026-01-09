@@ -68,4 +68,27 @@ export class AssetService {
     async getAssetById(id: string, tenantId: string): Promise<Asset | null> {
         return this.assetRepo.findById(id, tenantId);
     }
+
+    async importTemplate(tenantId: string, items: any[]) {
+        const createRecursive = async (item: any, parentId: string | null = null) => {
+            const asset = await this.createAsset(
+                tenantId,
+                item.name,
+                parentId,
+                item.description,
+                item.criticality || 'C'
+            );
+
+            if (item.children && item.children.length > 0) {
+                for (const child of item.children) {
+                    await createRecursive(child, asset.id);
+                }
+            }
+            return asset;
+        };
+
+        for (const rootItem of items) {
+            await createRecursive(rootItem);
+        }
+    }
 }
