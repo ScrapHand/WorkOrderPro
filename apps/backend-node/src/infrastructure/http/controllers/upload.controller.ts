@@ -58,6 +58,7 @@ export class UploadController {
     // Endpoint to finalize metadata
     createAttachment = async (req: Request, res: Response) => {
         try {
+            console.log('[Upload] createAttachment called with body:', req.body); // [DEBUG]
             const tenant = getCurrentTenant();
             if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
 

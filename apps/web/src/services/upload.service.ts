@@ -36,6 +36,7 @@ export const UploadService = {
      * Confirm Upload (Create Attachment Record)
      */
     confirmUpload: async (data: any) => {
+        console.log('[UploadService] confirmUpload payload:', data);
         const res = await api.post("/upload/confirm", data);
         return res.data;
     }

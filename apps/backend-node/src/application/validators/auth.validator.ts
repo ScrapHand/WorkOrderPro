@@ -16,8 +16,8 @@ export const createAssetSchema = z.object({
 });
 
 export const presignSchema = z.object({
-    entityType: z.enum(['assets', 'work-orders', 'tenant']),
-    entityId: z.string().uuid(),
+    entityType: z.enum(['assets', 'work-orders', 'tenant', 'inventory']),
+    entityId: z.string().min(1),
     fileName: z.string().min(1),
     mimeType: z.string().regex(/^image\/|^application\/pdf$/) // Restrict to images/pdfs
 });
