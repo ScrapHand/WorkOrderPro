@@ -1,7 +1,6 @@
 "use client";
 
-import { Search, Bell, Menu } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, useLogout } from "@/hooks/use-auth";
 import Link from "next/link";
@@ -46,17 +45,6 @@ export function Header() {
                 {logoUrl && <img src={logoUrl} alt="Logo" className="h-6 w-auto" />}
             </div>
 
-            {/* Global Search */}
-            <div className="w-full flex-1 md:w-auto md:flex-none">
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        placeholder="Search assets, orders..."
-                        className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-                    />
-                </div>
-            </div>
 
             {/* Right Actions */}
             <div className="flex items-center gap-4 ml-auto">

@@ -5,14 +5,13 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, ClipboardList, CheckCircle2, Clock, Trash2, AlertTriangle, Factory, Activity } from "lucide-react";
+import { PlusCircle, ClipboardList, CheckCircle2, Clock, Trash2, AlertTriangle, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { UserRole } from "@/lib/auth/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkOrderTable } from "@/components/work-orders/WorkOrderTable";
-import { ProductionLineService } from "@/services/production-line.service";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Placeholder type
@@ -61,15 +60,6 @@ export default function DashboardPage() {
         refetchInterval: 30000 // Check every 30s
     });
 
-    const { data: productionLines } = useQuery({
-        queryKey: ["production-lines"],
-        queryFn: ProductionLineService.getAll,
-        refetchInterval: 30000
-    });
-
-    const activeBottlenecks = productionLines?.reduce((acc, line) => acc + (line.bottleneckCount || 0), 0) || 0;
-    const totalLines = productionLines?.length || 0;
-    const isFactoryCongested = activeBottlenecks > 0;
 
     return (
         <div className="container mx-auto p-6 space-y-8">
@@ -123,20 +113,6 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/50 backdrop-blur border-slate-200/60 shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Factory Health</CardTitle>
-                        <Factory className={`h-4 w-4 ${isFactoryCongested ? 'text-amber-500' : 'text-green-500'}`} />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold flex items-center gap-2">
-                            {totalLines} <span className="text-sm font-normal text-muted-foreground">Lines</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            {activeBottlenecks} active bottlenecks
-                        </p>
-                    </CardContent>
-                </Card>
 
                 <Card className="bg-white/50 backdrop-blur border-slate-200/60 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
