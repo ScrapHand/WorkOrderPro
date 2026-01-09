@@ -22,18 +22,38 @@ export class AssetImporterService {
      * Parses the DSL text into a hierarchical structure.
      */
     parseDSL(text: string): ParsedAsset[] {
-        const lines = text.split('\n');
+        if (!text || text.trim().length === 0) return [];
+        const lines = text.split(/\r?\n/);
         const roots: ParsedAsset[] = [];
         const stack: { level: number; asset: ParsedAsset }[] = [];
 
-        lines.forEach((line, index) => {
-            const trimmedLine = line.trim();
-            if (trimmedLine.length === 0) return;
-            if (trimmedLine.startsWith('//')) return;
+        // Detect indentation step
+        let indentStep = 4;
+        for (const line of lines) {
+            const match = line.match(/^(\s+)/);
+            if (match && match[1].length > 0) {
+                if (match[1].includes('\t')) {
+                    indentStep = 1;
+                    break;
+                }
+                if (match[1].length < 4) {
+                    indentStep = match[1].length;
+                    break;
+                }
+            }
+        }
 
-            // Calculate level based on leading spaces (4 spaces = 1 level)
-            const indentSpaces = line.length - line.trimStart().length;
-            const level = Math.floor(indentSpaces / 4);
+        lines.forEach((line) => {
+            const trimmedLine = line.trim();
+            if (trimmedLine.length === 0 || trimmedLine.startsWith('//')) return;
+
+            const leadingWhitespace = line.match(/^(\s*)/)?.[1] || '';
+            let level = 0;
+            if (leadingWhitespace.includes('\t')) {
+                level = leadingWhitespace.length;
+            } else {
+                level = Math.floor(leadingWhitespace.length / indentStep);
+            }
 
             const parsed = this.parseLine(trimmedLine);
 
@@ -54,7 +74,6 @@ export class AssetImporterService {
     }
 
     private parseLine(content: string): ParsedAsset {
-        // [A] Facility 1 ::Site #tag @ "Location" // Description
         let description = '';
         const descMatch = content.match(/\/\/(.*)$/);
         if (descMatch) {
@@ -84,23 +103,16 @@ export class AssetImporterService {
         }
 
         const tags: string[] = [];
-        const tagMatches = content.matchAll(/#([\w-]+)/g);
-        for (const match of tagMatches) {
+        const tagRegex = /#([\w-]+)/g;
+        let match;
+        while ((match = tagRegex.exec(content)) !== null) {
             tags.push(match[1]);
         }
         content = content.replace(/#([\w-]+)/g, '').trim();
 
         const name = content || 'Unnamed Asset';
 
-        return {
-            name,
-            criticality,
-            type,
-            description,
-            tags,
-            location,
-            children: []
-        };
+        return { name, criticality, type, description, tags, location, children: [] };
     }
 
     async importBulk(tenantId: string, text: string) {

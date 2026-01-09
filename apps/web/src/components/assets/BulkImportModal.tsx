@@ -51,19 +51,46 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     const [dslText, setDslText] = useState(DEFAULT_EXAMPLE);
     const [preview, setPreview] = useState<ParsedAsset[]>([]);
     const [isImporting, setIsImporting] = useState(false);
+    const [errorCount, setErrorCount] = useState(0);
 
-    // Simple parser logic (shared with backend logic)
+    // [ARCH] More robust parser that handles tabs and variable indents
     const parseDSL = (text: string): ParsedAsset[] => {
-        const lines = text.split('\n');
+        if (!text || text.trim().length === 0) return [];
+
+        const lines = text.split(/\r?\n/);
         const roots: ParsedAsset[] = [];
         const stack: { level: number; asset: ParsedAsset }[] = [];
+
+        // Detect indentation step (default to 4)
+        let indentStep = 4;
+        for (const line of lines) {
+            const match = line.match(/^(\s+)/);
+            if (match && match[1].length > 0) {
+                // If it starts with a tab, we'll treat 1 tab = 1 level
+                if (match[1].includes('\t')) {
+                    indentStep = 1;
+                    break;
+                }
+                // If it's spaces, we'll try to guess (usually 2 or 4)
+                if (match[1].length < 4) {
+                    indentStep = match[1].length;
+                    break;
+                }
+            }
+        }
 
         lines.forEach((line) => {
             const trimmedLine = line.trim();
             if (trimmedLine.length === 0 || trimmedLine.startsWith('//')) return;
 
-            const indentSpaces = line.length - line.trimStart().length;
-            const level = Math.floor(indentSpaces / 4);
+            // Calculate level
+            const leadingWhitespace = line.match(/^(\s*)/)?.[1] || '';
+            let level = 0;
+            if (leadingWhitespace.includes('\t')) {
+                level = leadingWhitespace.length; // 1 tab = 1 level
+            } else {
+                level = Math.floor(leadingWhitespace.length / indentStep);
+            }
 
             const parsed = parseLine(trimmedLine);
 
@@ -85,12 +112,14 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
 
     const parseLine = (content: string): ParsedAsset => {
         let description = '';
+        // 1. Description //
         const descMatch = content.match(/\/\/(.*)$/);
         if (descMatch) {
             description = descMatch[1].trim();
             content = content.replace(/\/\/(.*)$/, '').trim();
         }
 
+        // 2. Criticality [A]
         let criticality: 'A' | 'B' | 'C' = 'C';
         const critMatch = content.match(/^\[([ABC])\]/i);
         if (critMatch) {
@@ -98,6 +127,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             content = content.replace(/^\[([ABC])\]/i, '').trim();
         }
 
+        // 3. Location @ ""
         let location: string | null = null;
         const locMatch = content.match(/@\s*"([^"]+)"/);
         if (locMatch) {
@@ -105,6 +135,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             content = content.replace(/@\s*"([^"]+)"/, '').trim();
         }
 
+        // 4. Type ::
         let type = 'Equipment';
         const typeMatch = content.match(/::([\w-]+)/);
         if (typeMatch) {
@@ -112,13 +143,16 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             content = content.replace(/::([\w-]+)/, '').trim();
         }
 
+        // 5. Tags # (Compatible loop instead of matchAll)
         const tags: string[] = [];
-        const tagMatches = content.matchAll(/#([\w-]+)/g);
-        for (const match of tagMatches) {
+        const tagRegex = /#([\w-]+)/g;
+        let match;
+        while ((match = tagRegex.exec(content)) !== null) {
             tags.push(match[1]);
         }
         content = content.replace(/#([\w-]+)/g, '').trim();
 
+        // 6. Name
         const name = content || 'Unnamed Asset';
 
         return { name, criticality, type, description, tags, location, children: [] };
@@ -128,8 +162,10 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
         try {
             const parsed = parseDSL(dslText);
             setPreview(parsed);
+            setErrorCount(0);
         } catch (e) {
-            console.error(e);
+            console.error("DSL Parser Error:", e);
+            setErrorCount(prev => prev + 1);
         }
     }, [dslText]);
 
@@ -152,7 +188,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             <div className={`flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-accent/50 transition-colors`}>
                 <div
                     className={`w-1 h-8 rounded-full ${node.criticality === 'A' ? 'bg-red-500' :
-                            node.criticality === 'B' ? 'bg-amber-500' : 'bg-slate-300'
+                        node.criticality === 'B' ? 'bg-amber-500' : 'bg-slate-300'
                         }`}
                 />
                 <div className="flex-1 min-w-0">
@@ -200,20 +236,22 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
                     {/* Left Side: Editor */}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 min-h-0">
                         <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
                             <span>Blueprint Editor</span>
-                            <Badge variant="secondary" className="text-[9px]">4 Spaces = Depth</Badge>
+                            <Badge variant="secondary" className="text-[9px]">Tab or 4 Spaces = Depth</Badge>
                         </div>
-                        <Textarea
-                            className="flex-1 font-mono text-sm resize-none bg-slate-900 text-slate-100 p-4 leading-relaxed focus-visible:ring-primary border-slate-800"
-                            placeholder="[A] Site Name ::Site..."
-                            value={dslText}
-                            onChange={(e) => setDslText(e.target.value)}
-                        />
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground bg-muted/50 p-2 rounded-lg border border-dashed">
+                        <div className="relative flex-1 min-h-0">
+                            <Textarea
+                                className="absolute inset-0 w-full h-full font-mono text-sm resize-none bg-slate-900 text-slate-100 p-4 leading-relaxed focus-visible:ring-primary border-slate-800"
+                                placeholder="[A] Site Name ::Site..."
+                                value={dslText}
+                                onChange={(e) => setDslText(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground bg-muted/50 p-2 rounded-lg border border-dashed shrink-0">
                             <div className="flex items-center gap-1.5"><span className="text-red-500 font-bold w-4 text-center">[A]</span> Criticality</div>
                             <div className="flex items-center gap-1.5"><span className="text-primary font-bold w-4 text-center">::</span> Asset Type</div>
                             <div className="flex items-center gap-1.5"><span className="text-blue-500 font-bold w-4 text-center">#</span> Tags</div>
@@ -222,14 +260,17 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                     </div>
 
                     {/* Right Side: Preview */}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 min-h-0">
                         <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
                             <span>Hierarchy Preview</span>
-                            <span className="text-green-600 flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> Valid
-                            </span>
+                            <div className="flex gap-3">
+                                <span className={`${preview.length > 0 ? 'text-green-600' : 'text-amber-600'} flex items-center gap-1`}>
+                                    {preview.length > 0 ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                                    {preview.length} Roots Found
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex-1 rounded-xl border bg-muted/20 p-4 overflow-y-auto">
+                        <div className="flex-1 rounded-xl border bg-muted/20 p-4 overflow-y-auto min-h-0 font-sans">
                             {preview.length > 0 ? (
                                 <div className="space-y-3">
                                     {preview.map(node => renderPreviewNode(node))}
