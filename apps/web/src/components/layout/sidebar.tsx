@@ -34,11 +34,7 @@ const getSidebarLinks = (term: any, slug: string) => {
         { name: "Analytics", href: `${prefix}/analytics`, icon: TrendingUp },
         { name: term?.workOrders || "Work Orders", href: `${prefix}/work-orders`, icon: ClipboardList },
         { name: "Maintenance Calendar", href: `/${slug}/dashboard/planner`, icon: Calendar },
-        { name: "Factory Layouts", href: `/${slug}/dashboard/factory-layouts`, icon: Layout },
-        { name: "Production Lines", href: `/${slug}/dashboard/production`, icon: Network },
-        { name: `Archived ${term?.workOrders || "Jobs"}`, href: `${prefix}/work-orders/archive`, icon: Archive },
         { name: term?.assets || "Assets", href: `${prefix}/assets`, icon: Box },
-        { name: `${term?.assets || "Asset"} Hierarchy`, href: `${prefix}/assets/tree`, icon: Network },
         { name: term?.inventory || "Inventory", href: `${prefix}/inventory`, icon: Wrench },
         { name: term?.reports || "Reports", href: `${prefix}/reports`, icon: ClipboardList },
     ];

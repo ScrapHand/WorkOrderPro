@@ -29,10 +29,21 @@ export default function AssetsPage() {
     const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
     const [editAsset, setEditAsset] = useState<Asset | null>(null);
     const [createParentId, setCreateParentId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const { data: allAssets, isLoading: isAllLoading, refetch: refetchAll } = useQuery({
         queryKey: ["assets"],
         queryFn: () => AssetService.getAll(),
+    });
+
+    // Filter Assets based on search query
+    const filteredAssets = (allAssets || []).filter(asset => {
+        const query = searchQuery.toLowerCase();
+        return (
+            asset.name.toLowerCase().includes(query) ||
+            asset.code?.toLowerCase().includes(query) ||
+            asset.description?.toLowerCase().includes(query)
+        );
     });
 
     const handleSuccess = () => {
@@ -85,7 +96,7 @@ export default function AssetsPage() {
                 <AssetTemplatePicker onSuccess={handleSuccess} />
             ) : (
                 <Tabs value={view} onValueChange={(v: string) => setView(v as "grid" | "tree" | "board")} className="w-full">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                         <TabsList>
                             <TabsTrigger value="grid" className="gap-2">
                                 <LayoutGrid className="h-4 w-4" /> Grid View
@@ -97,6 +108,19 @@ export default function AssetsPage() {
                                 <Network className="h-4 w-4" /> Tree View
                             </TabsTrigger>
                         </TabsList>
+
+                        <div className="flex items-center gap-2 max-w-sm w-full">
+                            <div className="relative w-full">
+                                <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground rotate-45" />
+                                <input
+                                    type="text"
+                                    placeholder="Search assets..."
+                                    className="w-full pl-9 pr-4 py-2 text-sm bg-muted/50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <TabsContent value="grid" className="mt-0">
@@ -106,7 +130,7 @@ export default function AssetsPage() {
                             </div>
                         ) : (
                             <AssetGrid
-                                assets={allAssets || []}
+                                assets={filteredAssets}
                                 onEdit={setEditAsset}
                             // [FIX] Pass Delete Handlers if AssetGrid supports it (it should)
                             />
@@ -118,7 +142,7 @@ export default function AssetsPage() {
                             <p>Loading board...</p>
                         ) : (
                             <AssetGroupBoard
-                                assets={allAssets || []}
+                                assets={filteredAssets}
                                 onEdit={setEditAsset}
                                 onDelete={(id) => {
                                     if (confirm("Are you sure you want to delete this asset?")) {
@@ -147,7 +171,7 @@ export default function AssetsPage() {
                         ) : (
                             <div className="h-[600px] bg-white rounded-xl border overflow-hidden">
                                 <InteractiveTree
-                                    assets={allAssets || []} // Pass all assets, component handles tree building
+                                    assets={filteredAssets} // Pass filtered assets
                                     onNodeClick={(asset) => canEdit ? setEditAsset(asset) : null}
                                 />
                             </div>

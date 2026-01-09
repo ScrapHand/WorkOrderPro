@@ -111,10 +111,10 @@ export default function RolesPage() {
                                 <TableCell>{role.description || '-'}</TableCell>
                                 <TableCell>
                                     <div className="flex flex-wrap gap-1">
-                                        {role.permissions.slice(0, 3).map(p => (
+                                        {(Array.isArray(role.permissions) ? role.permissions : []).slice(0, 3).map(p => (
                                             <Badge key={p} variant="secondary" className="text-[10px]">{p}</Badge>
                                         ))}
-                                        {role.permissions.length > 3 && (
+                                        {Array.isArray(role.permissions) && role.permissions.length > 3 && (
                                             <Badge variant="outline" className="text-[10px]">+{role.permissions.length - 3}</Badge>
                                         )}
                                     </div>
@@ -177,7 +177,9 @@ function RoleModal({ open, onOpenChange, onSubmit, initialData, title, isSystem 
     title: string;
     isSystem?: boolean;
 }) {
-    const [permissions, setPermissions] = useState<string[]>(initialData?.permissions || []);
+    const [permissions, setPermissions] = useState<string[]>(
+        Array.isArray(initialData?.permissions) ? initialData.permissions : []
+    );
 
     // Group permissions
     const groups = ['work_order', 'asset', 'inventory', 'user', 'tenant', 'report'];
