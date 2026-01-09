@@ -31,31 +31,21 @@ async function main() {
         }
     }
 
-    // 1b. Create Admin User
-    const adminEmail = 'admin@example.com';
+    // 1b. Create SuperAdmin User (DEV/TESTING)
+    // Password: ScrapHandNcc1701bbc!
+    const bcrypt = require('bcrypt');
+    const adminEmail = 'scraphand@admin.com';
+    const adminPassword = 'ScrapHandNcc1701bbc!';
+    const adminHash = await bcrypt.hash(adminPassword, 10);
+
     const adminUser = await prisma.user.upsert({
         where: { email: adminEmail },
         update: {},
         create: {
             email: adminEmail,
-            // Using a real hash for 'password' to be safe.
-            // $2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4hZ1.s.w.e (example)
-            // For now, using a placeholder string.
-            passwordHash: '$2b$10$lzv.exampleHashForPassword.......', // Placeholder
+            passwordHash: adminHash,
             role: 'ADMIN',
-            tenantId: tenant.id
-        }
-    });
-
-    // 1c. Create Demo User
-    const demoEmail = 'demo@demo.com';
-    await prisma.user.upsert({
-        where: { email: demoEmail },
-        update: {},
-        create: {
-            email: demoEmail,
-            passwordHash: '$2b$10$lzv.exampleHashForPassword.......', // Placeholder same as admin
-            role: 'ADMIN', // [FIX] High privilege for verification
+            username: 'SuperAdmin',
             tenantId: tenant.id
         }
     });
