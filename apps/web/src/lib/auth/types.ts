@@ -15,7 +15,8 @@ export interface User {
     full_name?: string; // Often synthesized
     avatarUrl?: string;
     role: UserRole;
-    tenantId: string; ve: boolean;
+    tenantId: string;
+    emailVerified: boolean;
     tenantSlug?: string;
     permissions?: string[]; // [RBAC] Granular permissions
 }

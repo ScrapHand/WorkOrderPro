@@ -140,6 +140,7 @@ export class AdminController {
             res.json({
                 slug: tenant.slug,
                 name: tenant.name,
+                plan: tenant.plan,
                 branding: mergedBranding,
                 rbac: t.rbacConfig || {},
                 notifications: t.notificationConfig || {

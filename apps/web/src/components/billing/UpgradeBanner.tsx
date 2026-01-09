@@ -4,8 +4,9 @@ import React from "react";
 import { Zap, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { api } from "@/lib/api";
 import { useUser } from "@/hooks/use-auth";
+import { UserRole } from "@/lib/auth/types";
 import { useTheme } from "@/context/ThemeContext";
 
 export function UpgradeBanner() {
@@ -15,7 +16,7 @@ export function UpgradeBanner() {
 
     // Only show for Tenant Admins on the STARTER plan
     const isStarter = config?.plan === 'STARTER' || !config?.plan || config?.plan === 'free';
-    const isTenantAdmin = user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN';
+    const isTenantAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 
     const upgradeMutation = useMutation({
         mutationFn: async (plan: string) => {

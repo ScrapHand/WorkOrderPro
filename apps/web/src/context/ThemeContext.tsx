@@ -26,6 +26,7 @@ type BrandingConfig = {
 type TenantConfig = {
     slug: string;
     name: string;
+    plan?: string;
     branding: BrandingConfig;
     rbac: any;
     secrets?: Record<string, string>;

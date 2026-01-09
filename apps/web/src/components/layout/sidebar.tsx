@@ -69,23 +69,21 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
     // [PROTOCOL] Invisible UI Logic
     const allAdminLinks = adminLinksPrefix(tenantSlug);
-    const adminLinks = allAdminLinks.filter(link => {
-        // 1. God / Super Admin
-        if (user?.email === 'scraphand@admin.com') return true;
-        if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GLOBAL_ADMIN) return true;
+    const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GLOBAL_ADMIN || user?.email === 'scraphand@admin.com';
+    const perms = user?.permissions || [];
+    const hasFullAccess = isSuperAdmin || perms.includes('*');
 
-        // 2. Permission Check
-        const perms = user?.permissions || [];
-        if (perms.includes('*')) return true;
+    const adminLinks = allAdminLinks.filter(link => {
+        if (hasFullAccess) return true;
 
         if (link.name === "User Management") return perms.includes('user:read') || perms.includes('user:write');
         if (link.name === "Company Actions") return perms.includes('tenant:manage');
         if (link.name === "Audit Logs") return perms.includes('tenant:manage');
 
         // [STRICT] Super Admin Only Tools
-        if (link.name === "Role Management") return user?.role === UserRole.SUPER_ADMIN;
-        if (link.name === "Secrets & Config") return user?.role === UserRole.SUPER_ADMIN;
-        if (link.name === "System Doctor") return user?.role === UserRole.SUPER_ADMIN;
+        if (link.name === "Role Management") return isSuperAdmin;
+        if (link.name === "Secrets & Config") return isSuperAdmin;
+        if (link.name === "System Doctor") return isSuperAdmin;
 
         // 3. Fallback for Legacy Admin Role (if no permissions set)
         if (user?.role === UserRole.ADMIN) return true;

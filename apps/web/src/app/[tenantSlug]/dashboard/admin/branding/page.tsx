@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileUploader } from "@/components/common/FileUploader";
+import { toast } from "sonner";
 
 export default function BrandingPage() {
     const [primaryColor, setPrimaryColor] = useState("#2563eb");
