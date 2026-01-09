@@ -291,7 +291,17 @@ export function WorkOrderTable({ statusFilter, filterMode = 'all', enableFilters
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 px-2 py-0 h-5">
+                                        <Badge
+                                            variant="secondary"
+                                            className={`px-2 py-0 h-5 border font-semibold ${wo.status === 'OPEN'
+                                                ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                                : wo.status === 'IN_PROGRESS'
+                                                    ? 'bg-amber-50 text-amber-700 border-amber-100'
+                                                    : wo.status === 'DONE'
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                        : 'bg-gray-50 text-gray-700 border-gray-100'
+                                                }`}
+                                        >
                                             {wo.status}
                                         </Badge>
                                     </TableCell>

@@ -3,6 +3,7 @@ import { WorkOrderService } from '../../../application/services/work-order.servi
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
 import { hasPermission } from '../../auth/rbac.utils';
+import { createWorkOrderSchema, updateWorkOrderSchema } from '../../../application/validators/auth.validator';
 
 export class WorkOrderController {
     constructor(
@@ -16,7 +17,13 @@ export class WorkOrderController {
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
             const tenantId = tenantCtx.id;
 
-            const { assetId, title, priority, description, assignedUserId } = req.body;
+            // [VALIDATION] Zod Check
+            const result = createWorkOrderSchema.safeParse(req.body);
+            if (!result.success) {
+                return res.status(400).json({ error: 'Invalid work order data', details: result.error.issues });
+            }
+
+            const { assetId, title, priority, description, assignedUserId } = result.data;
             console.log('[WorkOrderController] Create Request:', { assetId, title, priority, assignedUserId });
 
             const wo = await this.woService.createWorkOrder(
@@ -25,7 +32,7 @@ export class WorkOrderController {
                 title,
                 priority,
                 description,
-                assignedUserId
+                assignedUserId || undefined
             );
 
             res.status(201).json(wo);
@@ -79,11 +86,19 @@ export class WorkOrderController {
             const tenantId = tenantCtx.id;
 
             const { id } = req.params;
-            const updates = req.body;
+
+            // [VALIDATION] Zod Check
+            const result = updateWorkOrderSchema.safeParse(req.body);
+            if (!result.success) {
+                return res.status(400).json({ error: 'Invalid update data', details: result.error.issues });
+            }
+
+            const updates = result.data;
 
             const wo = await this.woService.updateWorkOrder(id, tenantId, updates);
             res.json(wo);
         } catch (error: any) {
+            console.error('Update WO Error:', error);
             res.status(500).json({ error: error.message });
         }
     };

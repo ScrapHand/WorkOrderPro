@@ -70,6 +70,19 @@ app.set('trust proxy', 1);
 
 // Security Middleware
 app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"], // unsafe-inline often needed for Next.js/React hydration
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "https://*.s3.amazonaws.com", "https://*.s3.*.amazonaws.com"],
+            connectSrc: ["'self'", "https://*.s3.amazonaws.com", "https://*.s3.*.amazonaws.com"],
+            frameAncestors: ["'none'"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: [],
+        },
+    },
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginEmbedderPolicy: false,
 }));
@@ -241,7 +254,7 @@ tenantAdminRouter.get('/', requireRole('SUPER_ADMIN'), tenantController.getAll);
 tenantAdminRouter.post('/', requireRole('SUPER_ADMIN'), tenantController.create);
 tenantAdminRouter.post('/:id/seed', requireRole('SUPER_ADMIN'), tenantController.seedDemo);
 tenantAdminRouter.delete('/:id', requireRole('SUPER_ADMIN'), tenantController.delete);
-tenantAdminRouter.get('/audit-logs', requireRole('SUPER_ADMIN'), platformAdminController.getAuditLogs);
+tenantAdminRouter.get('/audit-logs', requireRole(UserRole.TENANT_ADMIN), platformAdminController.getAuditLogs);
 tenantAdminRouter.get('/users/search', requireRole('SUPER_ADMIN'), platformAdminController.globalUserSearch);
 apiRouter.use('/tenant', tenantAdminRouter);
 

@@ -67,6 +67,7 @@ model User {
   assignedWorkOrders WorkOrder[] @relation("AssignedWorkOrders")
   pmSchedules      PMSchedule[]
   checklistTemplates ChecklistTemplate[]
+  auditLogs         AuditLog[]
 
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
 
@@ -304,6 +305,8 @@ model AuditLog {
   resourceId  String?  @map("resource_id")
   metadata    Json?    // e.g., { ip: "...", oldRole: "...", newRole: "..." }
   timestamp   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
   @@index([userId])

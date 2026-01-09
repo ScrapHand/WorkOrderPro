@@ -15,6 +15,7 @@ import {
     LogOut,
     Lock,
     Archive,
+    Shield,
     Network,
     TrendingUp,
     Layout,
@@ -48,6 +49,7 @@ const adminLinksPrefix = (slug: string) => {
         { name: "Company Actions", href: `${prefix}/company`, icon: Settings },
         { name: "Role Management", href: `${prefix}/roles`, icon: Lock },
         { name: "Secrets & Config", href: `${prefix}/secrets`, icon: Lock },
+        { name: "Audit Logs", href: `${prefix}/audit-logs`, icon: Shield },
         { name: "System Doctor", href: `/${slug}/dashboard/system-status`, icon: Settings },
     ];
 };
