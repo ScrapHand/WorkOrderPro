@@ -38,14 +38,15 @@ export class S3Service {
     async generatePresignedUrl(
         tenantId: string,
         entityType: 'assets' | 'work-orders' | 'tenant',
-        entityId: string,
+        entityId: string | undefined,
         fileName: string,
         mimeType: string
     ): Promise<{ url: string, key: string }> {
         // [SECURITY] Key Isolation: tenants/{tid}/{type}/{eid}/{uuid}-{name}
         const uniqueId = uuidv4();
         const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_"); // Sanitize
-        const key = `tenants/${tenantId}/${entityType}/${entityId}/${uniqueId}-${safeName}`;
+        const safeEntityId = entityId || 'new'; // Handle missing ID for new creations
+        const key = `tenants/${tenantId}/${entityType}/${safeEntityId}/${uniqueId}-${safeName}`;
 
         const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "mock-key";
         // [DEV FALLBACK] If using mock keys without endpoint, use local sink

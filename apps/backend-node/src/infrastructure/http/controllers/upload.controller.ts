@@ -24,20 +24,38 @@ export class UploadController {
                 return res.status(400).json({ error: 'Invalid request data', details: result.error.issues });
             }
 
-            const { entityType, entityId, fileName, mimeType } = result.data;
+            const { entityId, fileName, mimeType } = result.data;
+            let entityType = result.data.entityType;
 
-            // [SECURITY] Ownership Check
-            // Ensure the entity (Asset or WorkOrder) belongs to the requesting tenant
-            if (entityType === 'assets') {
-                const asset = await this.prisma.asset.findFirst({
-                    where: { id: entityId, tenantId: tenant.id }
-                });
-                if (!asset) return res.status(403).json({ error: 'Access Denied: Asset does not belong to your tenant' });
-            } else if (entityType === 'work-orders') {
-                const wo = await this.prisma.workOrder.findFirst({
-                    where: { id: entityId, tenantId: tenant.id }
-                });
-                if (!wo) return res.status(403).json({ error: 'Access Denied: Work Order does not belong to your tenant' });
+            // [FIX] Map Aliases from Frontend
+            const typeMap: Record<string, string> = {
+                'asset': 'assets',
+                'work_order': 'work-orders',
+                'work-order': 'work-orders',
+                'inventory': 'assets', // Generalize inventory to assets if no specific table
+                'avatar': 'tenant',
+                'profile': 'tenant'
+            };
+
+            if (typeMap[entityType]) {
+                entityType = typeMap[entityType];
+            }
+
+            // [SECURITY] Ownership Check (Only if ID is present and looks like a UUID)
+            const isUuid = (id?: string) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+            if (entityId && isUuid(entityId)) {
+                if (entityType === 'assets') {
+                    const asset = await this.prisma.asset.findFirst({
+                        where: { id: entityId, tenantId: tenant.id }
+                    });
+                    if (!asset) return res.status(403).json({ error: 'Access Denied: Asset does not belong to your tenant' });
+                } else if (entityType === 'work-orders') {
+                    const wo = await this.prisma.workOrder.findFirst({
+                        where: { id: entityId, tenantId: tenant.id }
+                    });
+                    if (!wo) return res.status(403).json({ error: 'Access Denied: Work Order does not belong to your tenant' });
+                }
             }
 
             const { url, key } = await this.s3Service.generatePresignedUrl(
