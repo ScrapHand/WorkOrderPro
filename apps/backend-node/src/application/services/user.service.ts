@@ -19,9 +19,19 @@ export class UserService {
         const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
         if (!tenant) throw new Error("Tenant not found");
 
-        const currentUsers = await this.prisma.user.count({ where: { tenantId } });
+        const currentUsers = await this.prisma.user.count({ where: { tenantId, deletedAt: null } });
         if (currentUsers >= tenant.maxUsers) {
             throw new Error(`Subscription limit reached: Max ${tenant.maxUsers} users.`);
+        }
+
+        // [NEW] Enforce Admin Limits
+        if (role === 'ADMIN') {
+            const currentAdmins = await this.prisma.user.count({
+                where: { tenantId, role: 'ADMIN', deletedAt: null }
+            });
+            if (currentAdmins >= tenant.maxAdmins) {
+                throw new Error(`Subscription limit reached: Max ${tenant.maxAdmins} admins.`);
+            }
         }
 
         return this.prisma.user.create({

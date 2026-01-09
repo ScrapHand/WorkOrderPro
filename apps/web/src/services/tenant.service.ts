@@ -5,6 +5,8 @@ export interface Tenant {
     name: string;
     slug: string;
     createdAt: string;
+    maxUsers: number;
+    maxAdmins: number;
     _count?: {
         users: number;
         assets: number;
@@ -18,8 +20,13 @@ export const TenantService = {
         return res.data;
     },
 
-    create: async (data: { name: string, slug: string, adminEmail: string }) => {
+    create: async (data: { name: string, slug: string, adminEmail: string, maxUsers?: number, maxAdmins?: number }) => {
         const res = await api.post<Tenant>("/tenant", data);
+        return res.data;
+    },
+
+    updateEntitlements: async (id: string, data: { plan?: string, maxUsers?: number, maxAdmins?: number }) => {
+        const res = await api.patch<Tenant>(`/tenant/${id}/entitlements`, data);
         return res.data;
     },
 

@@ -44,12 +44,12 @@ export class TenantController {
             // Only SUPER_ADMIN or GLOBAL_ADMIN (or tenant:write if we add it) should create tenants
             if (!hasPermission(req, 'tenant:write')) return res.status(403).json({ error: 'Forbidden' });
 
-            const { name, slug, adminEmail } = req.body;
+            const { name, slug, adminEmail, maxUsers, maxAdmins } = req.body;
             if (!name || !slug || !adminEmail) {
                 return res.status(400).json({ error: 'Name, slug, and adminEmail are required' });
             }
 
-            const tenant = await this.service.create(name, slug, adminEmail);
+            const tenant = await this.service.create(name, slug, adminEmail, maxUsers, maxAdmins);
             res.status(201).json(tenant);
         } catch (error) {
             console.error('Create Tenant Error:', error);
@@ -73,6 +73,19 @@ export class TenantController {
         } catch (error) {
             console.error('Seed Demo Error:', error);
             res.status(500).json({ error: 'Failed to seed demo data' });
+        }
+    }
+
+    update = async (req: Request, res: Response) => {
+        try {
+            if (!hasPermission(req, 'tenant:write')) return res.status(403).json({ error: 'Forbidden' });
+
+            const { id } = req.params;
+            const tenant = await this.service.update(id, req.body);
+            res.json(tenant);
+        } catch (error) {
+            console.error('Update Tenant Error:', error);
+            res.status(500).json({ error: 'Failed to update tenant' });
         }
     }
 

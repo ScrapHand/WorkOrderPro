@@ -16,14 +16,16 @@ export class TenantService {
         });
     }
 
-    async create(name: string, slug: string, adminEmail: string, adminPassword: string = 'ScrapHand') {
+    async create(name: string, slug: string, adminEmail: string, maxUsers: number = 5, maxAdmins: number = 1, adminPassword: string = 'ScrapHand') {
         return this.prisma.$transaction(async (tx) => {
             // 1. Create Tenant
             const tenant = await tx.tenant.create({
                 data: {
                     name,
                     slug,
-                    plan: 'ENTERPRISE'
+                    plan: 'ENTERPRISE',
+                    maxUsers,
+                    maxAdmins
                 }
             });
 
@@ -43,6 +45,13 @@ export class TenantService {
             await this.seedDefaultRoles(tx, tenant.id);
 
             return tenant;
+        });
+    }
+
+    async update(id: string, data: any) {
+        return this.prisma.tenant.update({
+            where: { id },
+            data
         });
     }
 
