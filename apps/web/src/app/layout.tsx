@@ -8,8 +8,8 @@ import { ErrorBoundary } from "@/components/error-boundary";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "WorkOrderPro SaaS",
-  description: "Golden Stack Enterprise Edition",
+  title: "AxonVantage Systems | Industrial CMMS Intelligence",
+  description: "Next-generation facility maintenance and asset management powered by operational intelligence.",
 };
 
 export default function RootLayout({

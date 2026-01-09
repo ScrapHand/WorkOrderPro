@@ -1,13 +1,16 @@
 import { Request, Response } from 'express';
 import { UserService } from '../../../application/services/user.service';
 import { AuditService } from '../../../application/services/audit.service';
+import { TenantService } from '../../../application/services/tenant.service';
 import * as argon2 from 'argon2';
 import { loginSchema } from '../../../application/validators/auth.validator';
+import { z } from 'zod';
 
 export class AuthController {
     constructor(
         private userService: UserService,
-        private auditService: AuditService
+        private auditService: AuditService,
+        private tenantService: TenantService
     ) { }
 
     login = async (req: Request, res: Response) => {
@@ -115,6 +118,79 @@ export class AuthController {
 
         } catch (error: any) {
             console.error('Login Error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    register = async (req: Request, res: Response) => {
+        try {
+            const schema = z.object({
+                email: z.string().email(),
+                password: z.string().min(8),
+                companyName: z.string().min(2),
+                slug: z.string().min(2).regex(/^[a-z0-9-]+$/, 'Slug must be alphanumeric and lowercase'),
+                plan: z.enum(['STARTER', 'PRO', 'ENTERPRISE']).default('PRO')
+            });
+
+            const result = schema.safeParse(req.body);
+            if (!result.success) {
+                return res.status(400).json({ error: 'Invalid registration data', details: result.error.issues });
+            }
+
+            const { email, password, companyName, slug, plan } = result.data;
+
+            // 1. Create Tenant (This also creates the Admin user via transaction in TenantService)
+            // We pass the password directly to TenantService.create
+            const tenant = await this.tenantService.create(
+                companyName,
+                slug,
+                email,
+                plan === 'STARTER' ? 5 : (plan === 'PRO' ? 25 : 100), // maxUsers
+                plan === 'STARTER' ? 1 : (plan === 'PRO' ? 3 : 10),  // maxAdmins
+                password
+            );
+
+            // 2. Log them in automatically
+            const user = await this.userService.findByEmail(email);
+            if (!user) throw new Error('User creation failed after tenant creation');
+
+            req.session.regenerate(async (err) => {
+                if (err) return res.status(500).json({ error: 'Session failed' });
+
+                (req.session as any).user = {
+                    id: user.id,
+                    email: user.email,
+                    username: user.username,
+                    role: user.role,
+                    tenantId: user.tenantId,
+                    tenantSlug: slug,
+                    permissions: await this.userService.getUserPermissions(user.id)
+                };
+
+                req.session.save(async (saveErr) => {
+                    if (saveErr) return res.status(500).json({ error: 'Session save failed' });
+
+                    await this.auditService.log({
+                        tenantId: user.tenantId,
+                        userId: user.id,
+                        event: 'TENANT_REGISTERED',
+                        metadata: { companyName, slug, plan }
+                    });
+
+                    res.status(201).json({
+                        success: true,
+                        user: (req.session as any).user,
+                        tenant,
+                        message: 'Account created and logged in successfully'
+                    });
+                });
+            });
+
+        } catch (error: any) {
+            console.error('Registration Error:', error);
+            if (error.code === 'P2002') { // Prisma unique constraint violation
+                return res.status(400).json({ error: 'Email or Tenant Slug already exists' });
+            }
             res.status(500).json({ error: error.message });
         }
     };

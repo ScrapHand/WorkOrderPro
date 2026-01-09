@@ -43,7 +43,7 @@ export function NewWorkOrderWizard() {
     const form = useForm<WorkOrderCreate>({
         resolver: zodResolver(workOrderSchema),
         defaultValues: {
-            priority: "medium",
+            priority: "MEDIUM",
         },
     });
 
@@ -136,7 +136,13 @@ export function NewWorkOrderWizard() {
         <div className="max-w-5xl mx-auto min-h-screen bg-gray-50 flex flex-col">
             <div className="bg-white p-4 border-b flex flex-col gap-4 sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-bold text-gray-900">New Work Order</h1>
+                    <div className="flex items-center gap-2">
+                        <Wrench className="h-5 w-5 text-blue-600" />
+                        <h1 className="text-xl font-bold text-gray-900 tracking-tight">New Work Order</h1>
+                        <span className="bg-yellow-400/10 border border-yellow-400/20 text-yellow-700 text-[10px] font-black uppercase px-2 py-0.5 rounded italic">
+                            Nano Banana Pro™ Engine
+                        </span>
+                    </div>
                     <div className="text-sm font-medium text-gray-500">Step {step} of 4</div>
                 </div>
                 {/* Visual Progress Bar */}
@@ -163,7 +169,10 @@ export function NewWorkOrderWizard() {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="space-y-4"
                             >
-                                <h2 className="text-2xl font-semibold text-gray-800">Which {t.asset.toLowerCase()} is broken?</h2>
+                                <div className="space-y-1">
+                                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Select Targeted Asset</h2>
+                                    <p className="text-sm text-gray-500">Nano Banana Pro millisecond lookup enabled.</p>
+                                </div>
 
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -204,10 +213,10 @@ export function NewWorkOrderWizard() {
                                 <h2 className="text-2xl font-semibold text-gray-800">How urgent is it?</h2>
                                 <div className="space-y-3">
                                     {[
-                                        { id: "low", label: "Low", desc: "Can wait until next scheduled interval", color: "bg-blue-50 border-blue-200 text-blue-700" },
-                                        { id: "medium", label: "Medium", desc: "Should be fixed within 3 days", color: "bg-green-50 border-green-200 text-green-700" },
-                                        { id: "high", label: "High", desc: "Affecting production, fix ASAP", color: "bg-orange-50 border-orange-200 text-orange-700" },
-                                        { id: "critical", label: "Critical", desc: "Safety hazard or line down", color: "bg-red-50 border-red-200 text-red-700" },
+                                        { id: "LOW", label: "Low", desc: "Can wait until next scheduled interval", color: "bg-blue-50 border-blue-200 text-blue-700" },
+                                        { id: "MEDIUM", label: "Medium", desc: "Should be fixed within 3 days", color: "bg-green-50 border-green-200 text-green-700" },
+                                        { id: "HIGH", label: "High", desc: "Affecting production, fix ASAP", color: "bg-orange-50 border-orange-200 text-orange-700" },
+                                        { id: "CRITICAL", label: "Critical", desc: "Safety hazard or line down", color: "bg-red-50 border-red-200 text-red-700" },
                                     ].map((p) => (
                                         <button
                                             key={p.id}

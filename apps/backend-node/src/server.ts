@@ -186,10 +186,9 @@ const sessionService = new WorkOrderSessionService(sessionRepo, prisma);
 const sessionController = new WorkOrderSessionController(sessionService);
 
 const auditService = new AuditService(prisma);
-const authController = new AuthController(userService, auditService);
-
 const tenantService = new TenantService(prisma);
 const tenantController = new TenantController(tenantService);
+const authController = new AuthController(userService, auditService, tenantService);
 
 const platformAdminController = new PlatformAdminController(prisma);
 
@@ -211,6 +210,7 @@ const apiRouter = express.Router();
 // Auth Routes
 const authRouter = express.Router();
 authRouter.post('/login', authController.login);
+authRouter.post('/register', authController.register);
 authRouter.post('/logout', authController.logout);
 authRouter.get('/me', authController.me);
 apiRouter.use('/auth', authRouter);

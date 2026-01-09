@@ -18,7 +18,7 @@ export default function LoginPage() {
     const queryClient = useQueryClient(); // [PHASE 25]
     const { config } = useTheme();
     const logoUrl = config?.branding?.logoUrl;
-    const appName = config?.branding?.appName || "WorkOrderPro";
+    const appName = config?.branding?.appName || "AxonVantage Systems";
     const [email, setEmail] = useState("");
 
 
@@ -142,9 +142,11 @@ export default function LoginPage() {
                 </form>
                 <div className="p-6 pt-0 text-center space-y-2">
                     <div className="text-sm text-muted-foreground">
-                        Don't have an account? Contact Admin.
+                        Don't have an account?{" "}
+                        <Link href="/auth/register" className="text-primary font-bold hover:underline">
+                            Register Now
+                        </Link>
                     </div>
-
                 </div>
             </Card>
         </div>

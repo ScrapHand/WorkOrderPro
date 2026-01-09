@@ -110,9 +110,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     {logoUrl ? (
                         <img src={logoUrl} alt="Logo" className="h-8 w-auto object-contain" />
                     ) : (
-                        <Wrench className="h-6 w-6" />
+                        <Shield className="h-6 w-6 text-blue-500" />
                     )}
-                    <span className="truncate">{config?.branding?.appName || "WorkOrderPro"}</span>
+                    <span className="truncate">{config?.branding?.appName || "AxonVantage Systems"}</span>
                 </Link>
             </div>
 
@@ -166,8 +166,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             <div className="border-t p-4 space-y-2">
                 <RoleGuard requiredPermission="work_order:write">
                     <Link href={`/${tenantSlug}/dashboard/work-orders/new`} onClick={handleLinkClick}>
-                        <Button size="lg" className="w-full gap-2 shadow-lg">
-                            <PlusCircle className="h-5 w-5" /> Create Work Order
+                        <Button size="lg" className="w-full flex-col h-auto py-3 gap-1 shadow-lg group">
+                            <div className="flex items-center gap-2">
+                                <PlusCircle className="h-5 w-5" />
+                                <span>Create Work Order</span>
+                            </div>
+                            <div className="text-[10px] opacity-60 font-bold uppercase tracking-tighter group-hover:text-yellow-400 transition-colors">
+                                Powered by Nano Banana Pro
+                            </div>
                         </Button>
                     </Link>
                 </RoleGuard>
