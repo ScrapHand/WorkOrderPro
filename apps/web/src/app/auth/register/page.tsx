@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -46,8 +46,12 @@ export default function RegisterPage() {
     const router = useRouter();
 
     const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<RegisterValues>({
-        resolver: zodResolver(registerSchema),
+        resolver: zodResolver(registerSchema) as any,
         defaultValues: {
+            email: "",
+            password: "",
+            companyName: "",
+            slug: "",
             plan: "PRO"
         }
     });
@@ -63,7 +67,7 @@ export default function RegisterPage() {
         }
     }, [companyName, setValue]);
 
-    const onSubmit = async (data: RegisterValues) => {
+    const onSubmit: SubmitHandler<RegisterValues> = async (data) => {
         setIsLoading(true);
         try {
             const response = await api.post("/auth/register", data);
@@ -110,7 +114,7 @@ export default function RegisterPage() {
                         <div key={s.id} className="flex flex-col items-center gap-2 bg-[#0a0a0b]">
                             <div
                                 className={`h-10 w-10 rounded-xl flex items-center justify-center border transition-all ${i === step ? 'bg-blue-600 border-blue-500 shadow-lg shadow-blue-500/20' :
-                                        i < step ? 'bg-white/5 border-white/10 text-green-500' : 'bg-white/5 border-white/10 text-gray-600'
+                                    i < step ? 'bg-white/5 border-white/10 text-green-500' : 'bg-white/5 border-white/10 text-gray-600'
                                     }`}
                             >
                                 {i < step ? <CheckCircle2 className="h-5 w-5" /> : <s.icon className={`h-5 w-5 ${i === step ? 'text-white' : 'text-gray-600'}`} />}
