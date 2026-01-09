@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
@@ -18,8 +18,8 @@ async function main() {
         tenant = await prisma.tenant.create({
             data: {
                 slug,
-                name: 'Default Tenant',
-                plan: 'pro',
+                name: 'Default Organization',
+                plan: 'ENTERPRISE',
                 brandColor: '#2563eb',
                 logoUrl: 'https://via.placeholder.com/150'
             }
@@ -32,14 +32,14 @@ async function main() {
     // Create SuperAdmin user
     const email = 'scraphand@admin.com';
     const password = 'ScrapHandNcc1701bbc!';
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await argon2.hash(password);
 
     const superAdmin = await prisma.user.create({
         data: {
             email,
             passwordHash,
-            role: 'ADMIN', // Using ADMIN role as the highest privilege
-            username: 'SuperAdmin',
+            role: 'SUPER_ADMIN',
+            username: 'The Architect',
             tenantId: tenant.id
         }
     });

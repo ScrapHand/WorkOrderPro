@@ -31,21 +31,25 @@ async function main() {
         }
     }
 
-    // 1b. Create SuperAdmin User (DEV/TESTING)
+    // 1b. Create SuperAdmin User (GOD MODE)
     // Password: ScrapHandNcc1701bbc!
-    const bcrypt = require('bcrypt');
+    const argon2 = require('argon2');
     const adminEmail = 'scraphand@admin.com';
     const adminPassword = 'ScrapHandNcc1701bbc!';
-    const adminHash = await bcrypt.hash(adminPassword, 10);
+    const adminHash = await argon2.hash(adminPassword);
 
     const adminUser = await prisma.user.upsert({
         where: { email: adminEmail },
-        update: {},
+        update: {
+            role: 'SUPER_ADMIN',
+            username: 'The Architect',
+            passwordHash: adminHash
+        },
         create: {
             email: adminEmail,
             passwordHash: adminHash,
-            role: 'ADMIN',
-            username: 'SuperAdmin',
+            role: 'SUPER_ADMIN',
+            username: 'The Architect',
             tenantId: tenant.id
         }
     });
