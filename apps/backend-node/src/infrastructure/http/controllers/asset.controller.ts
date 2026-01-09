@@ -60,6 +60,9 @@ export class AssetController {
             const tenantId = sessionUser.tenantId;
 
             const { id } = req.params;
+            if (!id || id === 'undefined') {
+                return res.status(400).json({ error: 'Invalid Asset ID' });
+            }
             const data = req.body;
 
             // Prevent updating read-only fields or tenantId

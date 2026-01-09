@@ -65,7 +65,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
 
                 // Confirm
                 const uploaded = await UploadService.confirmUpload({
-                    fileKey: key, // The backend expects this to match what it signed
+                    key: key, // Use 'key' to match backend expectation
                     entityType: "tenant",
                     entityId: user.id,
                     fileName: avatarFile.name,

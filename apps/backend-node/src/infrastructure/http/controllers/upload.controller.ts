@@ -80,13 +80,30 @@ export class UploadController {
             const tenant = getCurrentTenant();
             if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const { entityType, entityId, key, fileName, mimeType, size } = req.body;
+            const { entityId, key, fileName, mimeType, size } = req.body;
+            let entityType = req.body.entityType;
 
             if (!key) {
                 return res.status(400).json({ error: 'Missing S3 key' });
             }
 
+            // [FIX] Map Aliases (Mirroring presign logic)
+            const typeMap: Record<string, string> = {
+                'asset': 'assets',
+                'work_order': 'work-orders',
+                'work-order': 'work-orders',
+                'inventory': 'assets',
+                'avatar': 'tenant',
+                'profile': 'tenant'
+            };
+            if (typeMap[entityType]) entityType = typeMap[entityType];
+
             console.log(`[Upload] Creating Attachment:`, { entityType, entityId, fileName }); // [DEBUG]
+
+            // [SECURITY] UUID Check for Relations
+            const isUuid = (id?: string) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+            const safeAssetId = (entityType === 'assets' && isUuid(entityId)) ? entityId : undefined;
+            const safeWoId = (entityType === 'work-orders' && isUuid(entityId)) ? entityId : undefined;
 
             // Resolve Tenant ID
             const tenantRecord = await this.prisma.tenant.findUnique({
@@ -123,8 +140,8 @@ export class UploadController {
             const attachment = await this.prisma.attachment.create({
                 data: {
                     tenantId: tenantRecord.id,
-                    assetId: entityType === 'assets' ? entityId : undefined,
-                    workOrderId: entityType === 'work-orders' ? entityId : undefined,
+                    assetId: safeAssetId,
+                    workOrderId: safeWoId,
                     fileName,
                     mimeType,
                     size,
