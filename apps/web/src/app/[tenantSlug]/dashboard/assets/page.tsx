@@ -6,18 +6,17 @@ import { AssetService } from "@/services/asset.service";
 import { InteractiveTree } from "@/components/assets/tree/InteractiveTree";
 import { AssetGrid } from "@/components/assets/AssetGrid";
 import { useState } from "react"; // already imported
-import { Search, LayoutGrid, Network, Plus } from "lucide-react";
+import { Plus, LayoutGrid, Network, Database, Kanban } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { CreateAssetModal } from "@/components/assets/CreateAssetModal";
 import { AssetTemplatePicker } from "@/components/assets/AssetTemplatePicker";
+import BulkImportModal from "@/components/assets/BulkImportModal";
 import { useAuth } from "@/hooks/use-auth";
-import { UserRole } from "@/lib/auth/types";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { Asset } from "@/types/asset";
 
 import { AssetGroupBoard } from "@/components/assets/AssetGroupBoard";
-import { KanbanSquare } from "lucide-react"; // Import icon if available, or LayoutDashboard
 
 export default function AssetsPage() {
     const { data: user } = useAuth();
@@ -27,6 +26,7 @@ export default function AssetsPage() {
 
     // Edit & Create State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
     const [editAsset, setEditAsset] = useState<Asset | null>(null);
     const [createParentId, setCreateParentId] = useState<string | null>(null);
 
@@ -65,12 +65,21 @@ export default function AssetsPage() {
                 </div>
                 <div className="flex gap-2">
                     <RoleGuard requiredPermission="asset:write">
+                        <Button variant="outline" className="gap-2" onClick={() => setIsBulkImportOpen(true)}>
+                            <Database className="w-4 h-4" /> Bulk Import
+                        </Button>
                         <Button onClick={() => { setCreateParentId(null); setIsCreateModalOpen(true); }}>
                             <Plus className="mr-2 h-4 w-4" /> Add Asset
                         </Button>
                     </RoleGuard>
                 </div>
             </header>
+
+            <BulkImportModal
+                isOpen={isBulkImportOpen}
+                onClose={() => setIsBulkImportOpen(false)}
+                onSuccess={handleSuccess}
+            />
 
             {(!isAllLoading && (!allAssets || allAssets.length === 0)) ? (
                 <AssetTemplatePicker onSuccess={handleSuccess} />
@@ -82,7 +91,7 @@ export default function AssetsPage() {
                                 <LayoutGrid className="h-4 w-4" /> Grid View
                             </TabsTrigger>
                             <TabsTrigger value="board" className="gap-2">
-                                <KanbanSquare className="h-4 w-4" /> Board View
+                                <Kanban className="h-4 w-4" /> Board View
                             </TabsTrigger>
                             <TabsTrigger value="tree" className="gap-2">
                                 <Network className="h-4 w-4" /> Tree View
@@ -133,11 +142,12 @@ export default function AssetsPage() {
                     <TabsContent value="tree" className="mt-0 space-y-4">
                         {/* [UX] Removed confusing "Root ID" input. Now auto-loads all assets. */}
 
-                        {isAllLoading && <p>Loading hierarchy...</p>}
-                        {!isAllLoading && allAssets && (
+                        {isAllLoading ? (
+                            <p>Loading hierarchy...</p>
+                        ) : (
                             <div className="h-[600px] bg-white rounded-xl border overflow-hidden">
                                 <InteractiveTree
-                                    assets={allAssets} // Pass all assets, component handles tree building
+                                    assets={allAssets || []} // Pass all assets, component handles tree building
                                     onNodeClick={(asset) => canEdit ? setEditAsset(asset) : null}
                                 />
                             </div>

@@ -25,6 +25,7 @@ import { PostgresWorkOrderSessionRepository } from './infrastructure/repositorie
 
 // Services
 import { AssetService } from './application/services/asset.service';
+import { AssetImporterService } from './application/services/asset-importer.service';
 import { RimeService } from './application/services/rime.service';
 import { WorkOrderService } from './application/services/work-order.service';
 import { S3Service } from './infrastructure/services/s3.service';
@@ -136,7 +137,8 @@ app.use((req, res, next) => {
 // Instantiate Services & Controllers
 const assetRepo = new PostgresAssetRepository(prisma);
 const assetService = new AssetService(assetRepo);
-const assetController = new AssetController(assetService, prisma);
+const assetImporterService = new AssetImporterService(prisma, assetService);
+const assetController = new AssetController(assetService, assetImporterService, prisma);
 
 const woRepo = new PostgresWorkOrderRepository(prisma);
 const rimeService = new RimeService(assetRepo);
@@ -208,6 +210,7 @@ assetRouter.get('/', requirePermission('asset:read'), assetController.getAll);
 assetRouter.get('/:id', requirePermission('asset:read'), assetController.getById);
 assetRouter.get('/:id/tree', requirePermission('asset:read'), assetController.getTree);
 assetRouter.post('/import-template', requirePermission('asset:write'), assetController.importTemplate);
+assetRouter.post('/bulk-import', requirePermission('asset:write'), assetController.bulkImport);
 assetRouter.patch('/:id', requirePermission('asset:write'), assetController.update);
 assetRouter.delete('/:id', requirePermission('asset:delete'), assetController.delete);
 apiRouter.use('/assets', assetRouter);

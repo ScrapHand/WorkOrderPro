@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AssetService } from '../../../application/services/asset.service';
+import { AssetImporterService } from '../../../application/services/asset-importer.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
 import { hasPermission } from '../../auth/rbac.utils';
@@ -8,6 +9,7 @@ import { createAssetSchema } from '../../../application/validators/auth.validato
 export class AssetController {
     constructor(
         private assetService: AssetService,
+        private importerService: AssetImporterService,
         private prisma: PrismaClient
     ) { }
 
@@ -111,6 +113,25 @@ export class AssetController {
         } catch (error: any) {
             console.error('Import Template Error:', error);
             res.status(500).json({ error: 'Failed to import template' });
+        }
+    }
+
+    bulkImport = async (req: Request, res: Response) => {
+        try {
+            const sessionUser = (req.session as any)?.user;
+            if (!sessionUser?.tenantId) return res.status(401).json({ error: 'Unauthorized' });
+
+            const { text } = req.body;
+            if (!text) return res.status(400).json({ error: 'DSL text is required' });
+
+            const assets = await this.importerService.importBulk(sessionUser.tenantId, text);
+            res.status(201).json({
+                message: `Successfully imported ${assets.length} root assets and their children.`,
+                count: assets.length
+            });
+        } catch (error: any) {
+            console.error('Bulk Import Error:', error);
+            res.status(500).json({ error: error.message });
         }
     }
 

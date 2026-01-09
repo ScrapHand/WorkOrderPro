@@ -63,5 +63,10 @@ export const AssetService = {
 
     importTemplate: async (template: any): Promise<void> => {
         await api.post("/assets/import-template", { template });
+    },
+
+    importBulk: async (text: string): Promise<{ message: string, count: number }> => {
+        const res = await api.post("/assets/bulk-import", { text });
+        return res.data;
     }
 };
