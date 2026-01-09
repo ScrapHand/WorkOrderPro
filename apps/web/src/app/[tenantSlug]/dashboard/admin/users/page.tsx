@@ -139,9 +139,14 @@ export default function AdminUsersPage() {
                                     value={formData.role}
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
                                 >
-                                    {Object.values(UserRole).map(role => (
-                                        <option key={role} value={role}>{role}</option>
-                                    ))}
+                                    {Object.values(UserRole)
+                                        .filter(role => {
+                                            if (isGlobalAdmin) return true;
+                                            return ![UserRole.SUPER_ADMIN, UserRole.GLOBAL_ADMIN, UserRole.SYSTEM_ADMIN].includes(role);
+                                        })
+                                        .map(role => (
+                                            <option key={role} value={role}>{role}</option>
+                                        ))}
                                 </select>
                             </div>
                         </div>
@@ -194,9 +199,14 @@ export default function AdminUsersPage() {
                                     value={editingUser.role}
                                     onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as UserRole })}
                                 >
-                                    {Object.values(UserRole).map(role => (
-                                        <option key={role} value={role}>{role}</option>
-                                    ))}
+                                    {Object.values(UserRole)
+                                        .filter(role => {
+                                            if (isGlobalAdmin) return true;
+                                            return ![UserRole.SUPER_ADMIN, UserRole.GLOBAL_ADMIN, UserRole.SYSTEM_ADMIN].includes(role);
+                                        })
+                                        .map(role => (
+                                            <option key={role} value={role}>{role}</option>
+                                        ))}
                                 </select>
                             </div>
                             <div className="space-y-2 md:col-span-1">

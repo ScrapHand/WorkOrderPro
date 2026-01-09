@@ -28,6 +28,17 @@ export class UserController {
             const tenantId = await this.userService.resolveTenantId(targetSlug);
             if (!tenantId) return res.status(404).json({ error: 'Target tenant not found' });
 
+            // [NEW] Role Elevation Protection
+            const restrictedRoles = ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'SYSTEM_ADMIN'];
+            const isGlobalAdmin = sessionUser?.tenantSlug === 'default' && sessionUser?.role === 'ADMIN';
+            const isSuperAdmin = sessionUser?.role === 'SUPER_ADMIN';
+
+            if (restrictedRoles.includes(role)) {
+                if (!isSuperAdmin && !isGlobalAdmin) {
+                    return res.status(403).json({ error: 'Permission denied: Cannot assign global administrative roles' });
+                }
+            }
+
             // Basic validation
             if (!email) return res.status(400).json({ error: 'Email is required' });
 
@@ -57,6 +68,19 @@ export class UserController {
             }
 
             const updates = { ...req.body };
+
+            // [NEW] Role Elevation Protection on Update
+            if (updates.role) {
+                const restrictedRoles = ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'SYSTEM_ADMIN'];
+                const isGlobalAdmin = sessionUser?.tenantSlug === 'default' && sessionUser?.role === 'ADMIN';
+                const isSuperAdmin = sessionUser?.role === 'SUPER_ADMIN';
+
+                if (restrictedRoles.includes(updates.role)) {
+                    if (!isSuperAdmin && !isGlobalAdmin) {
+                        return res.status(403).json({ error: 'Permission denied: Cannot assign global administrative roles' });
+                    }
+                }
+            }
 
             // Handle Password Update
             if (updates.password) {
