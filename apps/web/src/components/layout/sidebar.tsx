@@ -76,7 +76,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
         if (link.name === "User Management") return perms.includes('user:read') || perms.includes('user:write');
         if (link.name === "Company Actions") return perms.includes('tenant:manage');
-        if (link.name === "Role Management") return perms.includes('user:write'); // Assuming user:write covers roles for now
+        if (link.name === "Role Management") return perms.includes('role:read') || perms.includes('role:write');
         if (link.name === "Secrets & Config") return perms.includes('tenant:manage');
         if (link.name === "System Doctor") return perms.includes('tenant:manage');
 

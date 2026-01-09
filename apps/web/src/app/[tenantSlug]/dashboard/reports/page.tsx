@@ -16,8 +16,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip } from "recharts";
+import { useState, useEffect } from "react";
 
 export default function ReportsPage() {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     const { data: summary, isLoading: isSummaryLoading } = useQuery({
         queryKey: ["report-summary-global"],
         queryFn: () => ReportService.getWorkOrderSummary(),
@@ -135,44 +142,46 @@ export default function ReportsPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-[300px] w-full mt-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={trends?.history || []}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                                    <XAxis
-                                        dataKey="month"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 12 }}
-                                    />
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 12 }}
-                                    />
-                                    <ChartTooltip
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                    />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="failures"
-                                        stroke="#f97316"
-                                        strokeWidth={3}
-                                        dot={{ r: 4, fill: '#f97316' }}
-                                        activeDot={{ r: 6 }}
-                                        name="Failures"
-                                    />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="mttr"
-                                        stroke="#3b82f6"
-                                        strokeWidth={2}
-                                        strokeDasharray="5 5"
-                                        dot={false}
-                                        name="MTTR (min)"
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
+                        <div className="h-[300px] w-full mt-4 min-h-[300px]">
+                            {isMounted && (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={trends?.history || []}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                                        <XAxis
+                                            dataKey="month"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 12 }}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 12 }}
+                                        />
+                                        <ChartTooltip
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="failures"
+                                            stroke="#f97316"
+                                            strokeWidth={3}
+                                            dot={{ r: 4, fill: '#f97316' }}
+                                            activeDot={{ r: 6 }}
+                                            name="Failures"
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="mttr"
+                                            stroke="#3b82f6"
+                                            strokeWidth={2}
+                                            strokeDasharray="5 5"
+                                            dot={false}
+                                            name="MTTR (min)"
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-4 italic">
                             Trend shows monthly breakdown frequency (Orange) and repair efficiency (Blue).

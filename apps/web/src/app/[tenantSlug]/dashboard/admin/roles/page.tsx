@@ -205,6 +205,9 @@ function RoleModal({ open, onOpenChange, onSubmit, initialData, title, isSystem 
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
+                    <DialogDescription>
+                        Define specific permissions for this role to control access to system resources.
+                    </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid gap-4">
