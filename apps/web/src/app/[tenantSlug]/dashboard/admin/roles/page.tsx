@@ -17,6 +17,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,9 @@ export default function RolesPage() {
     const queryClient = useQueryClient();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingRole, setEditingRole] = useState<Role | null>(null);
+
+    const { data: currentUser } = useAuth();
+    const canWrite = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.permissions?.includes('role:write') || currentUser?.permissions?.includes('*');
 
     // Queries
     const { data: roles = [], isLoading } = useQuery({
@@ -86,9 +90,11 @@ export default function RolesPage() {
                     <h1 className="text-2xl font-bold tracking-tight">Role Management</h1>
                     <p className="text-muted-foreground">Manage custom roles and permissions.</p>
                 </div>
-                <Button onClick={() => setIsCreateOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> Create Role
-                </Button>
+                {canWrite && (
+                    <Button onClick={() => setIsCreateOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Create Role
+                    </Button>
+                )}
             </div>
 
             <div className="border rounded-md">
@@ -121,24 +127,28 @@ export default function RolesPage() {
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => setEditingRole(role)}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        {!role.isSystem && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-destructive hover:bg-red-50"
-                                                onClick={() => {
-                                                    if (confirm('Delete role?')) deleteMutation.mutate(role.id);
-                                                }}
-                                            >
-                                                <Trash className="h-4 w-4" />
-                                            </Button>
+                                        {canWrite && (
+                                            <>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setEditingRole(role)}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                {!role.isSystem && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="text-destructive hover:bg-red-50"
+                                                        onClick={() => {
+                                                            if (confirm('Delete role?')) deleteMutation.mutate(role.id);
+                                                        }}
+                                                    >
+                                                        <Trash className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 </TableCell>

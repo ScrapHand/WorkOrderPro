@@ -82,6 +82,8 @@ export default function AdminUsersPage() {
         }
     };
 
+    const canWrite = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.permissions?.includes('user:write') || currentUser?.permissions?.includes('*');
+
     if (isLoading) return <Loader2 className="animate-spin" />;
 
     return (
@@ -89,12 +91,14 @@ export default function AdminUsersPage() {
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold">User Management</h2>
 
-                <Button onClick={() => {
-                    setIsFormOpen(!isFormOpen);
-                    setEditingUser(null);
-                }}>
-                    <Plus className="mr-2 h-4 w-4" /> {isFormOpen ? "Cancel" : "Add User"}
-                </Button>
+                {canWrite && (
+                    <Button onClick={() => {
+                        setIsFormOpen(!isFormOpen);
+                        setEditingUser(null);
+                    }}>
+                        <Plus className="mr-2 h-4 w-4" /> {isFormOpen ? "Cancel" : "Add User"}
+                    </Button>
+                )}
             </div>
 
             {isFormOpen && (
@@ -246,15 +250,19 @@ export default function AdminUsersPage() {
                                     </span>
                                 </td>
                                 <td className="px-4 py-3 text-right space-x-2">
-                                    <Button variant="ghost" size="sm" className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => {
-                                        setEditingUser(user);
-                                        setIsFormOpen(false);
-                                    }}>
-                                        Edit
-                                    </Button>
-                                    <Button variant="ghost" size="sm" className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(user.id)}>
-                                        Terminate
-                                    </Button>
+                                    {canWrite && (
+                                        <>
+                                            <Button variant="ghost" size="sm" className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => {
+                                                setEditingUser(user);
+                                                setIsFormOpen(false);
+                                            }}>
+                                                Edit
+                                            </Button>
+                                            <Button variant="ghost" size="sm" className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(user.id)}>
+                                                Terminate
+                                            </Button>
+                                        </>
+                                    )}
                                 </td>
                             </tr>
                         ))}

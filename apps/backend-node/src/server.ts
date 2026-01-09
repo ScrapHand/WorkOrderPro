@@ -219,7 +219,7 @@ apiRouter.use('/assets', assetRouter);
 const userRouter = express.Router();
 userRouter.post('/', requirePermission('user:write'), userController.create);
 userRouter.get('/', requirePermission('user:read'), userController.getAll);
-userRouter.patch('/:id', requirePermission('user:write'), userController.update);
+userRouter.patch('/:id', requireAuth, userController.update);
 userRouter.delete('/:id', requirePermission('user:delete'), userController.delete);
 apiRouter.use('/users', userRouter);
 
