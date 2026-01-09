@@ -26,6 +26,7 @@ import { UserRole } from "@/lib/auth/types";
 import { useLogout, useUser } from "@/hooks/use-auth";
 import { useTheme } from "@/context/ThemeContext";
 import { TenantSwitcher } from "@/components/layout/TenantSwitcher";
+import { UpgradeBanner } from "@/components/billing/UpgradeBanner";
 
 // Helper to prefix links
 const getSidebarLinks = (term: any, slug: string) => {
@@ -79,9 +80,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
         if (link.name === "User Management") return perms.includes('user:read') || perms.includes('user:write');
         if (link.name === "Company Actions") return perms.includes('tenant:manage');
-        if (link.name === "Role Management") return perms.includes('role:read') || perms.includes('role:write');
-        if (link.name === "Secrets & Config") return perms.includes('tenant:manage');
-        if (link.name === "System Doctor") return perms.includes('tenant:manage');
+        if (link.name === "Audit Logs") return perms.includes('tenant:manage');
+
+        // [STRICT] Super Admin Only Tools
+        if (link.name === "Role Management") return user?.role === UserRole.SUPER_ADMIN;
+        if (link.name === "Secrets & Config") return user?.role === UserRole.SUPER_ADMIN;
+        if (link.name === "System Doctor") return user?.role === UserRole.SUPER_ADMIN;
 
         // 3. Fallback for Legacy Admin Role (if no permissions set)
         if (user?.role === UserRole.ADMIN) return true;
@@ -162,18 +166,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 </nav>
             </div>
 
+            {/* Billing Upgrades */}
+            <UpgradeBanner />
+
             {/* Sticky Footer / Big Button */}
             <div className="border-t p-4 space-y-2">
                 <RoleGuard requiredPermission="work_order:write">
                     <Link href={`/${tenantSlug}/dashboard/work-orders/new`} onClick={handleLinkClick}>
-                        <Button size="lg" className="w-full flex-col h-auto py-3 gap-1 shadow-lg group">
-                            <div className="flex items-center gap-2">
-                                <PlusCircle className="h-5 w-5" />
-                                <span>Create Work Order</span>
-                            </div>
-                            <div className="text-[10px] opacity-60 font-bold uppercase tracking-tighter group-hover:text-yellow-400 transition-colors">
-                                Powered by Nano Banana Pro
-                            </div>
+                        <Button size="lg" className="w-full gap-2 shadow-lg">
+                            <PlusCircle className="h-5 w-5" /> Create Work Order
                         </Button>
                     </Link>
                 </RoleGuard>

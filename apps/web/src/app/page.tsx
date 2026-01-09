@@ -38,7 +38,6 @@ export default function LandingPage() {
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
             <a href="#features" className="hover:text-white transition-colors">Platform</a>
-            <a href="#nano-banana" className="hover:text-white transition-colors">Nano Banana Pro</a>
             <a href="#pricing" className="hover:text-white transition-colors">Solutions</a>
           </div>
 
@@ -166,51 +165,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Specialized Tool: Nano Banana Pro */}
-      <section id="nano-banana" className="py-32 relative overflow-hidden">
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-yellow-500/10 blur-[100px] rounded-full" />
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="bg-gradient-to-br from-gray-900 to-[#121214] border border-white/5 rounded-3xl p-12 lg:p-20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-12 opacity-10">
-              <Cpu className="h-64 w-64 text-yellow-500" />
-            </div>
-
-            <div className="max-w-2xl space-y-8 relative z-10">
-              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-sm font-bold uppercase tracking-widest">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
-                </span>
-                Integrated Elite Suite
-              </div>
-              <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">
-                Nano Banana <span className="text-white">Pro</span>TM
-              </h2>
-              <p className="text-xl text-gray-300 leading-relaxed">
-                The world's most advanced asset diagnostic engine. Leverage high-performance breakdown analysis and ultra-fast selection logic designed specifically for rapid technical responses.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  "Millisecond Asset Lookup",
-                  "Photo-Assisted Failure Diagnostics",
-                  "Autonomous Priority Calibration",
-                  "Direct Tech-to-Asset Linkage"
-                ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-gray-400 font-medium">
-                    <CheckCircle2 className="h-5 w-5 text-yellow-500" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className="pt-6">
-                <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-extrabold px-10 h-14 rounded-xl">
-                  Explore Nano Banana
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Pricing Section */}
       <section id="pricing" className="py-32 px-6 bg-white/[0.01]">
@@ -223,7 +177,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { name: "Starter", price: "$0", features: ["Up to 5 Admins", "100 Active Assets", "Basic Reports", "Mobile App"], cta: "Start Free", popular: false },
-              { name: "Pro", price: "$299", features: ["Up to 25 Admins", "1,000 Active Assets", "Nano Banana Pro Engine", "Full Audit Logs"], cta: "Go Professional", popular: true },
+              { name: "Pro", price: "$299", features: ["Up to 25 Admins", "1,000 Active Assets", "Advanced failure diagnostics", "Full Audit Logs"], cta: "Go Professional", popular: true },
               { name: "Enterprise", price: "Custom", features: ["Unlimited Everything", "SSO & SAML Auth", "White-Label Options", "24/7 Priority Support"], cta: "Contact Sales", popular: false },
             ].map((plan, i) => (
               <div

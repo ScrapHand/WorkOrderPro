@@ -13,7 +13,8 @@ import {
     ArrowLeft,
     Loader2,
     CheckCircle2,
-    Globe
+    Globe,
+    Key
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,14 +36,17 @@ const registerSchema = z.object({
 type RegisterValues = z.infer<typeof registerSchema>;
 
 const STEPS = [
-    { id: "account", title: "Account Details", icon: ShieldCheck },
-    { id: "company", title: "Company Profile", icon: Building2 },
-    { id: "plan", title: "Select Plan", icon: CreditCard }
+    { id: "account", title: "Details", icon: ShieldCheck },
+    { id: "company", title: "Profile", icon: Building2 },
+    { id: "plan", title: "Plan", icon: CreditCard },
+    { id: "verify", title: "Verify", icon: Key }
 ];
 
 export default function RegisterPage() {
     const [step, setStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [verificationCode, setVerificationCode] = useState("");
+    const [tenantSlug, setTenantSlug] = useState("");
     const router = useRouter();
 
     const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<RegisterValues>({
@@ -207,82 +211,102 @@ export default function RegisterPage() {
                                     </motion.div>
                                 )}
 
-                                {step === 2 && (
-                                    <motion.div
-                                        key="step2"
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -20 }}
-                                        className="space-y-6"
-                                    >
-                                        <div className="grid grid-cols-1 gap-4">
-                                            {[
-                                                { id: "STARTER", title: "Starter", desc: "Up to 5 Admins. Basic CMMS.", price: "$0" },
-                                                { id: "PRO", title: "Pro Suite", desc: "Up to 25 Admins. Nano Banana Pro Integrated.", price: "$299" },
-                                                { id: "ENTERPRISE", title: "Enterprise", desc: "Unlimited. Priority Support & Custom SSL.", price: "Quote" },
-                                            ].map((p) => (
-                                                <button
-                                                    key={p.id}
-                                                    type="button"
-                                                    onClick={() => setValue("plan", p.id as any)}
-                                                    className={`flex items-center justify-between p-6 rounded-2xl border transition-all text-left group ${currentPlan === p.id ? 'bg-blue-600/10 border-blue-500' : 'bg-white/5 border-white/10 hover:border-white/20'
-                                                        }`}
-                                                >
-                                                    <div className="space-y-1">
-                                                        <div className="font-bold text-white flex items-center gap-2">
-                                                            {p.title}
-                                                            {currentPlan === p.id && <CheckCircle2 className="h-4 w-4 text-blue-400" />}
-                                                        </div>
-                                                        <div className="text-xs text-gray-500">{p.desc}</div>
-                                                    </div>
-                                                    <div className="text-xl font-black italic text-white group-hover:text-blue-400 transition-colors">
-                                                        {p.price}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </motion.div>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {[
+                                        { id: "STARTER", title: "Starter", desc: "Up to 5 Admins. Basic CMMS.", price: "$0" },
+                                        { id: "PRO", title: "Pro Suite", desc: "Up to 25 Admins. Advanced failure diagnostics.", price: "$299" },
+                                        { id: "ENTERPRISE", title: "Enterprise", desc: "Unlimited. Priority Support & Custom SSL.", price: "Quote" },
+                                    ].map((p) => (
+                                        <button
+                                            key={p.id}
+                                            type="button"
+                                            onClick={() => setValue("plan", p.id as any)}
+                                            className={`flex items-center justify-between p-6 rounded-2xl border transition-all text-left group ${currentPlan === p.id ? 'bg-blue-600/10 border-blue-500' : 'bg-white/5 border-white/10 hover:border-white/20'
+                                                }`}
+                                        >
+                                            <div className="space-y-1">
+                                                <div className="font-bold text-white flex items-center gap-2">
+                                                    {p.title}
+                                                    {currentPlan === p.id && <CheckCircle2 className="h-4 w-4 text-blue-400" />}
+                                                </div>
+                                                <div className="text-xs text-gray-500">{p.desc}</div>
+                                            </div>
+                                            <div className="text-xl font-black italic text-white group-hover:text-blue-400 transition-colors">
+                                                {p.price}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </motion.div>
                                 )}
-                            </AnimatePresence>
-                        </CardContent>
 
-                        <CardFooter className="bg-white/5 border-t border-white/5 p-6 flex justify-between items-center">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={prevStep}
-                                disabled={step === 0}
-                                className="text-gray-400 hover:text-white disabled:opacity-30"
-                            >
-                                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                            </Button>
+                            {step === 3 && (
+                                <motion.div
+                                    key="step3"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="space-y-6 flex flex-col items-center justify-center text-center"
+                                >
+                                    <div className="h-16 w-16 rounded-full bg-blue-600/20 flex items-center justify-center mb-4">
+                                        <Key className="h-8 w-8 text-blue-500" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h2 className="text-2xl font-bold text-white tracking-tight">Check your email</h2>
+                                        <p className="text-gray-500 max-w-sm">
+                                            We've sent a 6-digit verification code to <span className="text-blue-400">{watch("email")}</span>.
+                                            Please enter it below to activate your account.
+                                        </p>
+                                    </div>
 
-                            {step < STEPS.length - 1 ? (
-                                <Button
-                                    type="button"
-                                    onClick={nextStep}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 font-bold"
-                                >
-                                    Continuue <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-10 font-bold shadow-lg shadow-blue-500/20"
-                                >
-                                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                                    Finalize Implementation
-                                </Button>
+                                    <div className="w-full max-w-[240px] pt-4">
+                                        <Input
+                                            value={verificationCode}
+                                            onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").substring(0, 6))}
+                                            placeholder="000000"
+                                            className="bg-white/5 border-white/10 h-16 text-center text-3xl font-bold tracking-[0.5em] text-white focus:border-blue-500"
+                                        />
+                                    </div>
+
+                                    <p className="text-xs text-gray-600 pt-4">
+                                        Didn't receive the code? Check your spam folder or contact support.
+                                    </p>
+                                </motion.div>
                             )}
-                        </CardFooter>
-                    </form>
-                </Card>
+                        </AnimatePresence>
+                    </CardContent>
 
-                <p className="text-center text-[10px] text-gray-600 uppercase tracking-widest font-medium">
-                    Secure Registration Session. Data encrypted via TLS 1.3
-                </p>
-            </div>
+                    <CardFooter className="bg-white/5 border-t border-white/5 p-6 flex justify-between items-center">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={prevStep}
+                            disabled={step === 0 || step === 3}
+                            className="text-gray-400 hover:text-white disabled:opacity-30"
+                        >
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                        </Button>
+
+                        <Button
+                            type="submit"
+                            disabled={isLoading || (step === 3 && verificationCode.length !== 6)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-10 font-bold shadow-lg shadow-blue-500/20"
+                        >
+                            {isLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                                step < STEPS.length - 1 ? <ArrowRight className="h-4 w-4 mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />
+                            )}
+                            {step === 2 ? "Configure Infrastructure" : step === 3 ? "Verify & Activate" : "Continue"}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Card>
+
+            <p className="text-center text-[10px] text-gray-600 uppercase tracking-widest font-medium">
+                Secure Registration Session. Data encrypted via TLS 1.3
+            </p>
         </div>
+        </div >
     );
 }

@@ -115,4 +115,30 @@ export class TenantController {
             res.status(500).json({ error: 'Failed to delete tenant' });
         }
     }
+
+    upgrade = async (req: Request, res: Response) => {
+        try {
+            const sessionUser = (req.session as any)?.user;
+            if (!sessionUser) return res.status(401).json({ error: 'Unauthorized' });
+
+            const { plan } = req.body;
+            if (!['PRO', 'ENTERPRISE'].includes(plan)) {
+                return res.status(400).json({ error: 'Invalid plan' });
+            }
+
+            // Only Tenant Admins or Master Admins can upgrade
+            const isMaster = ['SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(sessionUser.role);
+            const isOwnTenant = sessionUser.tenantId === req.params.id;
+
+            if (!isMaster && (!isOwnTenant || sessionUser.role !== 'TENANT_ADMIN')) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+
+            const updated = await this.service.upgrade(req.params.id, plan);
+            res.json(updated);
+        } catch (error) {
+            console.error('Upgrade Error:', error);
+            res.status(500).json({ error: 'Failed to upgrade plan' });
+        }
+    }
 }

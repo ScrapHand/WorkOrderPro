@@ -11,7 +11,11 @@ export interface CreateUserDTO {
 
 export interface BrandingDTO {
     logoUrl?: string;
-    brandColor?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    backgroundColor?: string;
+    textColor?: string;
+    mutedColor?: string;
 }
 
 export const AdminService = {
@@ -37,8 +41,7 @@ export const AdminService = {
     updateBranding: async (data: BrandingDTO): Promise<any> => {
         const payload = {
             branding: {
-                primaryColor: data.brandColor,
-                logoUrl: data.logoUrl
+                ...data
             }
         };
         const res = await api.patch("/tenant/config", payload);

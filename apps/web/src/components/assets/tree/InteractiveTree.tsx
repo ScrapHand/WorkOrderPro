@@ -112,7 +112,7 @@ const LayoutFlow = ({ assets, onNodeClick }: InteractiveTreeProps) => {
                     target: asset.id,
                     type: 'smoothstep',
                     animated: true,
-                    style: { stroke: '#cbd5e1', strokeWidth: 2 },
+                    style: { stroke: 'var(--border, #cbd5e1)', strokeWidth: 2 },
                 });
             }
         });
@@ -188,9 +188,9 @@ const LayoutFlow = ({ assets, onNodeClick }: InteractiveTreeProps) => {
                 fitView
                 minZoom={0.2}
             >
-                <Background color="#ccc" gap={20} />
+                <Background color="var(--border, #ccc)" gap={20} />
                 <Controls />
-                <MiniMap nodeColor="#e2e8f0" />
+                <MiniMap nodeColor="var(--muted, #e2e8f0)" />
                 <Panel position="top-right" className="bg-white p-2 rounded shadow border flex gap-2">
                     <Button size="sm" variant="outline" onClick={onSaveLayout} disabled={isSaving}>
                         <Save className="w-4 h-4 mr-2" />

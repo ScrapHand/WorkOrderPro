@@ -27,7 +27,8 @@ export const createWorkOrderSchema = z.object({
     title: z.string().min(3).max(200),
     description: z.string().optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-    assignedUserId: z.string().uuid().optional().nullable()
+    assignedUserId: z.string().uuid().optional().nullable(),
+    assignedToMe: z.boolean().optional()
 });
 
 export const updateWorkOrderSchema = z.object({

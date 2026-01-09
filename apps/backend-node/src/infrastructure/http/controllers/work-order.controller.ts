@@ -23,8 +23,16 @@ export class WorkOrderController {
                 return res.status(400).json({ error: 'Invalid work order data', details: result.error.issues });
             }
 
-            const { assetId, title, priority, description, assignedUserId } = result.data;
-            console.log('[WorkOrderController] Create Request:', { assetId, title, priority, assignedUserId });
+            const { assetId, title, priority, description, assignedUserId, assignedToMe } = result.data;
+            const sessionUserId = (req.session as any)?.user?.id;
+
+            // [LOGIC] Handle Self-Assignment
+            let targetUserId = assignedUserId;
+            if (assignedToMe && sessionUserId) {
+                targetUserId = sessionUserId;
+            }
+
+            console.log('[WorkOrderController] Create Request:', { assetId, title, priority, assignedUserId, assignedToMe, targetUserId });
 
             const wo = await this.woService.createWorkOrder(
                 tenantId,
@@ -32,7 +40,7 @@ export class WorkOrderController {
                 title,
                 priority,
                 description,
-                assignedUserId || undefined
+                targetUserId || undefined
             );
 
             res.status(201).json(wo);

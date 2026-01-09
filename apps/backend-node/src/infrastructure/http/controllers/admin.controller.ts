@@ -13,6 +13,14 @@ export class AdminController {
             const tenantId = tenantCtx.id;
 
             const { branding, rbac, notifications, secrets } = req.body;
+            const sessionUser = (req.session as any)?.user;
+
+            // [SECURITY] RBAC & Secrets are Super-Admin ONLY
+            if (rbac || secrets) {
+                if (sessionUser?.role !== 'SUPER_ADMIN') {
+                    return res.status(403).json({ error: 'Forbidden: Super Admin required for sensitive configuration' });
+                }
+            }
 
             // 1. Prepare Update Data
             const data: any = {};
@@ -27,15 +35,20 @@ export class AdminController {
                 const newConfig = {
                     ...existingConfig,
                     ...branding,
-                    // [FIX] Deep merge sub-objects like terminology
+                    // [STRICT] Preservation of terminology if not provided in this specific patch
                     terminology: {
                         ...(existingConfig.terminology || {}),
                         ...(branding.terminology || {})
-                    },
-                    // Normalize standard keys
-                    primaryColor: branding.primaryColor || branding.brandColor || existingConfig.primaryColor,
-                    logoUrl: branding.logoUrl || existingConfig.logoUrl
+                    }
                 };
+
+                // [FIX] Normalize primaryColor key (supporting brandColor legacy key)
+                if (branding.brandColor && !branding.primaryColor) {
+                    newConfig.primaryColor = branding.brandColor;
+                }
+                if (!newConfig.primaryColor && existingConfig.primaryColor) {
+                    newConfig.primaryColor = existingConfig.primaryColor;
+                }
 
                 data.brandingConfig = newConfig;
 

@@ -16,7 +16,7 @@ export class TenantService {
         });
     }
 
-    async create(name: string, slug: string, adminEmail: string, maxUsers: number = 5, maxAdmins: number = 1, adminPassword: string = 'ScrapHand') {
+    async create(name: string, slug: string, adminEmail: string, maxUsers: number = 5, maxAdmins: number = 1, adminPassword: string = 'ScrapHand', verificationCode?: string) {
         return this.prisma.$transaction(async (tx) => {
             // 1. Create Tenant
             const tenant = await tx.tenant.create({
@@ -36,8 +36,9 @@ export class TenantService {
                     email: adminEmail,
                     passwordHash: hashedPassword,
                     username: 'Tenant Admin',
-                    role: 'ADMIN',
-                    tenantId: tenant.id
+                    role: 'TENANT_ADMIN',
+                    tenantId: tenant.id,
+                    verificationCode: verificationCode
                 }
             });
 
@@ -52,6 +53,21 @@ export class TenantService {
         return this.prisma.tenant.update({
             where: { id },
             data
+        });
+    }
+
+    async upgrade(tenantId: string, plan: 'PRO' | 'ENTERPRISE') {
+        const specs = {
+            'PRO': { maxUsers: 25, maxAdmins: 3 },
+            'ENTERPRISE': { maxUsers: 100, maxAdmins: 10 }
+        }[plan];
+
+        return this.prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+                plan,
+                ...specs
+            }
         });
     }
 

@@ -27,7 +27,7 @@ export function ConveyorEdge({
     });
 
     const isConveyor = data?.type === 'CONVEYOR';
-    const color = data?.systemColor || (isConveyor ? '#6366f1' : '#9ca3af');
+    const color = data?.systemColor || (isConveyor ? 'var(--primary, #6366f1)' : 'var(--border, #9ca3af)');
 
     return (
         <>

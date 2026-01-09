@@ -139,16 +139,20 @@ export class AuthController {
 
             const { email, password, companyName, slug, plan } = result.data;
 
+            const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
             // 1. Create Tenant (This also creates the Admin user via transaction in TenantService)
-            // We pass the password directly to TenantService.create
             const tenant = await this.tenantService.create(
                 companyName,
                 slug,
                 email,
                 plan === 'STARTER' ? 5 : (plan === 'PRO' ? 25 : 100), // maxUsers
                 plan === 'STARTER' ? 1 : (plan === 'PRO' ? 3 : 10),  // maxAdmins
-                password
+                password,
+                verificationCode
             );
+
+            console.log(`[AUTH] Verification Code for ${email}: ${verificationCode}`); // Simulate email sending
 
             // 2. Log them in automatically
             const user = await this.userService.findByEmail(email);
@@ -164,6 +168,7 @@ export class AuthController {
                     role: user.role,
                     tenantId: user.tenantId,
                     tenantSlug: slug,
+                    emailVerified: false,
                     permissions: await this.userService.getUserPermissions(user.id)
                 };
 
@@ -181,7 +186,8 @@ export class AuthController {
                         success: true,
                         user: (req.session as any).user,
                         tenant,
-                        message: 'Account created and logged in successfully'
+                        message: 'Account created. Please verify your email.',
+                        verificationRequired: true
                     });
                 });
             });
@@ -228,6 +234,43 @@ export class AuthController {
             res.json({ isAuthenticated: true, user: updatedUser });
         } else {
             res.status(401).json({ isAuthenticated: false });
+        }
+    };
+
+    verifyEmail = async (req: Request, res: Response) => {
+        try {
+            const { code } = req.body;
+            const sessionUser = (req.session as any)?.user;
+            if (!sessionUser) return res.status(401).json({ error: 'Unauthorized' });
+
+            const user = await this.userService.findById(sessionUser.id) as any;
+            if (!user) return res.status(404).json({ error: 'User not found' });
+
+            if (user.verificationCode !== code) {
+                return res.status(400).json({ error: 'Invalid verification code' });
+            }
+
+            // Mark as verified
+            await this.userService.updateUser(user.id, {
+                emailVerified: new Date(),
+                verificationCode: null
+            } as any);
+
+            // Update session
+            (req.session as any).user.emailVerified = true;
+            req.session.save();
+
+            await this.auditService.log({
+                tenantId: user.tenantId,
+                userId: user.id,
+                event: 'EMAIL_VERIFIED',
+                metadata: { email: user.email }
+            });
+
+            res.json({ success: true, message: 'Email verified successfully' });
+        } catch (error: any) {
+            console.error('Verify Email Error:', error);
+            res.status(500).json({ error: error.message });
         }
     };
 }

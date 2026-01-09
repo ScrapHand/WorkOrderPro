@@ -53,6 +53,8 @@ model User {
   avatarUrl    String?  @map("avatar_url")
   passwordHash String   @map("password_hash")
   role         String   @default("VIEWER") // ADMIN, TECHNICIAN, VIEWER
+  emailVerified DateTime? @map("email_verified")
+  verificationCode String? @map("verification_code")
   
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

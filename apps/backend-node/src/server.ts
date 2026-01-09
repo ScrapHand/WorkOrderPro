@@ -212,6 +212,7 @@ const authRouter = express.Router();
 authRouter.post('/login', authController.login);
 authRouter.post('/register', authController.register);
 authRouter.post('/logout', authController.logout);
+authRouter.post('/verify-email', authController.verifyEmail);
 authRouter.get('/me', authController.me);
 apiRouter.use('/auth', authRouter);
 
@@ -238,11 +239,11 @@ apiRouter.use('/users', userRouter);
 
 // Role Routes
 const roleRouter = express.Router();
-roleRouter.post('/', requirePermission('role:write'), roleController.create);
-roleRouter.get('/', requirePermission('role:read'), roleController.getAll);
-roleRouter.patch('/:id', requirePermission('role:write'), roleController.update);
-roleRouter.delete('/:id', requirePermission('role:delete'), roleController.delete);
-roleRouter.get('/:id', requirePermission('role:read'), roleController.getById);
+roleRouter.post('/', requireRole(UserRole.SUPER_ADMIN), roleController.create);
+roleRouter.get('/', requireRole(UserRole.SUPER_ADMIN), roleController.getAll);
+roleRouter.patch('/:id', requireRole(UserRole.SUPER_ADMIN), roleController.update);
+roleRouter.delete('/:id', requireRole(UserRole.SUPER_ADMIN), roleController.delete);
+roleRouter.get('/:id', requireRole(UserRole.SUPER_ADMIN), roleController.getById);
 apiRouter.use('/roles', roleRouter);
 
 // Tenant Admin Routes
@@ -254,7 +255,8 @@ tenantAdminRouter.get('/', requireRole('SUPER_ADMIN'), tenantController.getAll);
 tenantAdminRouter.post('/', requireRole('SUPER_ADMIN'), tenantController.create);
 tenantAdminRouter.post('/:id/seed', requireRole('SUPER_ADMIN'), tenantController.seedDemo);
 tenantAdminRouter.delete('/:id', requireRole('SUPER_ADMIN'), tenantController.delete);
-tenantAdminRouter.get('/audit-logs', requireRole(UserRole.TENANT_ADMIN), platformAdminController.getAuditLogs);
+tenantAdminRouter.post('/:id/upgrade', requireAuth, tenantController.upgrade);
+tenantAdminRouter.get('/audit-logs', requireRole(UserRole.SUPER_ADMIN), platformAdminController.getAuditLogs);
 tenantAdminRouter.get('/users/search', requireRole('SUPER_ADMIN'), platformAdminController.globalUserSearch);
 apiRouter.use('/tenant', tenantAdminRouter);
 

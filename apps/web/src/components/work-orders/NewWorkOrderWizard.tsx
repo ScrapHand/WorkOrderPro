@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, CheckCircle, ChevronRight, ClipboardList, AlertTriangle, Wrench } from "lucide-react";
+import { AlertCircle, CheckCircle, ChevronRight, ClipboardList, AlertTriangle, Wrench, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { workOrderSchema, type WorkOrderCreate } from "@/lib/schemas/work-order";
 import { motion, AnimatePresence } from "framer-motion";
@@ -52,6 +52,7 @@ export function NewWorkOrderWizard() {
 
     const mutation = useMutation({
         mutationFn: async (data: WorkOrderCreate) => {
+            console.log("[NewWorkOrderWizard] Submitting:", data);
             const res = await api.post("/work-orders", data);
             return res.data;
         },
@@ -60,6 +61,7 @@ export function NewWorkOrderWizard() {
             queryClient.setQueryData(["work-orders"], (old: any) => [...(old || []), { ...newWo, id: "temp-" + Date.now(), status: "OPEN" }]);
         },
         onSuccess: async (data) => {
+            console.log("[NewWorkOrderWizard] Success:", data);
             const tenantSlug = (params?.tenantSlug as string) || 'default';
 
             // [NEW] Upload Photos if any
@@ -84,7 +86,7 @@ export function NewWorkOrderWizard() {
                         }
                     }
                     toast.dismiss();
-                    toast.success("Work Order created and photos uploaded (if any)!");
+                    toast.success("Work Order created and photos uploaded!");
                 } catch (err) {
                     console.error("Critical Upload Error:", err);
                     toast.error("Work Order created, but photo upload system failed.");
@@ -102,15 +104,19 @@ export function NewWorkOrderWizard() {
             setSelectedFiles([]);
 
             // [NAVIGATION] Redirect to the new WO or the list
-            if (data?.id) {
-                router.push(`/${tenantSlug}/dashboard/work-orders/${data.id}`);
-            } else {
-                router.push(`/${tenantSlug}/dashboard/work-orders`);
-            }
+            setTimeout(() => {
+                const targetPath = data?.id
+                    ? `/${tenantSlug}/dashboard/work-orders/${data.id}`
+                    : `/${tenantSlug}/dashboard/work-orders`;
+                console.log("[NewWorkOrderWizard] Redirecting to:", targetPath);
+                router.push(targetPath);
+            }, 100);
         },
         onError: (err: any) => {
-            console.error("Submission Error:", err);
+            console.error("Submission Error Details:", err.response?.data || err.message);
+            setIsUploading(false); // Safety
             setSubmitError(err.response?.data?.error || "Failed to create work order. Please try again.");
+            toast.error("Failed to create work order.");
         }
     });
 
@@ -139,9 +145,6 @@ export function NewWorkOrderWizard() {
                     <div className="flex items-center gap-2">
                         <Wrench className="h-5 w-5 text-blue-600" />
                         <h1 className="text-xl font-bold text-gray-900 tracking-tight">New Work Order</h1>
-                        <span className="bg-yellow-400/10 border border-yellow-400/20 text-yellow-700 text-[10px] font-black uppercase px-2 py-0.5 rounded italic">
-                            Nano Banana Pro™ Engine
-                        </span>
                     </div>
                     <div className="text-sm font-medium text-gray-500">Step {step} of 4</div>
                 </div>
@@ -170,8 +173,7 @@ export function NewWorkOrderWizard() {
                                 className="space-y-4"
                             >
                                 <div className="space-y-1">
-                                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Select Targeted Asset</h2>
-                                    <p className="text-sm text-gray-500">Nano Banana Pro millisecond lookup enabled.</p>
+                                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Which {t.asset.toLowerCase()} is targetted?</h2>
                                 </div>
 
                                 <div className="relative">
@@ -256,6 +258,30 @@ export function NewWorkOrderWizard() {
                                             className="w-full p-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-lg"
                                         />
                                         {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
+                                    </div>
+
+                                    {/* [NEW] Assign to Me Toggle */}
+                                    <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-white shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
+                                                <ShieldCheck className="h-5 w-5 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-gray-900">Assign to me</div>
+                                                <div className="text-xs text-gray-500">I will handle this {t.workOrder.toLowerCase()}</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setValue("assignedToMe", !watch("assignedToMe"))}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ring-2 ring-offset-2 ${watch("assignedToMe") ? 'bg-blue-600 ring-blue-500' : 'bg-gray-200 ring-transparent'
+                                                }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${watch("assignedToMe") ? 'translate-x-6' : 'translate-x-1'
+                                                    }`}
+                                            />
+                                        </button>
                                     </div>
 
                                     {!showDescription ? (
