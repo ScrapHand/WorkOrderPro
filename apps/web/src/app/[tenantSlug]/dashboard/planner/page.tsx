@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useRouter, useParams } from "next/navigation";
+import { CreatePMScheduleDialog } from "@/components/maintenance/CreatePMScheduleDialog";
 
 export default function CalendarPlannerPage() {
     const router = useRouter();
@@ -48,6 +49,8 @@ export default function CalendarPlannerPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [creationDate, setCreationDate] = useState<Date | undefined>();
 
     const { data: schedules } = useQuery({
         queryKey: ["pm-schedules"],
@@ -176,7 +179,14 @@ export default function CalendarPlannerPage() {
                                     ${isTodayDay ? 'bg-blue-50/20' : 'hover:bg-gray-50/10'}
                                 `}
                             >
-                                <div className="flex justify-between items-center mb-1">
+                                <div
+                                    className="flex justify-between items-center mb-1 cursor-pointer hover:bg-black/5 rounded-full"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCreationDate(day);
+                                        setIsCreateModalOpen(true);
+                                    }}
+                                >
                                     <span className={`text-sm font-semibold flex items-center justify-center w-7 h-7 rounded-full
                                         ${isTodayDay ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500'}
                                         ${!isCurrentMonth && !isTodayDay ? 'text-gray-300' : ''}
@@ -290,6 +300,13 @@ export default function CalendarPlannerPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <CreatePMScheduleDialog
+                open={isCreateModalOpen}
+                onOpenChange={setIsCreateModalOpen}
+                initialDate={creationDate}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ["pm-schedules"] })}
+            />
         </div>
     );
 }

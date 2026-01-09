@@ -94,6 +94,13 @@ export class UserService {
         });
     }
 
+    async findById(id: string): Promise<User | null> {
+        return this.prisma.user.findUnique({
+            where: { id },
+            include: { tenant: true }
+        });
+    }
+
     async resolveTenantId(slug: string): Promise<string | null> {
         const tenant = await this.prisma.tenant.findUnique({ where: { slug } });
         return tenant?.id || null;

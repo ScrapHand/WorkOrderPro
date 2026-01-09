@@ -102,55 +102,24 @@ export function CreateAssetModal({ open, onOpenChange, parentId, parentName, ini
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Asset Image</Label>
-                            <div className="border border-dashed rounded-lg p-4 bg-muted/10 text-center">
-                                {imageUrl ? (
-                                    <div className="relative aspect-video w-full mb-2">
-                                        <img src={imageUrl} alt="Preview" className="w-full h-full object-contain rounded" />
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="sm"
-                                            className="absolute top-1 right-1 h-6 w-6 p-0"
-                                            onClick={() => setValue("imageUrl", "")}
-                                        >
-                                            x
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="h-32 flex items-center justify-center text-muted-foreground text-xs">
-                                        No Image
-                                    </div>
-                                )}
-                                <FileUploader
-                                    entityType="asset"
-                                    entityId={initialData?.id}
-                                    onUploadSuccess={(url) => setValue("imageUrl", url)}
-                                />
-                            </div>
+                            <Label htmlFor="name">Asset Name</Label>
+                            <Input id="name" {...register("name", { required: true })} placeholder="e.g. Pump 101" />
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Asset Name</Label>
-                                <Input id="name" {...register("name", { required: true })} placeholder="e.g. Pump 101" />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="criticality">Criticality</Label>
-                                <Select onValueChange={v => setValue("criticality", v as "A" | "B" | "C")} defaultValue={initialData?.criticality || "C"}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select criticality" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="A">A - Critical</SelectItem>
-                                        <SelectItem value="B">B - Important</SelectItem>
-                                        <SelectItem value="C">C - Routine</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="criticality">Criticality</Label>
+                            <Select onValueChange={v => setValue("criticality", v as "A" | "B" | "C")} defaultValue={initialData?.criticality || "C"}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select criticality" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="A">A - Critical</SelectItem>
+                                    <SelectItem value="B">B - Important</SelectItem>
+                                    <SelectItem value="C">C - Routine</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 

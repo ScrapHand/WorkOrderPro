@@ -82,6 +82,9 @@ export class AuthController {
                 (req.session as any).user = {
                     id: user!.id,
                     email: user!.email,
+                    username: user!.username,
+                    avatarUrl: user!.avatarUrl,
+                    full_name: (user as any).full_name,
                     role: user!.role,
                     tenantId: user!.tenantId,
                     tenantSlug: (user as any).tenant?.slug,
@@ -124,12 +127,30 @@ export class AuthController {
         });
     };
 
-    // Check if session is valid
     me = async (req: Request, res: Response) => {
-        if ((req.session as any)?.user) {
-            res.json({ isAuthenticated: true, user: (req.session as any).user });
+        const sessionUser = (req.session as any)?.user;
+        if (sessionUser) {
+            // [HARDENING] Re-fetch basics to catch avatar/name changes without re-login
+            const user = await this.userService.findById(sessionUser.id);
+
+            if (!user) {
+                req.session.destroy(() => { });
+                return res.status(401).json({ isAuthenticated: false });
+            }
+
+            // Update session with latest from DB
+            const updatedUser = {
+                ...sessionUser,
+                email: user.email,
+                username: user.username,
+                avatarUrl: user.avatarUrl,
+                role: user.role,
+                tenantId: user.tenantId
+            };
+            (req.session as any).user = updatedUser;
+
+            res.json({ isAuthenticated: true, user: updatedUser });
         } else {
-            console.log('❌ Auth Check Failed or Session Expired.'); // [LOGGING] Phase 14
             res.status(401).json({ isAuthenticated: false });
         }
     };

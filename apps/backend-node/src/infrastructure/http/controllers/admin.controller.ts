@@ -27,6 +27,11 @@ export class AdminController {
                 const newConfig = {
                     ...existingConfig,
                     ...branding,
+                    // [FIX] Deep merge sub-objects like terminology
+                    terminology: {
+                        ...(existingConfig.terminology || {}),
+                        ...(branding.terminology || {})
+                    },
                     // Normalize standard keys
                     primaryColor: branding.primaryColor || branding.brandColor || existingConfig.primaryColor,
                     logoUrl: branding.logoUrl || existingConfig.logoUrl

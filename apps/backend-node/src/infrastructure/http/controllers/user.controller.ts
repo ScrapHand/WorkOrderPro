@@ -71,6 +71,19 @@ export class UserController {
             }
 
             const user = await this.userService.updateUser(id, updates);
+
+            // [SYNC] Update session if updated user is self
+            if (isSelf && (req.session as any)?.user) {
+                (req.session as any).user = {
+                    ...(req.session as any).user,
+                    email: user.email,
+                    username: user.username,
+                    avatarUrl: user.avatarUrl,
+                    role: user.role
+                };
+                req.session.save();
+            }
+
             const { passwordHash, ...safeUser } = user;
             res.json(safeUser);
         } catch (error: any) {
