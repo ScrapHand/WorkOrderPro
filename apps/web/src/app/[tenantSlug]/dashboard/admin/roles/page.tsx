@@ -26,6 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash, Edit, Shield } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { UserRole } from "@/lib/auth/types";
 
 export default function RolesPage() {
     const queryClient = useQueryClient();
