@@ -209,6 +209,7 @@ assetRouter.get('/:id', requirePermission('asset:read'), assetController.getById
 assetRouter.get('/:id/tree', requirePermission('asset:read'), assetController.getTree);
 assetRouter.post('/import-template', requirePermission('asset:write'), assetController.importTemplate);
 assetRouter.patch('/:id', requirePermission('asset:write'), assetController.update);
+assetRouter.delete('/:id', requirePermission('asset:delete'), assetController.delete);
 apiRouter.use('/assets', assetRouter);
 
 // User Routes
