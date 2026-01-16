@@ -109,7 +109,7 @@ model Asset {
   manufacturer  String?                     // [NEW] Asset manufacturer
   model         String?                     // [NEW] Asset model
   serialNumber  String?  @map("serial_number") // [NEW] Serial number
-  status        AssetStatus @default(OPERATIONAL)
+  status        String @default("OPERATIONAL")
   criticality   String?  @map("criticality") // Nullable for Recursive Inheritance
   rimeRisk      Int?     @map("rime_risk")
   rimeImpact    Int?     @map("rime_impact")
@@ -157,9 +157,9 @@ model WorkOrder {
   assetId     String   @map("asset_id")
   title       String
   description String?
-  priority    WorkOrderPriority
-  status      WorkOrderStatus @default(OPEN)
-  type        WorkOrderType   @default(REACTIVE)
+  priority    String
+  status      String @default("OPEN")
+  type        String   @default("REACTIVE")
   rimeScore   Int      @map("rime_score") // Calculated: Asset Criticality * Priority
   
   completedAt     DateTime? @map("completed_at")
@@ -241,7 +241,7 @@ model InventoryTransaction {
   tenantId      String   @map("tenant_id")
   partId        String   @map("part_id")
   changeQuantity Int      @map("change_quantity") // +10, -5, etc.
-  type          InventoryTransactionType
+  type          String
   reason        String?
   
   performedAt   DateTime @default(now())
@@ -577,35 +577,12 @@ model Page {
   @@index([tenantId])
 }
 
-enum AssetStatus {
-  OPERATIONAL
-  DOWN
-  MAINTENANCE
-  DEGRADED
-}
+// ENUMS REMOVED - Converted to Strings for Robustness
 
-enum WorkOrderPriority {
-  CRITICAL
-  HIGH
-  MEDIUM
-  LOW
-}
-
-enum WorkOrderStatus {
-  OPEN
-  IN_PROGRESS
-  ON_HOLD
-  DONE
-  CANCELLED
-}
-
-enum WorkOrderType {
-  REACTIVE
-  PREVENTIVE
-}
-
-enum InventoryTransactionType {
-  IN
-  OUT
-  AUDIT
-}
+// enum AssetStatus {
+//   OPERATIONAL
+//   DOWN
+//   MAINTENANCE
+//   DEGRADED
+// }
+// ... (other enums removed)
