@@ -2,17 +2,29 @@ import { Request } from 'express';
 
 export function hasPermission(req: Request, requiredPermission: string): boolean {
     const user = (req.session as any)?.user;
-    if (!user) return false;
+
+    if (!user) {
+        console.warn(`[RBAC] No user in session for request to ${req.path}`);
+        return false;
+    }
+
+    console.log(`[RBAC] Check: User=${user.email}, Role=${user.role}, Permission=${requiredPermission}`);
 
     // God Mode
-    if (user.role === 'SUPER_ADMIN' || user.role === 'GLOBAL_ADMIN') return true;
+    if (user.role === 'SUPER_ADMIN' || user.role === 'GLOBAL_ADMIN') {
+        console.log(`[RBAC] Bypass granted for ${user.role}`);
+        return true;
+    }
 
-    // Admin usually has all access within tenant, but let's stick to permissions if possible.
-    // However, for safety, if permissions are missing but role is ADMIN, we might want to allow?
-    // NO, we want STRICT permission checks.
-    // Exception: If the user has a '*' permission (which Admins should have in their seed).
+    if (!user.permissions) {
+        console.warn(`[RBAC] User ${user.email} has no permissions array in session`);
+        return false;
+    }
 
-    if (user.permissions?.includes('*')) return true;
+    const hasit = user.permissions.includes('*') || user.permissions.includes(requiredPermission);
+    if (!hasit) {
+        console.warn(`[RBAC] Access Denied: User ${user.email} missing ${requiredPermission}. Permissions: ${user.permissions}`);
+    }
 
-    return user.permissions?.includes(requiredPermission) || false;
+    return hasit;
 }

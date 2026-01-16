@@ -73,6 +73,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
                     return res.status(404).json({ error: 'Tenant not found' });
                 }
                 tenantId = tenant.id;
+                console.log(`[TenantMW] Resolved by SLUG: ${finalSlug} -> ${tenantId}`);
             }
         }
 
