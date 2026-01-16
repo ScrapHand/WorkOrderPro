@@ -3,8 +3,8 @@ services:
     name: workorderpro-api
     region: ohio
     env: node
-    buildCommand: cd apps/backend-node && npm install --production=false && npm run build
-    startCommand: cd apps/backend-node && npm start
+    buildCommand: npm install -g pnpm && pnpm install && cd apps/backend-node && pnpm run build
+    startCommand: cd apps/backend-node && pnpm start
     preDeployCommand: cd apps/backend-node && npx prisma db push --accept-data-loss
     envVars:
       - key: NODE_ENV
