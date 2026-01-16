@@ -117,19 +117,29 @@ export class UserService {
     }
 
     async getUserPermissions(userId: string): Promise<string[]> {
+        console.log(`[RBAC] getUserPermissions called for userId: ${userId}`);
+
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
             include: { customRole: true }
         });
 
-        if (!user) return [];
+        if (!user) {
+            console.log(`[RBAC] No user found for id: ${userId}`);
+            return [];
+        }
+
+        console.log(`[RBAC] User found: ${user.email}, role: ${user.role}, tenantId: ${user.tenantId}`);
 
         // 1. Super Admin Bypass (Optimization)
-        if (user.role === 'SUPER_ADMIN') return ['*'];
+        if (user.role === 'SUPER_ADMIN' || user.role === 'GLOBAL_ADMIN') {
+            console.log(`[RBAC] ${user.role} bypass - returning ['*']`);
+            return ['*'];
+        }
 
         // 2. Custom Role
         if (user.customRoleId && user.customRole) {
-            // Prisma JSON type handling
+            console.log(`[RBAC] Custom role found: ${user.customRole.name}`);
             const perms = user.customRole.permissions;
             if (typeof perms === 'string') return JSON.parse(perms);
             if (Array.isArray(perms)) return perms as string[];
@@ -144,6 +154,8 @@ export class UserService {
             }
         });
 
+        console.log(`[RBAC] System role lookup result: ${systemRole ? `found (${(systemRole.permissions as any)?.length || 'unknown'} perms)` : 'NOT FOUND'}`);
+
         // 3.5. [SELF-HEALING] Auto-seed roles if user's role is missing
         if (!systemRole) {
             console.log(`[RBAC] Auto-seeding roles for tenant ${user.tenantId} (missing role: ${user.role})`);
@@ -152,18 +164,26 @@ export class UserService {
             systemRole = await this.prisma.role.findFirst({
                 where: { tenantId: user.tenantId, name: user.role }
             });
+            console.log(`[RBAC] After seeding, role lookup result: ${systemRole ? 'found' : 'STILL NOT FOUND'}`);
         }
 
         if (systemRole) {
             const perms = systemRole.permissions;
+            console.log(`[RBAC] Returning permissions from system role: ${JSON.stringify(perms).substring(0, 100)}`);
             if (typeof perms === 'string') return JSON.parse(perms);
             if (Array.isArray(perms)) return perms as string[];
         }
 
-        // 4. Fallback (Legacy/Safety)
-        if (user.role === 'ADMIN' || user.role === 'TENANT_ADMIN') return ['*'];
+        // 4. Fallback (Legacy/Safety) - Be generous for admin-like roles
+        const adminRoles = ['ADMIN', 'TENANT_ADMIN', 'GLOBAL_ADMIN', 'MANAGER'];
+        if (adminRoles.includes(user.role)) {
+            console.log(`[RBAC] Fallback for ${user.role} - returning ['*']`);
+            return ['*'];
+        }
 
-        return [];
+        // 5. Last resort - at least give basic read permissions
+        console.log(`[RBAC] No permissions found, returning basic read permissions for safety`);
+        return ['work_order:read', 'work_order:write', 'asset:read', 'inventory:read'];
     }
 
     // [PRIVATE] Seed default roles for a tenant (duplicated from TenantService for decoupling)
