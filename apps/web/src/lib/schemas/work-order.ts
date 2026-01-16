@@ -2,8 +2,8 @@ import { z } from "zod";
 
 // Step 1: Asset Selection
 const WizardAssetShape = z.object({
-    assetId: z.string().uuid().optional(),
-    provisionalAssetName: z.string().min(2, "Asset name must be at least 2 chars").max(100).optional(),
+    assetId: z.string().uuid().optional().nullable().or(z.literal("")),
+    provisionalAssetName: z.string().min(2, "Asset name must be at least 2 chars").max(100).optional().nullable().or(z.literal("")),
 });
 
 export const WizardAssetSchema = WizardAssetShape.refine(data => data.assetId || data.provisionalAssetName, {

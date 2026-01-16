@@ -62,7 +62,7 @@ export class WorkOrderController {
                 finalAssetId!,
                 title,
                 priority,
-                description,
+                description || undefined,
                 targetUserId || undefined
             );
 

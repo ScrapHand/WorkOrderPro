@@ -24,11 +24,11 @@ export const presignSchema = z.object({
 });
 
 export const createWorkOrderSchema = z.object({
-    assetId: z.string().uuid().optional(),
+    assetId: z.string().uuid().optional().nullable().or(z.literal("")),
     title: z.string().min(3).max(200),
-    description: z.string().optional(),
+    description: z.string().optional().nullable().or(z.literal("")),
     priority: z.nativeEnum(WorkOrderPriority),
-    assignedUserId: z.string().uuid().optional().nullable(),
+    assignedUserId: z.string().uuid().optional().nullable().or(z.literal("")),
     assignedToMe: z.boolean().optional(),
     provisionalAssetName: z.string().min(2).max(100).optional()
 }).refine(data => data.assetId || data.provisionalAssetName, {
