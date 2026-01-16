@@ -1,13 +1,18 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
+import { logger } from '../../logging/logger';
 
 export class DebugController {
     constructor(private prisma: PrismaClient) { }
 
     getTenantStatus = async (req: Request, res: Response) => {
+        const tenant = getCurrentTenant();
         try {
-            const tenant = getCurrentTenant();
+            logger.info({
+                tenantSlug: tenant?.slug,
+                userId: (req.session as any)?.user?.id
+            }, 'Providing system diagnostic status');
 
             // Check DB connection basic health
             let dbStatus = "UNKNOWN";
@@ -24,6 +29,7 @@ export class DebugController {
 
             } catch (e: any) {
                 dbStatus = `ERROR: ${e.message}`;
+                logger.error({ error: e }, 'Database health check failed');
             }
 
             res.json({
@@ -32,31 +38,32 @@ export class DebugController {
                 context: {
                     tenantId: tenant?.id || "N/A",
                     slug: tenant?.slug || "N/A",
-                    userRole: (req as any).user?.role || "GUEST", // Assuming AuthMiddleware populates req.user
+                    userRole: (req.session as any)?.user?.role || "GUEST",
                     cookie: req.headers.cookie ? "PRESENT" : "MISSING",
-                    protocol: req.protocol, // [DEBUG] Check if http or https
-                    secure: req.secure, // [DEBUG] Check if Express thinks it is secure
+                    protocol: req.protocol,
+                    secure: req.secure,
                     nodeEnv: process.env.NODE_ENV
                 },
                 meta: {
                     cookiesReceived: req.headers.cookie ? 'YES' : 'NONE',
-                    cookieDump: req.headers.cookie, // [DEBUG] Show raw string
-                    host: req.hostname,           // [DEBUG] Did Vercel rewrite this?
-                    protocol: req.protocol,       // [DEBUG] Is it https?
-                    ip: req.ip,                   // [DEBUG] Proxy IP vs Real IP
-                    sessionID: req.sessionID,     // [DEBUG] Persistence Check
-                    sessionCount: sessionCount    // [DEBUG] DB Table Check
+                    cookieDump: req.headers.cookie,
+                    host: req.hostname,
+                    protocol: req.protocol,
+                    ip: req.ip,
+                    sessionID: req.sessionID,
+                    sessionCount: sessionCount
                 },
                 diagnostics: {
-                    headers: req.headers, // [FORENSIC] See exactly what Render sends us
+                    headers: req.headers,
                     sessionID: req.sessionID,
-                    sessionData: req.session // [FORENSIC] See if the session store loaded anything
+                    sessionData: req.session
                 },
                 database: {
                     status: dbStatus
                 }
             });
         } catch (error: any) {
+            logger.error({ error }, 'Fatal error during diagnostic request');
             res.status(500).json({ error: error.message });
         }
     };

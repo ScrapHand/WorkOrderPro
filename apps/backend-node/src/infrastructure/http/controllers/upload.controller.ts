@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { presignSchema } from '../../../application/validators/auth.validator';
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '../../logging/logger';
 
 export class UploadController {
     constructor(
@@ -13,9 +14,8 @@ export class UploadController {
     ) { }
 
     presign = async (req: Request, res: Response) => {
+        const tenant = getCurrentTenant();
         try {
-            console.log('[Upload] presign called with body:', req.body); // [DEBUG]
-            const tenant = getCurrentTenant();
             if (!tenant) return res.status(401).json({ error: 'Tenant context missing' });
 
             // [VALIDATION] Zod Check
@@ -32,7 +32,7 @@ export class UploadController {
                 'asset': 'assets',
                 'work_order': 'work-orders',
                 'work-order': 'work-orders',
-                'inventory': 'assets', // Generalize inventory to assets if no specific table
+                'inventory': 'assets',
                 'avatar': 'tenant',
                 'profile': 'tenant'
             };
@@ -58,6 +58,7 @@ export class UploadController {
                 }
             }
 
+            logger.info({ tenantId: tenant.id, entityType, entityId, fileName }, 'Generating presigned URL');
             const { url, key } = await this.s3Service.generatePresignedUrl(
                 tenant.id,
                 entityType as 'assets' | 'work-orders' | 'tenant',
@@ -66,18 +67,16 @@ export class UploadController {
                 mimeType
             );
 
-            res.json({ url, key, mimeType }); // Explicitly return mimeType to client
+            res.json({ url, key, mimeType });
         } catch (error: any) {
-            console.error('Presign Error:', error);
+            logger.error({ error, tenantId: tenant?.id }, 'Failed to generate presigned URL');
             res.status(500).json({ error: 'Internal server error' });
         }
     };
 
-    // Endpoint to finalize metadata
     createAttachment = async (req: Request, res: Response) => {
+        const tenant = getCurrentTenant();
         try {
-            console.log('[Upload] createAttachment called with body:', req.body); // [DEBUG]
-            const tenant = getCurrentTenant();
             if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
 
             const { entityId, key, fileName, mimeType, size } = req.body;
@@ -87,7 +86,6 @@ export class UploadController {
                 return res.status(400).json({ error: 'Missing S3 key' });
             }
 
-            // [FIX] Map Aliases (Mirroring presign logic)
             const typeMap: Record<string, string> = {
                 'asset': 'assets',
                 'work_order': 'work-orders',
@@ -98,38 +96,26 @@ export class UploadController {
             };
             if (typeMap[entityType]) entityType = typeMap[entityType];
 
-            console.log(`[Upload] Creating Attachment:`, { entityType, entityId, fileName }); // [DEBUG]
+            logger.info({ tenantId: tenant.id, entityType, entityId, key }, 'Creating attachment record');
 
-            // [SECURITY] UUID Check for Relations
             const isUuid = (id?: string) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
             const safeAssetId = (entityType === 'assets' && isUuid(entityId)) ? entityId : undefined;
             const safeWoId = (entityType === 'work-orders' && isUuid(entityId)) ? entityId : undefined;
-
-            // Resolve Tenant ID
-            const tenantRecord = await this.prisma.tenant.findUnique({
-                where: { slug: tenant.slug }
-            });
-
-            if (!tenantRecord) return res.status(404).json({ error: 'Tenant not found' });
 
             const accessKeyId = process.env.AWS_ACCESS_KEY_ID || 'mock-key';
             let url = '';
 
             if (accessKeyId === 'mock-key' && !process.env.AWS_ENDPOINT) {
-                // Using Local Sink
                 const protocol = req.headers['x-forwarded-proto'] || req.protocol;
                 const host = req.get('host');
                 const baseUrl = (process.env.NEXT_PUBLIC_API_URL || `${protocol}://${host}`).replace(/\/$/, '');
                 url = `${baseUrl}/api/v1/upload/proxy?key=${encodeURIComponent(key)}&tenant=${tenant.slug}`;
             } else {
-                // Real S3 or MinIO
                 const bucket = process.env.AWS_BUCKET_NAME || 'workorderpro-assets';
                 const region = process.env.AWS_REGION || 'us-east-1';
                 url = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 
                 if (process.env.AWS_ENDPOINT) {
-                    // If using MinIO/Endpoint, the URL might need to be different, 
-                    // but the Proxy endpoint /api/v1/upload/proxy is safest as it handles signing.
                     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
                     const host = req.get('host');
                     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || `${protocol}://${host}`).replace(/\/$/, '');
@@ -139,7 +125,7 @@ export class UploadController {
 
             const attachment = await this.prisma.attachment.create({
                 data: {
-                    tenantId: tenantRecord.id,
+                    tenantId: tenant.id,
                     assetId: safeAssetId,
                     workOrderId: safeWoId,
                     fileName,
@@ -150,97 +136,80 @@ export class UploadController {
                 }
             });
 
+            logger.info({ attachmentId: attachment.id, tenantId: tenant.id }, 'Attachment created successfully');
             res.status(201).json(attachment);
 
         } catch (error: any) {
-            console.error('Create Attachment Error:', error);
+            logger.error({ error, tenantId: tenant?.id }, 'Failed to create attachment');
             res.status(500).json({ error: error.message });
         }
     }
 
-    // [NEW] Secure Proxy for Private Buckets
     proxy = async (req: Request, res: Response) => {
+        const tenant = getCurrentTenant();
         try {
-            const tenant = getCurrentTenant();
             if (!tenant) return res.status(400).json({ error: 'Tenant context missing' });
 
             const key = req.query.key as string;
             if (!key) return res.status(400).json({ error: 'Missing key' });
 
-            // [FIX] Allow Cross-Origin usage (e.g. <img> tags on different domains)
-            // Critical for OpaqueResponseBlocking (ORB) / CORB
             res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
             res.setHeader('Access-Control-Allow-Origin', '*');
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // Aggressive caching for images
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
 
-            // Security Check: Key must belong to tenant
-            // Key format: tenants/{tid}/...
-            // We'll resolve the tenant ID and check if the key starts with it.
-            const tenantRecord = await this.prisma.tenant.findUnique({ where: { slug: tenant.slug } });
-            if (!tenantRecord) return res.status(404).json({ error: 'Tenant not found' });
-
-            if (!key.startsWith(`tenants/${tenantRecord.id}/`)) {
+            if (!key.startsWith(`tenants/${tenant.id}/`)) {
+                logger.warn({ tenantId: tenant.id, key }, 'Unauthorized proxy access attempt: key does not belong to tenant');
                 return res.status(403).json({ error: 'Access Denied: File does not belong to this tenant' });
             }
 
+            logger.debug({ tenantId: tenant.id, key }, 'Proxying file access');
+
             const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "mock-key";
             if (accessKeyId === "mock-key" && !process.env.AWS_ENDPOINT) {
-                // Local Sink Logic: Stream directly for better header control
                 const uploadDir = path.join(process.cwd(), 'uploads');
                 const filePath = path.join(uploadDir, key);
                 if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
 
-                // Infer mime type for local files if possible, or fallback
-                // (Optimally we should store mime in DB, but for now fallback is okay for dev)
                 if (key.endsWith('.png')) res.setHeader('Content-Type', 'image/png');
                 if (key.endsWith('.jpg') || key.endsWith('.jpeg')) res.setHeader('Content-Type', 'image/jpeg');
 
                 return res.sendFile(filePath);
             }
 
-            // Real S3 or MinIO
             const { body, contentType } = await this.s3Service.getObjectStream(key);
 
             if (contentType && contentType !== 'application/octet-stream' && contentType !== 'binary/octet-stream') {
                 res.setHeader('Content-Type', contentType);
             } else {
-                // [FIX] Fallback Content-Type prevents browser from guessing and blocking as ORB
                 if (key.endsWith('.png')) res.setHeader('Content-Type', 'image/png');
                 else if (key.endsWith('.jpg') || key.endsWith('.jpeg')) res.setHeader('Content-Type', 'image/jpeg');
                 else res.setHeader('Content-Type', 'application/octet-stream');
             }
 
-            // Pipe the stream to the response
             if (body && typeof (body as any).pipe === 'function') {
                 (body as any).pipe(res);
             } else {
-                // SdkStream can sometimes be different depending on platform, 
-                // but in Node.js it implements the Readable interface.
                 const buffer = await (body as any).transformToByteArray();
                 res.end(buffer);
             }
 
         } catch (error: any) {
-            console.error('Proxy Error:', error);
+            logger.error({ error, tenantId: tenant?.id, key: req.query.key }, 'Proxy access error');
             if (!res.headersSent) res.status(500).send('File Access Error');
         }
     };
 
-    // [DEV ONLY] Local File Sink for Mock Uploads
     localSink = async (req: Request, res: Response) => {
         try {
             const key = req.query.key as string;
             if (!key) return res.status(400).json({ error: 'Missing key' });
 
-            // Security: Prevent path traversal
             if (key.includes('..')) return res.status(400).json({ error: 'Invalid key' });
 
             const uploadDir = path.join(process.cwd(), 'uploads');
             const filePath = path.join(uploadDir, key);
 
-            // PUT: Upload
             if (req.method === 'PUT') {
-                // Ensure directory exists
                 const dir = path.dirname(filePath);
                 if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
@@ -250,28 +219,24 @@ export class UploadController {
                 req.pipe(writeStream);
 
                 writeStream.on('finish', () => {
+                    logger.debug({ key }, 'Local sink write completed');
                     res.status(200).send('Uploaded');
                 });
                 writeStream.on('error', (err) => {
-                    console.error('Local Write Error:', err);
+                    logger.error({ error: err, key }, 'Local sink write failed');
                     res.status(500).send('Write failed');
                 });
-            }
-            // GET: Download
-            else if (req.method === 'GET') {
+            } else if (req.method === 'GET') {
                 if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
-
-                // [FIX] Allow Cross-Origin usage for local mock
                 res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
                 res.setHeader('Access-Control-Allow-Origin', '*');
                 res.sendFile(filePath);
-            }
-            else {
+            } else {
                 res.status(405).send('Method Not Allowed');
             }
 
         } catch (error: any) {
-            console.error('Local Sink Error:', error);
+            logger.error({ error, key: req.query.key }, 'Local sink operation failed');
             res.status(500).json({ error: error.message });
         }
     }

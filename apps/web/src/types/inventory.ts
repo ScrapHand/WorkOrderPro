@@ -10,6 +10,10 @@ export interface Part {
     minQuantity: number;
     binLocation?: string;
     imageUrl?: string;
+    unit?: string;
+    category?: string;
+    manufacturer?: string;
+    model?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -21,4 +25,8 @@ export interface CreatePartDTO {
     quantity: number;
     minQuantity?: number;
     binLocation?: string;
+    unit?: string;
+    category?: string;
+    manufacturer?: string;
+    model?: string;
 }

@@ -14,7 +14,10 @@ export class AssetService {
         imageUrl?: string | null,
         lotoConfig?: any | null,
         code?: string | null,
-        status?: 'OPERATIONAL' | 'DOWN' | 'MAINTENANCE',
+        status?: 'OPERATIONAL' | 'DOWN' | 'MAINTENANCE' | 'DEGRADED',
+        manufacturer?: string | null,
+        model?: string | null,
+        serialNumber?: string | null,
         rimeRisk?: number | null,
         rimeImpact?: number | null,
         rimeMaintenance?: number | null,
@@ -44,6 +47,9 @@ export class AssetService {
             parentId,
             description,
             imageUrl,
+            manufacturer || null,
+            model || null,
+            serialNumber || null,
             lotoConfig,
             null, // documents
             null, // specs

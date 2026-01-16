@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { tenantMiddleware, getCurrentTenant } from './infrastructure/middleware/tenant.middleware';
+import { httpLogger, logger } from './infrastructure/logging/logger';
 import { requireAuth } from './infrastructure/middleware/auth.middleware';
 import { requirePermission, requireRole, UserRole } from './infrastructure/middleware/rbac.middleware';
 import rateLimit from 'express-rate-limit';
@@ -62,6 +63,7 @@ import { AnalyticsController } from './infrastructure/http/controllers/analytics
 import { ProductionLineController } from './infrastructure/http/controllers/production-line.controller';
 import { FactoryLayoutController } from './infrastructure/http/controllers/factory-layout.controller';
 import { ConveyorSystemController } from './infrastructure/http/controllers/conveyor-system.controller';
+import { PageController } from './infrastructure/http/controllers/page.controller';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -135,17 +137,7 @@ app.use(session({
 
 app.use(tenantMiddleware);
 
-// Request Logging
-app.use((req, res, next) => {
-    if (req.path.includes('/api/v1')) {
-        const sessionUser = (req.session as any)?.user;
-        console.log(`[Request] ${req.method} ${req.path}`);
-        console.log(`   SessionID: ${req.sessionID}`);
-        console.log(`   User: ${sessionUser?.email || 'GUEST'} (${sessionUser?.role || 'N/A'})`);
-        console.log(`   Tenant: ${getCurrentTenant()?.slug || 'NONE'}`);
-    }
-    next();
-});
+app.use(httpLogger);
 
 // Instantiate Services & Controllers
 const assetRepo = new PostgresAssetRepository(prisma);
@@ -155,7 +147,7 @@ const assetController = new AssetController(assetService, assetImporterService, 
 
 const woRepo = new PostgresWorkOrderRepository(prisma);
 const rimeService = new RimeService(assetRepo);
-const woService = new WorkOrderService(woRepo, rimeService);
+const woService = new WorkOrderService(woRepo, rimeService, prisma);
 const woController = new WorkOrderController(woService, prisma);
 
 const s3Service = new S3Service();
@@ -171,7 +163,7 @@ const partService = new PartService(prisma);
 const partController = new PartController(partService, prisma);
 
 const templateService = new ChecklistTemplateService(prisma);
-const pmService = new PMService(prisma, rimeService);
+const pmService = new PMService(prisma);
 const pmController = new PMController(pmService, templateService);
 
 const reportService = new ReportService(prisma);
@@ -203,6 +195,8 @@ const factoryLayoutController = new FactoryLayoutController(factoryLayoutService
 
 const conveyorSystemService = new ConveyorSystemService(prisma);
 const conveyorSystemController = new ConveyorSystemController(conveyorSystemService);
+
+const pageController = new PageController(prisma);
 
 // Define Routers
 const apiRouter = express.Router();
@@ -301,17 +295,25 @@ reportRouter.get('/inventory', requireAuth, reportController.getInventorySnapsho
 reportRouter.get('/advanced', requireAuth, reportController.getAdvancedMetrics);
 apiRouter.use('/reports', reportRouter);
 
-// PM Routes
+// PM Routes (Legacy + Modern)
 const pmRouter = express.Router();
-pmRouter.post('/schedules', requireAuth, pmController.createSchedule);
-pmRouter.get('/schedules', requireAuth, pmController.getSchedules);
-pmRouter.post('/schedules/:id/trigger', requireAuth, pmController.triggerSchedule);
-pmRouter.post('/templates', requireAuth, pmController.createTemplate);
+pmRouter.get('/schedules', requireAuth, pmController.getAll);
+pmRouter.post('/schedules', requireAuth, pmController.create);
+pmRouter.get('/schedules/:id', requireAuth, pmController.getById);
+pmRouter.put('/schedules/:id', requireAuth, pmController.update);
+pmRouter.delete('/schedules/:id', requireAuth, pmController.delete);
+pmRouter.post('/schedules/:id/sign-off', requireAuth, pmController.signOff);
+pmRouter.post('/schedules/:id/trigger', requireAuth, pmController.trigger);
+
 pmRouter.get('/templates', requireAuth, pmController.getTemplates);
-pmRouter.get('/checklists/:workOrderId', requireAuth, pmController.getWorkOrderChecklist);
-pmRouter.post('/checklists/sign-off/:itemId', requireAuth, pmController.signOffItem);
-pmRouter.post('/trigger', requireAuth, pmController.triggerPMs);
+pmRouter.post('/templates', requireAuth, pmController.createTemplate);
 apiRouter.use('/pm', pmRouter);
+
+// Page Configuration Routes
+const pageRouter = express.Router();
+pageRouter.get('/:key', requireAuth, pageController.getPage);
+pageRouter.put('/:key', requireAuth, pageController.updatePage);
+apiRouter.use('/pages', pageRouter);
 
 // Debug Routes
 const debugRouter = express.Router();

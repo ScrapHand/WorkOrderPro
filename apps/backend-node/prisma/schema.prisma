@@ -43,6 +43,8 @@ model Tenant {
   assetConnections  AssetConnection[]
   factoryLayouts    FactoryLayout[]
   conveyorSystems   ConveyorSystem[]
+  pages             Page[]
+  pmLogs            PMLog[]
 }
 
 model User {
@@ -67,7 +69,9 @@ model User {
   
   sessions     WorkOrderSession[] // Relation to time logs
   assignedWorkOrders WorkOrder[] @relation("AssignedWorkOrders")
-  pmSchedules      PMSchedule[]
+  assignedSchedules  PMSchedule[] @relation("PMScheduleAssignment")
+  createdSchedules   PMSchedule[] @relation("PMScheduleCreation")
+  completedPMLogs    PMLog[]
   checklistTemplates ChecklistTemplate[]
   auditLogs         AuditLog[]
 
@@ -102,7 +106,10 @@ model Asset {
   code          String?  // [NEW] Canonical Asset Identifier (e.g. AMC-OBY)
   description   String?
   imageUrl      String?  @map("image_url")
-  status        String   @default("OPERATIONAL") // Enum: OPERATIONAL, DOWN, MAINTENANCE
+  manufacturer  String?                     // [NEW] Asset manufacturer
+  model         String?                     // [NEW] Asset model
+  serialNumber  String?  @map("serial_number") // [NEW] Serial number
+  status        AssetStatus @default(OPERATIONAL)
   criticality   String?  @map("criticality") // Nullable for Recursive Inheritance
   rimeRisk      Int?     @map("rime_risk")
   rimeImpact    Int?     @map("rime_impact")
@@ -150,9 +157,9 @@ model WorkOrder {
   assetId     String   @map("asset_id")
   title       String
   description String?
-  priority    String   // Enum: CRITICAL, HIGH, MEDIUM, LOW
-  status      String   @default("OPEN") // Enum: OPEN, IN_PROGRESS, DONE
-  type        String   @default("REACTIVE") // Enum: PREVENTIVE, REACTIVE
+  priority    WorkOrderPriority
+  status      WorkOrderStatus @default(OPEN)
+  type        WorkOrderType   @default(REACTIVE)
   rimeScore   Int      @map("rime_score") // Calculated: Asset Criticality * Priority
   
   completedAt     DateTime? @map("completed_at")
@@ -193,6 +200,8 @@ model Part {
   cost         Float    @default(0.0)
   currency     String   @default("GBP") // [NEW] ISO 4217 Currency Code
   quantity     Int      @default(0)
+  unit         String   @default("pcs")     // [NEW] Unit of measure
+  category     String?                      // [NEW] Part category
   minQuantity  Int      @default(5) @map("min_quantity")
   binLocation  String?  @map("bin_location")
   imageUrl     String?  @map("image_url")
@@ -232,7 +241,7 @@ model InventoryTransaction {
   tenantId      String   @map("tenant_id")
   partId        String   @map("part_id")
   changeQuantity Int      @map("change_quantity") // +10, -5, etc.
-  type          String   // IN, OUT, AUDIT
+  type          InventoryTransactionType
   reason        String?
   
   performedAt   DateTime @default(now())
@@ -316,31 +325,59 @@ model AuditLog {
 }
 
 model PMSchedule {
-  id            String   @id @default(uuid())
-  tenantId      String   @map("tenant_id")
-  assetId       String   @map("asset_id")
+  id            String    @id @default(uuid())
+  tenantId      String    @map("tenant_id")
+  assetId       String    @map("asset_id")
   title         String
   description   String?
-  frequency     String   // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
-  startDate     DateTime @map("start_date")
-  nextDueDate   DateTime @map("next_due_date")
-  active        Boolean  @default(true)
+  frequency     String?   // [LEGACY COMPAT] display string
+  frequencyType String    @default("days") @map("frequency_type")     // days, weeks, months, years
+  frequencyInterval Int   @default(1) @map("frequency_interval")
+  
+  startDate     DateTime  @default(now()) @map("start_date")
+  nextDueDate   DateTime  @map("next_due_date")
+  lastPerformedAt DateTime? @map("last_performed_at")
+  
+  active        Boolean   @default(true)
+  
+  assignedToUserId String? @map("assigned_to_user_id")
+  assignedTo       User?   @relation("PMScheduleAssignment", fields: [assignedToUserId], references: [id])
   
   checklistTemplateId String? @map("checklist_template_id")
   checklistTemplate   ChecklistTemplate? @relation(fields: [checklistTemplateId], references: [id])
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  asset         Asset    @relation(fields: [assetId], references: [id])
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  asset         Asset     @relation(fields: [assetId], references: [id])
   workOrders    WorkOrder[]
-  createdById   String?  @map("created_by_id")
-  createdBy     User?    @relation(fields: [createdById], references: [id])
+  createdById   String?   @map("created_by_id")
+  createdBy     User?     @relation("PMScheduleCreation", fields: [createdById], references: [id])
+  
+  logs          PMLog[]
 
   @@index([tenantId])
   @@index([assetId])
   @@index([nextDueDate])
+}
+
+model PMLog {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("tenant_id")
+  pmScheduleId     String   @map("pm_schedule_id")
+  
+  completedAt      DateTime @default(now()) @map("completed_at")
+  completedByUserId String? @map("completed_by_user_id")
+  notes            String?
+  
+  // Relations
+  tenant           Tenant     @relation(fields: [tenantId], references: [id])
+  pmSchedule       PMSchedule @relation(fields: [pmScheduleId], references: [id], onDelete: Cascade)
+  completedBy      User?      @relation(fields: [completedByUserId], references: [id])
+
+  @@index([tenantId])
+  @@index([pmScheduleId])
 }
 
 model ChecklistTemplate {
@@ -522,4 +559,53 @@ model ConveyorSystem {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@index([tenantId])
+}
+
+model Page {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("tenant_id")
+  key              String   // e.g. "DASHBOARD_LAYOUT", "ASSET_VIEW_CONFIG"
+  layoutJson       Json     @map("layout_json")
+  isSystemDefault  Boolean  @default(false) @map("is_system_default")
+  
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
+enum AssetStatus {
+  OPERATIONAL
+  DOWN
+  MAINTENANCE
+  DEGRADED
+}
+
+enum WorkOrderPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum WorkOrderStatus {
+  OPEN
+  IN_PROGRESS
+  ON_HOLD
+  DONE
+  CANCELLED
+}
+
+enum WorkOrderType {
+  REACTIVE
+  PREVENTIVE
+}
+
+enum InventoryTransactionType {
+  IN
+  OUT
+  AUDIT
 }

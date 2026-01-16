@@ -4,14 +4,27 @@ import { PrismaClient, Part } from '@prisma/client';
 export class PartService {
     constructor(private prisma: PrismaClient) { }
 
-    async create(tenantId: string, data: { name: string; sku?: string; quantity: number; cost: number; minQuantity?: number; binLocation?: string }) {
+    async create(tenantId: string, data: {
+        name: string;
+        sku?: string;
+        description?: string;
+        quantity: number;
+        cost: number;
+        unit?: string;
+        category?: string;
+        minQuantity?: number;
+        binLocation?: string
+    }) {
         return this.prisma.part.create({
             data: {
                 tenantId,
                 name: data.name,
                 sku: data.sku,
+                description: data.description,
                 quantity: data.quantity,
                 cost: data.cost,
+                unit: data.unit || 'pcs',
+                category: data.category,
                 minQuantity: data.minQuantity || 5,
                 binLocation: data.binLocation
             }

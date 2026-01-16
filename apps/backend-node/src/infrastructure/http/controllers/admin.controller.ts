@@ -1,23 +1,26 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
+import { logger } from '../../logging/logger';
 
 export class AdminController {
     constructor(private prisma: PrismaClient) { }
 
     updateConfig = async (req: Request, res: Response, next: any) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
         try {
-            console.log("AdminController.updateConfig: Body:", JSON.stringify(req.body, null, 2));
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-            const tenantId = tenantCtx.id;
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
             const { branding, rbac, notifications, secrets } = req.body;
             const sessionUser = (req.session as any)?.user;
 
+            logger.info({ tenantId, domains: { branding: !!branding, rbac: !!rbac, notifications: !!notifications, secrets: !!secrets } }, 'Tenant configuration update requested');
+
             // [SECURITY] RBAC & Secrets are Super-Admin ONLY
             if (rbac || secrets) {
                 if (sessionUser?.role !== 'SUPER_ADMIN') {
+                    logger.warn({ tenantId, userId: sessionUser?.id, role: sessionUser?.role }, 'Unauthorized attempt to update sensitive config');
                     return res.status(403).json({ error: 'Forbidden: Super Admin required for sensitive configuration' });
                 }
             }
@@ -26,44 +29,41 @@ export class AdminController {
             const data: any = {};
 
             if (branding) {
-                console.log("Updating Branding:", branding);
-
-                // [HARSH MERGE] Ensure we don't lose existing branding config
                 const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
                 const existingConfig = (tenant?.brandingConfig as any) || {};
 
+                // [NORMALIZE] Ensure all incoming keys are mapped correctly (handle snake_case vs camelCase)
+                const normalizedBranding = {
+                    primaryColor: branding.primaryColor || branding.primary_color || branding.brandColor || branding.brand_color,
+                    secondaryColor: branding.secondaryColor || branding.secondary_color,
+                    backgroundColor: branding.backgroundColor || branding.background_color,
+                    textColor: branding.textColor || branding.text_color,
+                    mutedColor: branding.mutedColor || branding.muted_color,
+                    logoUrl: branding.logoUrl || branding.logo_url,
+                    appName: branding.appName || branding.app_name || branding.name || existingConfig.appName
+                };
+
                 const newConfig = {
                     ...existingConfig,
-                    ...branding,
-                    // [STRICT] Preservation of terminology if not provided in this specific patch
+                    ...normalizedBranding,
                     terminology: {
                         ...(existingConfig.terminology || {}),
                         ...(branding.terminology || {})
                     }
                 };
 
-                // [FIX] Normalize primaryColor key (supporting brandColor legacy key)
-                if (branding.brandColor && !branding.primaryColor) {
-                    newConfig.primaryColor = branding.brandColor;
-                }
-                if (!newConfig.primaryColor && existingConfig.primaryColor) {
-                    newConfig.primaryColor = existingConfig.primaryColor;
-                }
+                // Remove undefined fields
+                Object.keys(newConfig).forEach(key => (newConfig as any)[key] === undefined && delete (newConfig as any)[key]);
 
                 data.brandingConfig = newConfig;
 
-                // [Sync Legacy Fields] for robust compatibility with older components
+                // [SYNC] Always update top-level Tenant fields for legacy compatibility
                 if (newConfig.primaryColor) data.brandColor = newConfig.primaryColor;
                 if (newConfig.logoUrl) data.logoUrl = newConfig.logoUrl;
             }
 
-            if (rbac) {
-                data.rbacConfig = rbac;
-            }
-
-            if (notifications) {
-                data.notificationConfig = notifications;
-            }
+            if (rbac) data.rbacConfig = rbac;
+            if (notifications) data.notificationConfig = notifications;
 
             if (secrets) {
                 const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } }) as any;
@@ -77,18 +77,17 @@ export class AdminController {
                 data: data
             });
 
-            console.log("Tenant Updated:", updated.brandingConfig);
+            logger.info({ tenantId }, 'Tenant configuration updated successfully');
             res.json(updated);
         } catch (error: any) {
-            console.error('Update Config Error:', error);
+            logger.error({ error, tenantId }, 'Failed to update tenant configuration');
             next(error);
         }
     };
 
     updateEntitlements = async (req: Request, res: Response, next: any) => {
+        const { id } = req.params; // Target Tenant ID
         try {
-            // Only SUPER_ADMIN allowed (This role check will be enforced at route level via middleware)
-            const { id } = req.params; // Target Tenant ID
             const { plan, maxUsers, maxAdmins } = req.body;
 
             const updated = await this.prisma.tenant.update({
@@ -100,18 +99,19 @@ export class AdminController {
                 }
             });
 
+            logger.info({ targetTenantId: id }, 'Tenant entitlements updated');
             res.json(updated);
         } catch (error: any) {
-            console.error('Update Entitlements Error:', error);
+            logger.error({ error, targetTenantId: id }, 'Failed to update tenant entitlements');
             next(error);
         }
     };
 
     getConfig = async (req: Request, res: Response, next: any) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
         try {
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-            const tenantId = tenantCtx.id;
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
             const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
             if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
@@ -151,7 +151,7 @@ export class AdminController {
                 secrets: maskedSecrets
             });
         } catch (error: any) {
-            console.error('Get Config Error:', error);
+            logger.error({ error, tenantId }, 'Failed to fetch tenant configuration');
             next(error);
         }
     };

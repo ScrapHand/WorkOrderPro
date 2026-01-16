@@ -1,12 +1,7 @@
 import { IAssetRepository } from '../../domain/repositories/asset.repository.interface';
 import { Asset } from '../../domain/entities/asset.entity';
 
-export enum WorkOrderPriority {
-    CRITICAL = 10,
-    HIGH = 7,
-    MEDIUM = 4,
-    LOW = 1
-}
+import { WorkOrderPriority, PRIORITY_SCORES } from '@workorderpro/shared';
 
 export class RimeService {
     constructor(private assetRepo: IAssetRepository) { }
@@ -55,13 +50,8 @@ export class RimeService {
     }
 
     private getPriorityScore(priority: string): number {
-        switch (priority.toUpperCase()) {
-            case 'CRITICAL': return WorkOrderPriority.CRITICAL;
-            case 'HIGH': return WorkOrderPriority.HIGH;
-            case 'MEDIUM': return WorkOrderPriority.MEDIUM;
-            case 'LOW': return WorkOrderPriority.LOW;
-            default: return WorkOrderPriority.LOW; // Safety fallback
-        }
+        const key = priority.toUpperCase() as WorkOrderPriority;
+        return PRIORITY_SCORES[key] || PRIORITY_SCORES[WorkOrderPriority.LOW];
     }
 
     private async getRecursiveCriticality(assetId: string, tenantId: string): Promise<number> {

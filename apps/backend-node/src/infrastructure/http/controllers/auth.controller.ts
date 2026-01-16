@@ -5,6 +5,7 @@ import { TenantService } from '../../../application/services/tenant.service';
 import * as argon2 from 'argon2';
 import { loginSchema } from '../../../application/validators/auth.validator';
 import { z } from 'zod';
+import { logger } from '../../logging/logger';
 
 export class AuthController {
     constructor(
@@ -21,38 +22,31 @@ export class AuthController {
                 return res.status(400).json({ error: 'Invalid login data', details: result.error.issues });
             }
 
-            const { email, password, tenant_slug } = result.data;
-            // console.log('Login Attempt:', email, 'Target Tenant:', tenant_slug);
+            const { email, password } = result.data;
+            logger.info({ email }, 'Login attempt');
 
             // 1. Find user by email (Global lookup temporarily to identify tenant)
             let user = await this.userService.findByEmail(email);
 
             if (!user) {
+                logger.warn({ email }, 'Login failed: User not found');
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
-
-            // [AUTO-DETECT] We trust the Email. 
-            // The session will be locked to user.tenantId from the DB.
-            // We ignore req.body.tenant_slug because we want to redirect them to their ACTUAL tenant.
-
-
 
             // 2. [JIT Seeding/Self-Healing] Ensure Demo User has correct credentials
             if (email === 'demo@demo.com') {
                 const freshHash = await argon2.hash(password);
 
                 if (!user) {
-                    console.log('🌱 Creating Demo User...');
+                    logger.info('Creating Demo User');
                     user = await this.userService.createUser(
                         'default',
                         email,
                         'SYSTEM_ADMIN',
-                        password // Service will hash this, but we want to be sure. 
-                        // Actually userService.createUser hashes it. usage: createUser(..., plainPassword)
+                        password
                     );
                 } else {
-                    // [SELF-HEALING] Force update password to ensure access
-                    console.log('🩹 Healing Demo User Credentials...');
+                    logger.info('Healing Demo User Credentials');
                     user = await this.userService.updateUserPassword(user.id, freshHash);
                 }
             }
@@ -61,10 +55,11 @@ export class AuthController {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            // 3. [Validation] Standard argon2 check (No Bypass!)
+            // 3. [Validation] Standard argon2 check
             const isValid = await argon2.verify(user.passwordHash, password);
 
             if (!isValid) {
+                logger.warn({ email, tenantId: user.tenantId }, 'Login failed: Invalid password');
                 await this.auditService.log({
                     tenantId: user.tenantId,
                     userId: user.id,
@@ -75,10 +70,9 @@ export class AuthController {
             }
 
             // 4. [Session] Create Persistence & Rotation
-            // [HARDENING] Session Rotation to prevent Session Fixation
             req.session.regenerate(async (err) => {
                 if (err) {
-                    console.error('Session Regeneration Error:', err);
+                    logger.error({ error: err, email }, 'Session regeneration failed during login');
                     return res.status(500).json({ error: 'Session initialization failed' });
                 }
 
@@ -96,7 +90,7 @@ export class AuthController {
 
                 req.session.save(async (saveErr) => {
                     if (saveErr) {
-                        console.error('Session Save Error:', saveErr);
+                        logger.error({ error: saveErr, email }, 'Session save failed during login');
                         return res.status(500).json({ error: 'Session save failed' });
                     }
 
@@ -106,6 +100,8 @@ export class AuthController {
                         event: 'LOGIN_SUCCESS',
                         metadata: { email }
                     });
+
+                    logger.info({ email, tenantId: user!.tenantId }, 'Login successful');
 
                     res.json({
                         success: true,
@@ -117,7 +113,7 @@ export class AuthController {
             });
 
         } catch (error: any) {
-            console.error('Login Error:', error);
+            logger.error({ error }, 'Login error');
             res.status(500).json({ error: error.message });
         }
     };
@@ -138,28 +134,30 @@ export class AuthController {
             }
 
             const { email, password, companyName, slug, plan } = result.data;
+            logger.info({ email, slug, plan }, 'Registration requested');
 
             const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-            // 1. Create Tenant (This also creates the Admin user via transaction in TenantService)
             const tenant = await this.tenantService.create(
                 companyName,
                 slug,
                 email,
-                plan === 'STARTER' ? 5 : (plan === 'PRO' ? 25 : 100), // maxUsers
-                plan === 'STARTER' ? 1 : (plan === 'PRO' ? 3 : 10),  // maxAdmins
+                plan === 'STARTER' ? 5 : (plan === 'PRO' ? 25 : 100),
+                plan === 'STARTER' ? 1 : (plan === 'PRO' ? 3 : 10),
                 password,
                 verificationCode
             );
 
-            console.log(`[AUTH] Verification Code for ${email}: ${verificationCode}`); // Simulate email sending
+            logger.info({ email, tenantId: tenant.id }, 'Tenant and Admin user created');
 
-            // 2. Log them in automatically
             const user = await this.userService.findByEmail(email);
             if (!user) throw new Error('User creation failed after tenant creation');
 
             req.session.regenerate(async (err) => {
-                if (err) return res.status(500).json({ error: 'Session failed' });
+                if (err) {
+                    logger.error({ error: err, email }, 'Session regeneration failed during registration');
+                    return res.status(500).json({ error: 'Session failed' });
+                }
 
                 (req.session as any).user = {
                     id: user.id,
@@ -173,7 +171,10 @@ export class AuthController {
                 };
 
                 req.session.save(async (saveErr) => {
-                    if (saveErr) return res.status(500).json({ error: 'Session save failed' });
+                    if (saveErr) {
+                        logger.error({ error: saveErr, email }, 'Session save failed during registration');
+                        return res.status(500).json({ error: 'Session save failed' });
+                    }
 
                     await this.auditService.log({
                         tenantId: user.tenantId,
@@ -193,8 +194,8 @@ export class AuthController {
             });
 
         } catch (error: any) {
-            console.error('Registration Error:', error);
-            if (error.code === 'P2002') { // Prisma unique constraint violation
+            logger.error({ error }, 'Registration error');
+            if (error.code === 'P2002') {
                 return res.status(400).json({ error: 'Email or Tenant Slug already exists' });
             }
             res.status(500).json({ error: error.message });
@@ -202,8 +203,13 @@ export class AuthController {
     };
 
     logout = async (req: Request, res: Response) => {
+        const userId = (req.session as any)?.user?.id;
         req.session.destroy((err) => {
-            if (err) return res.status(500).json({ error: 'Logout failed' });
+            if (err) {
+                logger.error({ error: err, userId }, 'Logout failed');
+                return res.status(500).json({ error: 'Logout failed' });
+            }
+            logger.info({ userId }, 'Logout successful');
             res.clearCookie('wop_sid');
             res.json({ success: true, message: 'Logged out' });
         });
@@ -212,15 +218,14 @@ export class AuthController {
     me = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
         if (sessionUser) {
-            // [HARDENING] Re-fetch basics to catch avatar/name changes without re-login
             const user = await this.userService.findById(sessionUser.id);
 
             if (!user) {
+                logger.warn({ userId: sessionUser.id }, 'Session user not found in DB, logging out');
                 req.session.destroy(() => { });
                 return res.status(401).json({ isAuthenticated: false });
             }
 
-            // Update session with latest from DB
             const updatedUser = {
                 ...sessionUser,
                 email: user.email,
@@ -238,25 +243,24 @@ export class AuthController {
     };
 
     verifyEmail = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
         try {
             const { code } = req.body;
-            const sessionUser = (req.session as any)?.user;
             if (!sessionUser) return res.status(401).json({ error: 'Unauthorized' });
 
             const user = await this.userService.findById(sessionUser.id) as any;
             if (!user) return res.status(404).json({ error: 'User not found' });
 
             if (user.verificationCode !== code) {
+                logger.warn({ userId: user.id, email: user.email }, 'Invalid email verification code');
                 return res.status(400).json({ error: 'Invalid verification code' });
             }
 
-            // Mark as verified
             await this.userService.updateUser(user.id, {
                 emailVerified: new Date(),
                 verificationCode: null
             } as any);
 
-            // Update session
             (req.session as any).user.emailVerified = true;
             req.session.save();
 
@@ -267,9 +271,10 @@ export class AuthController {
                 metadata: { email: user.email }
             });
 
+            logger.info({ userId: user.id, email: user.email }, 'Email verified successfully');
             res.json({ success: true, message: 'Email verified successfully' });
         } catch (error: any) {
-            console.error('Verify Email Error:', error);
+            logger.error({ error, userId: sessionUser?.id }, 'Email verification failed');
             res.status(500).json({ error: error.message });
         }
     };

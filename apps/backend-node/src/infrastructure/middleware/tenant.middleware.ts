@@ -1,6 +1,7 @@
 import { prisma } from '../database/prisma';
 import { Request, Response, NextFunction } from 'express';
 import { AsyncLocalStorage } from 'async_hooks';
+import { logger } from '../logging/logger';
 
 // [ARCH] Multi-Tenancy Context
 export interface TenantContext {
@@ -11,7 +12,6 @@ export interface TenantContext {
 export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    // 1. Extract Slug - PRIORITIZE Query Params for linked assets/proxies
     // 1. Extract Slug - PRIORITIZE Query Params for linked assets/proxies
     let slugParam = req.query.tenant || req.query.slug;
     let slug = 'default';
@@ -28,7 +28,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
 
     // [DEBUG] Log resolution source for Proxies
     if (req.path.includes('/proxy')) {
-        console.log(`[TenantMiddleware] Proxy Resolution: slug=${slug}, query.tenant=${req.query.tenant}, header=${req.get('x-tenant-slug')}`);
+        logger.debug({ slug, queryTenant: req.query.tenant, header: req.get('x-tenant-slug') }, 'Tenant middleware proxy resolution');
     }
 
     try {
@@ -40,6 +40,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
         if (sessionUser && !req.path.includes('/auth/') && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN' && sessionUser.role !== 'SUPER_ADMIN') {
             // [HARD LOCK] Enforce user's assigned tenant
             if (slug !== sessionUser.tenantSlug) {
+                logger.warn({ userId: sessionUser.id, userTenant: sessionUser.tenantSlug, requestedTenant: slug }, 'Cross-tenant access attempt blocked');
                 return res.status(403).json({
                     error: 'Cross-tenant access forbidden',
                     message: `You belong to '${sessionUser.tenantSlug}' and cannot access '${slug}'.`
@@ -60,18 +61,25 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
                     if (resolvedTenant) {
                         tenantId = resolvedTenant.id;
                         finalSlug = resolvedTenant.slug;
+                        logger.debug({ tenantId, finalSlug, key }, 'Tenant resolved from proxy key');
                     }
                 }
             }
 
             if (!tenantId) {
                 const tenant = await prisma.tenant.findUnique({ where: { slug: finalSlug } });
-                if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+                if (!tenant) {
+                    logger.warn({ slug: finalSlug }, 'Tenant not found during resolution');
+                    return res.status(404).json({ error: 'Tenant not found' });
+                }
                 tenantId = tenant.id;
             }
         }
 
-        if (!tenantId) return res.status(401).json({ error: 'Unauthorized: Tenant could not be identified' });
+        if (!tenantId) {
+            logger.error({ slug: finalSlug }, 'Tenant ID could not be identified');
+            return res.status(401).json({ error: 'Unauthorized: Tenant could not be identified' });
+        }
 
         const context: TenantContext = {
             slug: finalSlug,
@@ -83,7 +91,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
         try {
             await prisma.$executeRawUnsafe(`SET LOCAL app.tenant_id = '${tenantId}'`);
         } catch (dbError) {
-            console.error('[TenantMiddleware] Failed to set app.tenant_id:', dbError);
+            logger.error({ error: dbError, tenantId }, 'Failed to set app.tenant_id for RLS');
             // Non-fatal if DB doesn't support it or RLS not enabled yet, 
             // but in production this should be strictly enforced.
         }
@@ -93,7 +101,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
             next();
         });
     } catch (error) {
-        console.error('[TenantMiddleware] Error:', error);
+        logger.error({ error }, 'Internal tenant resolution error');
         res.status(500).json({ error: 'Internal tenant resolution error' });
     }
 };

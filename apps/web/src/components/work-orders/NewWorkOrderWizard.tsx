@@ -61,8 +61,13 @@ export function NewWorkOrderWizard() {
             queryClient.setQueryData(["work-orders"], (old: any) => [...(old || []), { ...newWo, id: "temp-" + Date.now(), status: "OPEN" }]);
         },
         onSuccess: async (data) => {
-            console.log("[NewWorkOrderWizard] Success:", data);
+            console.log("[NewWorkOrderWizard] Response Data:", data);
             const tenantSlug = (params?.tenantSlug as string) || 'default';
+
+            if (!data?.id) {
+                console.error("[NewWorkOrderWizard] Error: No ID returned from server", data);
+                toast.error("Work Order created, but ID was missing. Redirecting to list.");
+            }
 
             // [NEW] Upload Photos if any
             if (selectedFiles.length > 0 && data?.id) {
@@ -108,9 +113,16 @@ export function NewWorkOrderWizard() {
                 const targetPath = data?.id
                     ? `/${tenantSlug}/dashboard/work-orders/${data.id}`
                     : `/${tenantSlug}/dashboard/work-orders`;
-                console.log("[NewWorkOrderWizard] Redirecting to:", targetPath);
-                router.push(targetPath);
-            }, 100);
+
+                console.log("[NewWorkOrderWizard] Final Redirect to:", targetPath);
+
+                // Safety: Only redirect if router is ready
+                try {
+                    router.push(targetPath);
+                } catch (navErr) {
+                    console.error("[NewWorkOrderWizard] Navigation Error:", navErr);
+                }
+            }, 150); // Increased delay slightly for hydration safety
         },
         onError: (err: any) => {
             console.error("Submission Error Details:", err.response?.data || err.message);

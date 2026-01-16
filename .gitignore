@@ -22,6 +22,7 @@
 **/*.egg-info/
 **/.pytest_cache/
 **/*.db
+Lib/site-packages/
 
 # General
 .DS_Store

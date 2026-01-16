@@ -1,196 +1,163 @@
-import { PrismaClient } from '@prisma/client';
-import { addDays, addWeeks, addMonths, addQuarters, addYears } from 'date-fns';
-import { RimeService } from './rime.service';
+
+import { PrismaClient, PMSchedule } from '@prisma/client';
+import { addDays, addWeeks, addMonths, addYears } from 'date-fns';
+import { logger } from '../../infrastructure/logging/logger';
 
 export class PMService {
-    constructor(
-        private prisma: PrismaClient,
-        private rimeService: RimeService
-    ) { }
+    constructor(private prisma: PrismaClient) { }
 
-    /**
-     * Calculate next due date based on frequency
-     */
-    static calculateNextDueDate(currentDate: Date, frequency: string): Date {
-        switch (frequency) {
-            case 'DAILY':
-                return addDays(currentDate, 1);
-            case 'WEEKLY':
-                return addWeeks(currentDate, 1);
-            case 'MONTHLY':
-                return addMonths(currentDate, 1);
-            case 'QUARTERLY':
-                return addQuarters(currentDate, 1);
-            case 'YEARLY':
-                return addYears(currentDate, 1);
-            default:
-                return addMonths(currentDate, 1);
-        }
-    }
-
-    /**
-     * Create a PM Schedule
-     */
-    async createSchedule(data: {
-        tenantId: string;
-        assetId: string;
-        title: string;
-        description?: string;
-        frequency: string;
-        startDate: string;
-        checklistTemplateId?: string;
-        createdById?: string;
-    }) {
-        const startDate = new Date(data.startDate);
+    async createSchedule(tenantId: string, data: any) {
+        const nextDueDate = data.nextDueDate ? new Date(data.nextDueDate) : new Date();
 
         return this.prisma.pMSchedule.create({
             data: {
-                tenantId: data.tenantId,
+                tenantId,
                 assetId: data.assetId,
                 title: data.title,
                 description: data.description,
-                frequency: data.frequency,
-                startDate: startDate,
-                nextDueDate: startDate, // First one is on start date
-                checklistTemplateId: data.checklistTemplateId,
-                createdById: data.createdById
+                frequencyType: data.frequencyType || 'days',
+                frequencyInterval: data.frequencyInterval || 1,
+                nextDueDate,
+                assignedToUserId: data.assignedToUserId,
+                checklistTemplateId: data.checklistTemplateId
             }
         });
     }
 
-    /**
-     * Get all schedules for a tenant
-     */
-    async getSchedules(tenantId: string) {
+    async getAllSchedules(tenantId: string) {
         return this.prisma.pMSchedule.findMany({
             where: { tenantId },
-            include: {
-                asset: { select: { name: true, criticality: true } },
-                checklistTemplate: { select: { name: true } }
-            }
+            include: { asset: { select: { id: true, name: true } } },
+            orderBy: { nextDueDate: 'asc' }
         });
     }
 
-    /**
-     * Process due PMs and generate Work Orders
-     */
-    async processDuePMs(tenantId?: string) {
-        const where: any = {
-            active: true,
-            nextDueDate: { lte: new Date() }
-        };
-        if (tenantId) where.tenantId = tenantId;
-
-        const dueSchedules = await this.prisma.pMSchedule.findMany({
-            where,
-            include: {
-                asset: true,
-                checklistTemplate: { include: { items: true } }
-            }
-        });
-
-        for (const schedule of dueSchedules) {
-            await this.generateWorkOrder(schedule);
-        }
-
-        return dueSchedules.length;
-    }
-
-    /**
-     * Process a specific PM Schedule by ID
-     */
-    async processScheduleById(id: string, tenantId: string) {
-        const schedule = await this.prisma.pMSchedule.findFirst({
+    async getScheduleById(id: string, tenantId: string) {
+        return this.prisma.pMSchedule.findFirst({
             where: { id, tenantId },
-            include: {
-                asset: true,
-                checklistTemplate: { include: { items: true } }
-            }
+            include: { asset: true, checklistTemplate: true }
         });
+    }
 
-        if (!schedule) throw new Error('PM Schedule not found');
+    async updateSchedule(id: string, tenantId: string, data: any) {
+        return this.prisma.pMSchedule.update({
+            where: { id, tenantId },
+            data
+        });
+    }
 
-        return this.generateWorkOrder(schedule);
+    async deleteSchedule(id: string, tenantId: string) {
+        return this.prisma.pMSchedule.delete({
+            where: { id, tenantId }
+        });
     }
 
     /**
-     * Generate a Work Order from a schedule
+     * PM Sign-off logic
+     * Completes a PM, creates a log, and moves the next due date forward.
      */
-    private async generateWorkOrder(schedule: any) {
-        return this.prisma.$transaction(async (tx) => {
-            // [ENHANCEMENT] Calculate Dynamic RIME Score
-            // Priority is default MEDIUM (3) for PMs unless logic dictates otherwise
-            const priority = 'MEDIUM';
-            const rimeScore = await this.rimeService.calculateScore(schedule.assetId, schedule.tenantId, priority);
+    async signOff(id: string, tenantId: string, userId: string, notes?: string) {
+        const schedule = await this.prisma.pMSchedule.findUnique({
+            where: { id }
+        });
 
-            // 1. Create Work Order
-            const workOrder = await tx.workOrder.create({
+        if (!schedule) throw new Error('Schedule not found');
+
+        const now = new Date();
+        const currentDue = schedule.nextDueDate;
+        const nextDue = this.calculateNextDue(currentDue, schedule.frequencyType, schedule.frequencyInterval);
+
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Create PMLog
+            await tx.pMLog.create({
                 data: {
-                    tenantId: schedule.tenantId,
-                    assetId: schedule.assetId,
-                    title: `[PM] ${schedule.title}`,
-                    description: schedule.description,
-                    priority,
-                    status: 'OPEN',
-                    type: 'PREVENTIVE',
-                    rimeScore,
+                    tenantId,
                     pmScheduleId: schedule.id,
+                    completedAt: now,
+                    completedByUserId: userId,
+                    notes
                 }
             });
 
-            // 2. If template exists, create Work Order Checklist
+            // 2. Update Schedule
+            return await tx.pMSchedule.update({
+                where: { id },
+                data: {
+                    lastPerformedAt: now,
+                    nextDueDate: nextDue
+                }
+            });
+        });
+    }
+
+    /**
+     * Generate a Work Order from a PM Schedule
+     */
+    async generateWorkOrder(id: string, tenantId: string) {
+        const schedule = await this.prisma.pMSchedule.findUnique({
+            where: { id },
+            include: { checklistTemplate: { include: { items: true } } }
+        });
+
+        if (!schedule) throw new Error('Schedule not found');
+
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Create WO
+            const wo = await tx.workOrder.create({
+                data: {
+                    tenantId,
+                    assetId: schedule.assetId,
+                    title: `PM: ${schedule.title}`,
+                    description: schedule.description || `Generated from PM Schedule ${schedule.id}`,
+                    priority: 'MEDIUM',
+                    status: 'OPEN',
+                    type: 'PREVENTIVE',
+                    pmScheduleId: schedule.id,
+                    assignedUserId: schedule.assignedToUserId,
+                    rimeScore: 0 // Default to 0, or fetch asset to calculate properly. TODO: Inject RimeService for proper calculation
+                }
+            });
+
+            // 2. Create Checklist if template exists
             if (schedule.checklistTemplate) {
                 const checklist = await tx.workOrderChecklist.create({
                     data: {
-                        workOrderId: workOrder.id,
+                        workOrderId: wo.id
                     }
                 });
 
-                // 3. Clone template items to the WO Checklist
-                const items = schedule.checklistTemplate.items.map((item: any) => ({
-                    checklistId: checklist.id,
-                    task: item.task,
-                    order: item.order,
-                    isCompleted: false
-                }));
-
                 await tx.workOrderChecklistItem.createMany({
-                    data: items
+                    data: schedule.checklistTemplate.items.map(item => ({
+                        checklistId: checklist.id,
+                        task: item.task,
+                        isRequired: item.isRequired,
+                        order: item.order
+                    }))
                 });
             }
 
-            // 4. Update Next Due Date
-            const nextDueDate = PMService.calculateNextDueDate(schedule.nextDueDate, schedule.frequency);
-            await tx.pMSchedule.update({
-                where: { id: schedule.id },
-                data: { nextDueDate }
-            });
-
-            return workOrder;
+            return wo;
         });
     }
 
-    /**
-     * Get checklist for a specific Work Order
-     */
-    async getWorkOrderChecklist(workOrderId: string) {
-        return this.prisma.workOrderChecklist.findFirst({
-            where: { workOrderId },
-            include: { items: { orderBy: { order: 'asc' } } }
-        });
-    }
+    private calculateNextDue(currentDue: Date, type: string, interval: number): Date {
+        const t = (type || 'days').toLowerCase();
+        switch (t) {
+            case 'daily': return addDays(currentDue, 1);
+            case 'weekly': return addWeeks(currentDue, 1);
+            case 'fortnightly': return addWeeks(currentDue, 2);
+            case 'monthly': return addMonths(currentDue, 1);
+            case 'quarterly': return addMonths(currentDue, 3);
+            case '6 monthly': return addMonths(currentDue, 6);
+            case 'yearly': return addYears(currentDue, 1);
 
-    /**
-     * Update checklist item (Sign-off)
-     */
-    async signOffChecklistItem(itemId: string, userId: string, isCompleted: boolean) {
-        return this.prisma.workOrderChecklistItem.update({
-            where: { id: itemId },
-            data: {
-                isCompleted,
-                completedAt: isCompleted ? new Date() : null,
-                completedBy: isCompleted ? userId : null
-            }
-        });
+            // Interval based
+            case 'days': return addDays(currentDue, interval);
+            case 'weeks': return addWeeks(currentDue, interval);
+            case 'months': return addMonths(currentDue, interval);
+            case 'years': return addYears(currentDue, interval);
+
+            default: return addDays(currentDue, interval);
+        }
     }
 }

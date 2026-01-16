@@ -5,13 +5,18 @@ export interface PMSchedule {
     assetId: string;
     title: string;
     description?: string;
-    frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+    frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+    frequencyType?: 'days' | 'weeks' | 'months' | 'years';
+    frequencyInterval?: number;
     startDate: string;
     nextDueDate: string;
+    lastPerformedAt?: string;
     active: boolean;
     checklistTemplateId?: string;
+    assignedToUserId?: string;
     asset?: { name: string };
     checklistTemplate?: { name: string };
+    assignedTo?: { firstName?: string; lastName?: string; email: string };
 }
 
 export interface ChecklistTemplate {

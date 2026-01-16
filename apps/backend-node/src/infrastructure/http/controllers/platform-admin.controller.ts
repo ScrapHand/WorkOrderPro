@@ -1,12 +1,13 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '../../logging/logger';
 
 export class PlatformAdminController {
     constructor(private prisma: PrismaClient) { }
 
     getAuditLogs = async (req: Request, res: Response) => {
+        const user = (req.session as any)?.user;
         try {
-            const user = (req.session as any)?.user;
             if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
             const { tenantId: queryTenantId, event, limit = 50, offset = 0 } = req.query;
@@ -26,6 +27,13 @@ export class PlatformAdminController {
 
             if (event) where.event = event as string;
 
+            logger.info({
+                adminUserId: user.id,
+                isGlobalAdmin,
+                targetTenantId: where.tenantId,
+                event
+            }, 'Fetching audit logs');
+
             const logs = await this.prisma.auditLog.findMany({
                 where,
                 take: Number(limit),
@@ -43,7 +51,7 @@ export class PlatformAdminController {
 
             res.json(logs);
         } catch (error: any) {
-            console.error('Fetch Audit Logs Error:', error);
+            logger.error({ error, userId: user?.id }, 'Failed to fetch audit logs');
             res.status(500).json({ error: 'Failed to fetch audit logs' });
         }
     };
@@ -52,9 +60,12 @@ export class PlatformAdminController {
      * Search users across all tenants.
      */
     globalUserSearch = async (req: Request, res: Response) => {
+        const user = (req.session as any)?.user;
+        const { q } = req.query;
         try {
-            const { q } = req.query;
             if (!q) return res.status(400).json({ error: 'Query parameter "q" is required' });
+
+            logger.info({ adminUserId: user?.id, query: q }, 'Performing global user search');
 
             const users = await this.prisma.user.findMany({
                 where: {
@@ -74,6 +85,7 @@ export class PlatformAdminController {
                 return rest;
             }));
         } catch (error: any) {
+            logger.error({ error, adminUserId: user?.id, query: q }, 'Failed to perform global user search');
             res.status(500).json({ error: 'Failed to search users' });
         }
     };

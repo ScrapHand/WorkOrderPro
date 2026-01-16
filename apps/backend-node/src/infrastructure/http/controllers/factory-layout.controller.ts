@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { FactoryLayoutService } from '../../../application/services/factory-layout.service';
+import { logger } from '../../logging/logger';
 
 export class FactoryLayoutController {
     constructor(private layoutService: FactoryLayoutService) { }
@@ -9,17 +10,17 @@ export class FactoryLayoutController {
      * List all layouts for the tenant
      */
     listLayouts = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = sessionUser?.tenantId;
         try {
-            const sessionUser = (req.session as any)?.user;
-            if (!sessionUser?.tenantId) {
+            if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
-            const tenantId = sessionUser.tenantId;
 
             const layouts = await this.layoutService.getLayouts(tenantId);
             res.json(layouts);
         } catch (error: any) {
-            console.error('List Layouts Error:', error);
+            logger.error({ error, tenantId }, 'Failed to list layouts');
             res.status(500).json({ error: error.message });
         }
     };
@@ -29,15 +30,16 @@ export class FactoryLayoutController {
      * Create a new layout (TENANT_ADMIN only)
      */
     createLayout = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = sessionUser?.tenantId;
         try {
-            const sessionUser = (req.session as any)?.user;
-            if (!sessionUser?.tenantId) {
+            if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
-            const tenantId = sessionUser.tenantId;
 
             // RBAC: Only TENANT_ADMIN can create layouts
             if (sessionUser.role !== 'TENANT_ADMIN') {
+                logger.warn({ userId: sessionUser.id, role: sessionUser.role, tenantId }, 'Unauthorized attempt to create factory layout');
                 return res.status(403).json({ error: 'Forbidden: Only TENANT_ADMIN can create layouts' });
             }
 
@@ -47,10 +49,13 @@ export class FactoryLayoutController {
                 return res.status(400).json({ error: 'Layout name is required' });
             }
 
+            logger.info({ tenantId, name }, 'Creating new factory layout');
             const layout = await this.layoutService.createLayout(tenantId, { name, description });
+
+            logger.info({ layoutId: layout.id, tenantId }, 'Factory layout created successfully');
             res.status(201).json(layout);
         } catch (error: any) {
-            console.error('Create Layout Error:', error);
+            logger.error({ error, tenantId }, 'Failed to create factory layout');
             res.status(500).json({ error: error.message });
         }
     };
@@ -60,14 +65,13 @@ export class FactoryLayoutController {
      * Get a specific layout with all nodes and edges
      */
     getLayout = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = sessionUser?.tenantId;
+        const { id } = req.params;
         try {
-            const sessionUser = (req.session as any)?.user;
-            if (!sessionUser?.tenantId) {
+            if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
-            const tenantId = sessionUser.tenantId;
-
-            const { id } = req.params;
 
             try {
                 const layout = await this.layoutService.getLayout(id, tenantId);
@@ -79,7 +83,7 @@ export class FactoryLayoutController {
                 throw error;
             }
         } catch (error: any) {
-            console.error('Get Layout Error:', error);
+            logger.error({ error, layoutId: id, tenantId }, 'Failed to get factory layout');
             res.status(500).json({ error: error.message });
         }
     };
@@ -89,22 +93,24 @@ export class FactoryLayoutController {
      * Update layout metadata (TENANT_ADMIN only)
      */
     updateMetadata = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = sessionUser?.tenantId;
+        const { id } = req.params;
         try {
-            const sessionUser = (req.session as any)?.user;
-            if (!sessionUser?.tenantId) {
+            if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
-            const tenantId = sessionUser.tenantId;
 
             // RBAC: Only TENANT_ADMIN can update layouts
             if (sessionUser.role !== 'TENANT_ADMIN') {
+                logger.warn({ userId: sessionUser.id, role: sessionUser.role, tenantId, layoutId: id }, 'Unauthorized attempt to update factory layout metadata');
                 return res.status(403).json({ error: 'Forbidden: Only TENANT_ADMIN can update layouts' });
             }
 
-            const { id } = req.params;
             const { name, description, viewportJson } = req.body;
 
             try {
+                logger.info({ layoutId: id, tenantId }, 'Updating factory layout metadata');
                 const layout = await this.layoutService.updateLayoutMetadata(id, tenantId, {
                     name,
                     description,
@@ -121,7 +127,7 @@ export class FactoryLayoutController {
                 throw error;
             }
         } catch (error: any) {
-            console.error('Update Metadata Error:', error);
+            logger.error({ error, layoutId: id, tenantId }, 'Failed to update factory layout metadata');
             res.status(500).json({ error: error.message });
         }
     };
@@ -131,19 +137,20 @@ export class FactoryLayoutController {
      * Bulk save graph state (nodes and edges) - TENANT_ADMIN only
      */
     bulkSaveGraph = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = sessionUser?.tenantId;
+        const { id } = req.params;
         try {
-            const sessionUser = (req.session as any)?.user;
-            if (!sessionUser?.tenantId) {
+            if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
-            const tenantId = sessionUser.tenantId;
 
             // RBAC: Only TENANT_ADMIN can update graph
             if (sessionUser.role !== 'TENANT_ADMIN') {
+                logger.warn({ userId: sessionUser.id, role: sessionUser.role, tenantId, layoutId: id }, 'Unauthorized attempt to update factory layout graph');
                 return res.status(403).json({ error: 'Forbidden: Only TENANT_ADMIN can update graph' });
             }
 
-            const { id } = req.params;
             const { version, nodes, edges } = req.body;
 
             if (version === undefined || !Array.isArray(nodes) || !Array.isArray(edges)) {
@@ -151,6 +158,7 @@ export class FactoryLayoutController {
             }
 
             try {
+                logger.info({ layoutId: id, tenantId, nodeCount: nodes.length, edgeCount: edges.length }, 'Saving factory layout graph');
                 const layout = await this.layoutService.bulkSaveGraph(id, tenantId, { version, nodes, edges });
                 res.json(layout);
             } catch (error: any) {
@@ -169,7 +177,7 @@ export class FactoryLayoutController {
                 throw error;
             }
         } catch (error: any) {
-            console.error('Bulk Save Graph Error:', error);
+            logger.error({ error, layoutId: id, tenantId }, 'Failed to bulk save factory layout graph');
             res.status(500).json({ error: error.message });
         }
     };
@@ -179,21 +187,22 @@ export class FactoryLayoutController {
      * Toggle lock state (TENANT_ADMIN only)
      */
     toggleLock = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = sessionUser?.tenantId;
+        const { id } = req.params;
         try {
-            const sessionUser = (req.session as any)?.user;
-            if (!sessionUser?.tenantId) {
+            if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
-            const tenantId = sessionUser.tenantId;
 
             // RBAC: Only TENANT_ADMIN can toggle lock
             if (sessionUser.role !== 'TENANT_ADMIN') {
+                logger.warn({ userId: sessionUser.id, role: sessionUser.role, tenantId, layoutId: id }, 'Unauthorized attempt to toggle factory layout lock');
                 return res.status(403).json({ error: 'Forbidden: Only TENANT_ADMIN can toggle lock' });
             }
 
-            const { id } = req.params;
-
             try {
+                logger.info({ layoutId: id, tenantId }, 'Toggling factory layout lock');
                 const layout = await this.layoutService.toggleLock(id, tenantId);
                 res.json(layout);
             } catch (error: any) {
@@ -203,7 +212,7 @@ export class FactoryLayoutController {
                 throw error;
             }
         } catch (error: any) {
-            console.error('Toggle Lock Error:', error);
+            logger.error({ error, layoutId: id, tenantId }, 'Failed to toggle factory layout lock');
             res.status(500).json({ error: error.message });
         }
     };
@@ -213,22 +222,24 @@ export class FactoryLayoutController {
      * Delete a layout (TENANT_ADMIN only)
      */
     deleteLayout = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = sessionUser?.tenantId;
+        const { id } = req.params;
         try {
-            const sessionUser = (req.session as any)?.user;
-            if (!sessionUser?.tenantId) {
+            if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
-            const tenantId = sessionUser.tenantId;
 
             // RBAC: Only TENANT_ADMIN can delete layouts
             if (sessionUser.role !== 'TENANT_ADMIN') {
+                logger.warn({ userId: sessionUser.id, role: sessionUser.role, tenantId, layoutId: id }, 'Unauthorized attempt to delete factory layout');
                 return res.status(403).json({ error: 'Forbidden: Only TENANT_ADMIN can delete layouts' });
             }
 
-            const { id } = req.params;
-
             try {
+                logger.info({ layoutId: id, tenantId }, 'Deleting factory layout');
                 await this.layoutService.deleteLayout(id, tenantId);
+                logger.info({ layoutId: id, tenantId }, 'Factory layout deleted successfully');
                 res.status(204).send();
             } catch (error: any) {
                 if (error.message === 'Layout not found') {
@@ -237,7 +248,7 @@ export class FactoryLayoutController {
                 throw error;
             }
         } catch (error: any) {
-            console.error('Delete Layout Error:', error);
+            logger.error({ error, layoutId: id, tenantId }, 'Failed to delete factory layout');
             res.status(500).json({ error: error.message });
         }
     };

@@ -3,103 +3,115 @@ import { RoleService } from '../../../application/services/role.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
 import { hasPermission } from '../../auth/rbac.utils';
+import { logger } from '../../logging/logger';
 
 export class RoleController {
     constructor(
         private roleService: RoleService,
-        private prisma: PrismaClient // Injected for edge cases or transaction management if needed
+        private prisma: PrismaClient
     ) { }
 
     create = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
         try {
-            if (!hasPermission(req, 'role:write')) return res.status(403).json({ error: 'Forbidden' });
+            if (!hasPermission(req, 'role:write')) {
+                logger.warn({ userId: (req.session as any)?.user?.id, tenantId }, 'Unauthorized attempt to create role');
+                return res.status(403).json({ error: 'Forbidden' });
+            }
 
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-
-            const resolvedTenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!resolvedTenant) return res.status(404).json({ error: 'Tenant not found' });
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
             const { name, permissions, description } = req.body;
             if (!name) return res.status(400).json({ error: 'Role name is required' });
 
-            const role = await this.roleService.createRole(resolvedTenant.id, name, permissions || [], description);
+            logger.info({ tenantId, name }, 'Creating new custom role');
+            const role = await this.roleService.createRole(tenantId, name, permissions || [], description);
+
+            logger.info({ roleId: role.id, tenantId }, 'Role created successfully');
             res.status(201).json(role);
         } catch (error: any) {
-            console.error('Create Role Error:', error);
+            logger.error({ error, tenantId }, 'Failed to create role');
             res.status(500).json({ error: error.message });
         }
     };
 
     update = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
+        const { id } = req.params;
         try {
-            if (!hasPermission(req, 'role:write')) return res.status(403).json({ error: 'Forbidden' });
+            if (!hasPermission(req, 'role:write')) {
+                logger.warn({ userId: (req.session as any)?.user?.id, roleId: id, tenantId }, 'Unauthorized attempt to update role');
+                return res.status(403).json({ error: 'Forbidden' });
+            }
 
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const resolvedTenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!resolvedTenant) return res.status(404).json({ error: 'Tenant not found' });
+            const updates = req.body;
 
-            const { id } = req.params;
-            const updates = req.body; // { name, description, permissions }
+            logger.info({ roleId: id, tenantId }, 'Updating custom role');
+            const updatedRole = await this.roleService.updateRole(id, tenantId, updates);
 
-            const updatedRole = await this.roleService.updateRole(id, resolvedTenant.id, updates);
             res.json(updatedRole);
         } catch (error: any) {
+            logger.error({ error, roleId: id, tenantId }, 'Failed to update role');
             res.status(500).json({ error: error.message });
         }
     };
 
     delete = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
+        const { id } = req.params;
         try {
-            if (!hasPermission(req, 'role:write')) return res.status(403).json({ error: 'Forbidden' });
+            if (!hasPermission(req, 'role:write')) {
+                logger.warn({ userId: (req.session as any)?.user?.id, roleId: id, tenantId }, 'Unauthorized attempt to delete role');
+                return res.status(403).json({ error: 'Forbidden' });
+            }
 
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const resolvedTenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!resolvedTenant) return res.status(404).json({ error: 'Tenant not found' });
+            logger.info({ roleId: id, tenantId }, 'Deleting custom role');
+            await this.roleService.deleteRole(id, tenantId);
 
-            const { id } = req.params;
-            await this.roleService.deleteRole(id, resolvedTenant.id);
+            logger.info({ roleId: id, tenantId }, 'Role deleted successfully');
             res.status(204).send();
         } catch (error: any) {
+            logger.error({ error, roleId: id, tenantId }, 'Failed to delete role');
             res.status(500).json({ error: error.message });
         }
     };
 
     getAll = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
         try {
             if (!hasPermission(req, 'role:read')) return res.status(403).json({ error: 'Forbidden' });
 
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const resolvedTenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!resolvedTenant) return res.status(404).json({ error: 'Tenant not found' });
-
-            const roles = await this.roleService.getRoles(resolvedTenant.id);
+            const roles = await this.roleService.getRoles(tenantId);
             res.json(roles);
         } catch (error: any) {
+            logger.error({ error, tenantId }, 'Failed to fetch all roles');
             res.status(500).json({ error: error.message });
         }
     };
 
     getById = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
+        const { id } = req.params;
         try {
             if (!hasPermission(req, 'role:read')) return res.status(403).json({ error: 'Forbidden' });
 
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const resolvedTenant = await this.prisma.tenant.findUnique({ where: { slug: tenantCtx.slug } });
-            if (!resolvedTenant) return res.status(404).json({ error: 'Tenant not found' });
-
-            const { id } = req.params;
-            const role = await this.roleService.getRoleById(id, resolvedTenant.id);
+            const role = await this.roleService.getRoleById(id, tenantId);
             res.json(role);
         } catch (error: any) {
+            logger.error({ error, roleId: id, tenantId }, 'Failed to fetch role by ID');
             res.status(500).json({ error: error.message });
         }
     };

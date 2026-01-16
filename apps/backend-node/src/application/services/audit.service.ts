@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { logger } from '../../infrastructure/logging/logger';
 
 export class AuditService {
     constructor(private prisma: PrismaClient) { }
@@ -23,7 +24,7 @@ export class AuditService {
                 }
             });
         } catch (error) {
-            console.error('[AuditService] Failed to create audit log:', error);
+            logger.error({ error, params }, 'Failed to create audit log');
             // Non-blocking for the main operation
         }
     }

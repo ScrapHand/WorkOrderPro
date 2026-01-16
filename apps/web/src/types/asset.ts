@@ -1,4 +1,4 @@
-export type AssetStatus = 'OPERATIONAL' | 'DOWN' | 'MAINTENANCE';
+import { AssetStatus } from '@workorderpro/shared';
 export type AssetCriticality = 'A' | 'B' | 'C';
 
 export interface Asset {

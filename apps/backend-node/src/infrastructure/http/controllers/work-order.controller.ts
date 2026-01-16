@@ -4,6 +4,7 @@ import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
 import { hasPermission } from '../../auth/rbac.utils';
 import { createWorkOrderSchema, updateWorkOrderSchema } from '../../../application/validators/auth.validator';
+import { logger } from '../../logging/logger';
 
 export class WorkOrderController {
     constructor(
@@ -12,10 +13,10 @@ export class WorkOrderController {
     ) { }
 
     create = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
         try {
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-            const tenantId = tenantCtx.id;
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
             // [VALIDATION] Zod Check
             const result = createWorkOrderSchema.safeParse(req.body);
@@ -32,7 +33,7 @@ export class WorkOrderController {
                 targetUserId = sessionUserId;
             }
 
-            console.log('[WorkOrderController] Create Request:', { assetId, title, priority, assignedUserId, assignedToMe, targetUserId });
+            logger.info({ assetId, title, priority, assignedUserId, assignedToMe, targetUserId }, 'WorkOrder creation requested');
 
             const wo = await this.woService.createWorkOrder(
                 tenantId,
@@ -43,24 +44,25 @@ export class WorkOrderController {
                 targetUserId || undefined
             );
 
+            logger.info({ workOrderId: wo.id }, 'WorkOrder created successfully');
             res.status(201).json(wo);
         } catch (error: any) {
-            console.error('Create WO Error:', error);
+            logger.error({ error, tenantId }, 'WorkOrder creation failed');
             res.status(500).json({ error: error.message });
         }
     };
 
     getAll = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
         try {
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-            const tenantId = tenantCtx.id;
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
             const filters = {
                 status: req.query.status as string | undefined,
                 assetId: req.query.assetId as string | undefined,
                 priority: req.query.priority as string | undefined,
-                rootAssetId: req.query.rootAssetId as string | undefined, // For Group/Zone filtering
+                rootAssetId: req.query.rootAssetId as string | undefined,
                 from: req.query.from as string | undefined,
                 to: req.query.to as string | undefined
             };
@@ -68,32 +70,33 @@ export class WorkOrderController {
             const list = await this.woService.getWorkOrders(tenantId, filters);
             res.json(list);
         } catch (error: any) {
+            logger.error({ error, tenantId }, 'Failed to fetch work orders');
             res.status(500).json({ error: error.message });
         }
     };
 
     getById = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
         try {
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-            const tenantId = tenantCtx.id;
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
             const wo = await this.woService.getWorkOrderById(req.params.id, tenantId);
             if (!wo) return res.status(404).json({ error: 'Work order not found' });
 
             res.json(wo);
         } catch (error: any) {
+            logger.error({ error, id: req.params.id, tenantId }, 'Failed to fetch work order by ID');
             res.status(500).json({ error: error.message });
         }
     };
 
     patch = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
+        const { id } = req.params;
         try {
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
-            const tenantId = tenantCtx.id;
-
-            const { id } = req.params;
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
             // [VALIDATION] Zod Check
             const result = updateWorkOrderSchema.safeParse(req.body);
@@ -106,26 +109,26 @@ export class WorkOrderController {
             const wo = await this.woService.updateWorkOrder(id, tenantId, updates);
             res.json(wo);
         } catch (error: any) {
-            console.error('Update WO Error:', error);
+            logger.error({ error, id, tenantId }, 'WorkOrder update failed');
             res.status(500).json({ error: error.message });
         }
     };
 
     delete = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
+        const { id } = req.params;
         try {
             if (!(req.session as any)?.user) return res.status(401).json({ error: 'Unauthorized: Please log in' });
             if (!hasPermission(req, 'work_order:delete')) return res.status(403).json({ error: 'Forbidden' });
 
-            const tenantCtx = getCurrentTenant();
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
-            // [OPTIMIZATION] Use ID from middleware
-            const tenantId = tenantCtx.id;
-            if (!tenantId) return res.status(400).json({ error: 'Tenant context ID missing' });
-
-            await this.woService.deleteWorkOrder(req.params.id, tenantId);
+            await this.woService.deleteWorkOrder(id, tenantId);
+            logger.info({ id, tenantId }, 'WorkOrder deleted');
             res.status(204).send();
         } catch (error: any) {
+            logger.error({ error, id, tenantId }, 'WorkOrder deletion failed');
             res.status(500).json({ error: error.message });
         }
     };

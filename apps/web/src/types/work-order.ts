@@ -1,7 +1,6 @@
 import { Asset } from './asset';
 
-export type WorkOrderPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-export type WorkOrderStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE';
+import { WorkOrderPriority, WorkOrderStatus, WorkOrderType } from '@workorderpro/shared';
 
 export interface WorkOrder {
     id: string;

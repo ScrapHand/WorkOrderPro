@@ -2,16 +2,20 @@ import { Request, Response } from 'express';
 import { UserService } from '../../../application/services/user.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { hasPermission } from '../../auth/rbac.utils';
+import { logger } from '../../logging/logger';
 
 export class UserController {
     constructor(private userService: UserService) { }
 
     create = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantCtx = getCurrentTenant();
         try {
-            if (!hasPermission(req, 'user:write')) return res.status(403).json({ error: 'Forbidden' });
+            if (!hasPermission(req, 'user:write')) {
+                logger.warn({ userId: sessionUser?.id }, 'Unauthorized attempt to create user');
+                return res.status(403).json({ error: 'Forbidden' });
+            }
 
-            const sessionUser = (req.session as any)?.user;
-            const tenantCtx = getCurrentTenant();
             const { email, role, password, username, tenantSlug: bodyTenantSlug } = req.body;
 
             // 1. Determine Target Tenant
@@ -22,11 +26,15 @@ export class UserController {
                 targetSlug = bodyTenantSlug;
             } else if (tenantCtx?.slug !== 'default' && bodyTenantSlug && bodyTenantSlug !== tenantCtx?.slug) {
                 // Security: Non-global admins cannot create users for other tenants
+                logger.warn({ userId: sessionUser?.id, targetSlug: bodyTenantSlug, currentSlug: tenantCtx?.slug }, 'Denied attempt to create user in another tenant');
                 return res.status(403).json({ error: 'Permission denied: Cannot create user for another tenant' });
             }
 
             const tenantId = await this.userService.resolveTenantId(targetSlug);
-            if (!tenantId) return res.status(404).json({ error: 'Target tenant not found' });
+            if (!tenantId) {
+                logger.error({ targetSlug }, 'Target tenant not found during user creation');
+                return res.status(404).json({ error: 'Target tenant not found' });
+            }
 
             // [NEW] Role Elevation Protection
             const restrictedRoles = ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'SYSTEM_ADMIN'];
@@ -35,6 +43,7 @@ export class UserController {
 
             if (restrictedRoles.includes(role)) {
                 if (!isSuperAdmin && !isGlobalAdmin) {
+                    logger.warn({ userId: sessionUser?.id, role }, 'Denied attempt to assign global administrative role');
                     return res.status(403).json({ error: 'Permission denied: Cannot assign global administrative roles' });
                 }
             }
@@ -42,13 +51,14 @@ export class UserController {
             // Basic validation
             if (!email) return res.status(400).json({ error: 'Email is required' });
 
+            logger.info({ email, role, targetSlug, tenantId }, 'Creating new user');
             const user = await this.userService.createUser(tenantId, email, role || 'VIEWER', password, username);
 
-            // Return user without password hash
+            logger.info({ userId: user.id, email, tenantId }, 'User created successfully');
             const { passwordHash, ...safeUser } = user;
             res.status(201).json(safeUser);
         } catch (error: any) {
-            console.error('Create User Error:', error);
+            logger.error({ error, email: req.body.email }, 'Failed to create user');
             if (error.code === 'P2002') {
                 return res.status(409).json({ error: 'Email already exists' });
             }
@@ -57,13 +67,13 @@ export class UserController {
     };
 
     update = async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const sessionUser = (req.session as any)?.user;
         try {
-            const { id } = req.params;
-            const sessionUser = (req.session as any)?.user;
-
             // Security: Allow if having 'user:write' OR if updating self
             const isSelf = sessionUser?.id === id;
             if (!isSelf && !hasPermission(req, 'user:write')) {
+                logger.warn({ userId: sessionUser?.id, targetUserId: id }, 'Unauthorized attempt to update user');
                 return res.status(403).json({ error: 'Forbidden' });
             }
 
@@ -77,24 +87,21 @@ export class UserController {
 
                 if (restrictedRoles.includes(updates.role)) {
                     if (!isSuperAdmin && !isGlobalAdmin) {
+                        logger.warn({ userId: sessionUser?.id, role: updates.role }, 'Denied attempt to elevate user to restricted role');
                         return res.status(403).json({ error: 'Permission denied: Cannot assign global administrative roles' });
                     }
                 }
             }
 
+            logger.info({ targetUserId: id, isSelf }, 'Updating user');
+
+            let user;
             // Handle Password Update
             if (updates.password) {
-                // We need to bypass the Service's generic update which ignores 'password'
-                // Actually, let's just use the service's update pass method if needed or do it here.
-                // Cleaner: Update the service to handle it or separate.
-                // Let's do it here for now to save a trip, or import bcrypt.
-                // Better: rely on service.
-                const user = await this.userService.updateUserWithPassword(id, updates);
-                const { passwordHash, ...safeUser } = user;
-                return res.json(safeUser);
+                user = await this.userService.updateUserWithPassword(id, updates);
+            } else {
+                user = await this.userService.updateUser(id, updates);
             }
-
-            const user = await this.userService.updateUser(id, updates);
 
             // [SYNC] Update session if updated user is self
             if (isSelf && (req.session as any)?.user) {
@@ -106,40 +113,50 @@ export class UserController {
                     role: user.role
                 };
                 req.session.save();
+                logger.info({ userId: id }, 'User updated their own profile, session synced');
             }
 
             const { passwordHash, ...safeUser } = user;
             res.json(safeUser);
         } catch (error: any) {
+            logger.error({ error, targetUserId: id }, 'Failed to update user');
             res.status(500).json({ error: error.message });
         }
     };
 
     delete = async (req: Request, res: Response) => {
+        const { id } = req.params;
         try {
             // [STRICT] Prefer user:delete, fallback to user:write
             if (!hasPermission(req, 'user:delete') && !hasPermission(req, 'user:write')) {
+                logger.warn({ userId: (req.session as any)?.user?.id, targetUserId: id }, 'Unauthorized attempt to delete user');
                 return res.status(403).json({ error: 'Forbidden' });
             }
 
-            const { id } = req.params;
+            logger.info({ targetUserId: id }, 'Deleting user');
             await this.userService.deleteUser(id);
+            logger.info({ targetUserId: id }, 'User deleted successfully');
             res.status(204).send();
         } catch (error: any) {
+            logger.error({ error, targetUserId: id }, 'Failed to delete user');
             res.status(500).json({ error: error.message });
         }
     };
 
     getAll = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
         try {
-            if (!hasPermission(req, 'user:read')) return res.status(403).json({ error: 'Forbidden' });
+            if (!hasPermission(req, 'user:read')) {
+                logger.warn({ userId: (req.session as any)?.user?.id }, 'Unauthorized attempt to list all users');
+                return res.status(403).json({ error: 'Forbidden' });
+            }
 
-            const tenantCtx = getCurrentTenant();
             if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
 
             const tenantId = await this.userService.resolveTenantId(tenantCtx.slug);
             if (!tenantId) return res.status(404).json({ error: 'Tenant not found' });
 
+            logger.info({ tenantId, slug: tenantCtx.slug }, 'Fetching all users for tenant');
             const users = await this.userService.getAllUsers(tenantId);
             const safeUsers = users.map(u => {
                 const { passwordHash, ...rest } = u;
@@ -148,6 +165,7 @@ export class UserController {
 
             res.json(safeUsers);
         } catch (error: any) {
+            logger.error({ error, tenantSlug: tenantCtx?.slug }, 'Failed to fetch all users');
             res.status(500).json({ error: error.message });
         }
     };

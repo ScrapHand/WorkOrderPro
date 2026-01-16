@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AssetStatus, WorkOrderPriority, WorkOrderStatus } from '@workorderpro/shared';
 
 export const loginSchema = z.object({
     email: z.string().email(),
@@ -11,7 +12,7 @@ export const createAssetSchema = z.object({
     code: z.string().optional(),
     description: z.string().optional(),
     parentId: z.string().uuid().nullable().optional(),
-    status: z.enum(['OPERATIONAL', 'DOWN', 'MAINTENANCE']).optional(),
+    status: z.nativeEnum(AssetStatus).optional(),
     criticality: z.enum(['A', 'B', 'C']).optional()
 });
 
@@ -26,7 +27,7 @@ export const createWorkOrderSchema = z.object({
     assetId: z.string().uuid(),
     title: z.string().min(3).max(200),
     description: z.string().optional(),
-    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+    priority: z.nativeEnum(WorkOrderPriority),
     assignedUserId: z.string().uuid().optional().nullable(),
     assignedToMe: z.boolean().optional()
 });
@@ -34,8 +35,8 @@ export const createWorkOrderSchema = z.object({
 export const updateWorkOrderSchema = z.object({
     title: z.string().min(3).max(200).optional(),
     description: z.string().optional(),
-    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
-    status: z.enum(['OPEN', 'IN_PROGRESS', 'ON_HOLD', 'DONE', 'CANCELLED']).optional(),
+    priority: z.nativeEnum(WorkOrderPriority).optional(),
+    status: z.nativeEnum(WorkOrderStatus).optional(),
     assignedUserId: z.string().uuid().optional().nullable(),
     completionNotes: z.string().optional()
 });
