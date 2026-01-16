@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { hasPermission } from '../auth/rbac.utils';
 import { prisma } from '../database/prisma';
+import { getCurrentTenant } from './tenant.middleware';
 
 /**
  * Enum for Roles to ensure consistency
@@ -34,14 +35,15 @@ export const ROLE_WEIGHTS: Record<string, number> = {
  */
 const auditLog = async (req: Request, event: string, details: any) => {
     const user = (req.session as any)?.user;
+    const tenantId = getCurrentTenant()?.id || user?.tenantId;
 
     // Log to console for immediate visibility
-    console.info(`[AUDIT] User:${user?.id || 'GUEST'} | Event:${event} | Details:${JSON.stringify(details)}`);
+    console.info(`[AUDIT] User:${user?.id || 'GUEST'} | Tenant:${tenantId} | Event:${event} | Details:${JSON.stringify(details)}`);
 
     try {
         await prisma.auditLog.create({
             data: {
-                tenantId: user?.tenantId || null,
+                tenantId: tenantId || null,
                 userId: user?.id || null,
                 event,
                 resource: details.resource || 'SYSTEM',

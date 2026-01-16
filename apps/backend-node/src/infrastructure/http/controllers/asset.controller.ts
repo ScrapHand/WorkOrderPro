@@ -15,8 +15,8 @@ export class AssetController {
     ) { }
 
     create = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenant = getCurrentTenant();
+        const tenantId = tenant?.id;
         try {
             if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized: No tenant context' });
@@ -57,8 +57,7 @@ export class AssetController {
     };
 
     update = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
@@ -87,8 +86,7 @@ export class AssetController {
     };
 
     getTree = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
@@ -102,8 +100,7 @@ export class AssetController {
     };
 
     importTemplate = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         try {
             if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -122,8 +119,7 @@ export class AssetController {
     }
 
     bulkImport = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         try {
             if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -145,8 +141,7 @@ export class AssetController {
     }
 
     getAll = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         try {
             if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -180,8 +175,7 @@ export class AssetController {
     };
 
     delete = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });

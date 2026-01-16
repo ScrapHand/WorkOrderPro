@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { FactoryLayoutService } from '../../../application/services/factory-layout.service';
+import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { logger } from '../../logging/logger';
 
 export class FactoryLayoutController {
@@ -10,8 +11,7 @@ export class FactoryLayoutController {
      * List all layouts for the tenant
      */
     listLayouts = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         try {
             if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
@@ -31,7 +31,7 @@ export class FactoryLayoutController {
      */
     createLayout = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         try {
             if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
@@ -65,8 +65,7 @@ export class FactoryLayoutController {
      * Get a specific layout with all nodes and edges
      */
     getLayout = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) {
@@ -94,7 +93,7 @@ export class FactoryLayoutController {
      */
     updateMetadata = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) {
@@ -138,7 +137,7 @@ export class FactoryLayoutController {
      */
     bulkSaveGraph = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) {
@@ -188,7 +187,7 @@ export class FactoryLayoutController {
      */
     toggleLock = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) {
@@ -223,7 +222,7 @@ export class FactoryLayoutController {
      */
     deleteLayout = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) {

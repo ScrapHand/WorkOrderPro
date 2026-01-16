@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { ConveyorSystemService } from '../../../application/services/conveyor-system.service';
+import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { logger } from '../../logging/logger';
 
 export class ConveyorSystemController {
@@ -10,8 +11,7 @@ export class ConveyorSystemController {
      * List all conveyor systems for the tenant
      */
     listSystems = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         try {
             if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
@@ -32,7 +32,7 @@ export class ConveyorSystemController {
      */
     createSystem = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         try {
             if (!tenantId) {
                 return res.status(401).json({ error: 'Unauthorized' });
@@ -66,8 +66,7 @@ export class ConveyorSystemController {
      * Get a specific conveyor system
      */
     getSystem = async (req: Request, res: Response) => {
-        const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) {
@@ -95,7 +94,7 @@ export class ConveyorSystemController {
      */
     updateSystem = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) {
@@ -132,7 +131,7 @@ export class ConveyorSystemController {
      */
     deleteSystem = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
-        const tenantId = sessionUser?.tenantId;
+        const tenantId = getCurrentTenant()?.id;
         const { id } = req.params;
         try {
             if (!tenantId) {

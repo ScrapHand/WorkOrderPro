@@ -155,7 +155,7 @@ s3Service.ensureBucketExists().catch(err => console.error('[S3] Bootstrap Error:
 const uploadController = new UploadController(s3Service, prisma);
 
 const userService = new UserService(prisma);
-const userController = new UserController(userService);
+const userController = new UserController(userService, prisma);
 const adminController = new AdminController(prisma);
 const debugController = new DebugController(prisma);
 

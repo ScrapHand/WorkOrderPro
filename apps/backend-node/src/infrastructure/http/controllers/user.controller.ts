@@ -1,11 +1,15 @@
 import { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
 import { UserService } from '../../../application/services/user.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { hasPermission } from '../../auth/rbac.utils';
 import { logger } from '../../logging/logger';
 
 export class UserController {
-    constructor(private userService: UserService) { }
+    constructor(
+        private userService: UserService,
+        private prisma: PrismaClient
+    ) { }
 
     create = async (req: Request, res: Response) => {
         const sessionUser = (req.session as any)?.user;
@@ -19,20 +23,20 @@ export class UserController {
             const { email, role, password, username, tenantSlug: bodyTenantSlug } = req.body;
 
             // 1. Determine Target Tenant
-            let targetSlug = tenantCtx?.slug || 'default';
+            let targetId = tenantCtx?.id;
+            let targetSlug = tenantCtx?.slug;
 
-            // Global Admin Override: If user is ADMIN of 'default' tenant, they can specify target
-            if (sessionUser?.tenantSlug === 'default' && sessionUser?.role === 'ADMIN' && bodyTenantSlug) {
-                targetSlug = bodyTenantSlug;
-            } else if (tenantCtx?.slug !== 'default' && bodyTenantSlug && bodyTenantSlug !== tenantCtx?.slug) {
-                // Security: Non-global admins cannot create users for other tenants
-                logger.warn({ userId: sessionUser?.id, targetSlug: bodyTenantSlug, currentSlug: tenantCtx?.slug }, 'Denied attempt to create user in another tenant');
-                return res.status(403).json({ error: 'Permission denied: Cannot create user for another tenant' });
+            // Global Admin Override: If user is SUPER_ADMIN, they can optionally specify a target in the body
+            if (sessionUser?.role === 'SUPER_ADMIN' && bodyTenantSlug) {
+                const resolvedTenant = await this.prisma.tenant.findUnique({ where: { slug: bodyTenantSlug } });
+                if (resolvedTenant) {
+                    targetId = resolvedTenant.id;
+                    targetSlug = resolvedTenant.slug;
+                }
             }
 
-            const tenantId = await this.userService.resolveTenantId(targetSlug);
-            if (!tenantId) {
-                logger.error({ targetSlug }, 'Target tenant not found during user creation');
+            if (!targetId) {
+                logger.error({ targetSlug: bodyTenantSlug || tenantCtx?.slug }, 'Target tenant not found during user creation');
                 return res.status(404).json({ error: 'Target tenant not found' });
             }
 
@@ -51,10 +55,10 @@ export class UserController {
             // Basic validation
             if (!email) return res.status(400).json({ error: 'Email is required' });
 
-            logger.info({ email, role, targetSlug, tenantId }, 'Creating new user');
-            const user = await this.userService.createUser(tenantId, email, role || 'VIEWER', password, username);
+            logger.info({ email, role, targetSlug, tenantId: targetId }, 'Creating new user');
+            const user = await this.userService.createUser(targetId, email, role || 'VIEWER', password, username);
 
-            logger.info({ userId: user.id, email, tenantId }, 'User created successfully');
+            logger.info({ userId: user.id, email, tenantId: targetId }, 'User created successfully');
             const { passwordHash, ...safeUser } = user;
             res.status(201).json(safeUser);
         } catch (error: any) {
@@ -151,13 +155,10 @@ export class UserController {
                 return res.status(403).json({ error: 'Forbidden' });
             }
 
-            if (!tenantCtx) return res.status(400).json({ error: 'Tenant context missing' });
+            if (!tenantCtx?.id) return res.status(400).json({ error: 'Tenant context missing' });
 
-            const tenantId = await this.userService.resolveTenantId(tenantCtx.slug);
-            if (!tenantId) return res.status(404).json({ error: 'Tenant not found' });
-
-            logger.info({ tenantId, slug: tenantCtx.slug }, 'Fetching all users for tenant');
-            const users = await this.userService.getAllUsers(tenantId);
+            logger.info({ tenantId: tenantCtx.id, slug: tenantCtx.slug }, 'Fetching all users for tenant');
+            const users = await this.userService.getAllUsers(tenantCtx.id);
             const safeUsers = users.map(u => {
                 const { passwordHash, ...rest } = u;
                 return rest;
