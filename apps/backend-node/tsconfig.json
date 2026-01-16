@@ -9,13 +9,7 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "noImplicitAny": false,
-        "moduleResolution": "node",
-        "baseUrl": ".",
-        "paths": {
-            "@workorderpro/shared": [
-                "../../packages/shared/src/index.ts"
-            ]
-        }
+        "moduleResolution": "node"
     },
     "exclude": [
         "prisma.config.ts",
