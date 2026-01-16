@@ -69,11 +69,23 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
             if (!tenantId) {
                 const tenant = await prisma.tenant.findUnique({ where: { slug: finalSlug } });
                 if (!tenant) {
-                    logger.warn({ slug: finalSlug }, 'Tenant not found during resolution');
-                    return res.status(404).json({ error: 'Tenant not found' });
+                    // [RESILIENCY] If Super Admin or Auth route, and slug resolution fails, fallback to 'default'
+                    if (finalSlug !== 'default') {
+                        const fallbackTenant = await prisma.tenant.findUnique({ where: { slug: 'default' } });
+                        if (fallbackTenant && (sessionUser?.role === 'SUPER_ADMIN' || req.path.includes('/auth/'))) {
+                            logger.info({ invalidSlug: finalSlug, fallback: 'default' }, 'Tenant not found, falling back for privileged or auth route');
+                            tenantId = fallbackTenant.id;
+                            finalSlug = 'default';
+                        }
+                    }
+
+                    if (!tenantId) {
+                        logger.warn({ slug: finalSlug }, 'Tenant not found during resolution');
+                        return res.status(404).json({ error: 'Tenant not found', slug: finalSlug });
+                    }
+                } else {
+                    tenantId = tenant.id;
                 }
-                tenantId = tenant.id;
-                console.log(`[TenantMW] Resolved by SLUG: ${finalSlug} -> ${tenantId}`);
             }
         }
 
