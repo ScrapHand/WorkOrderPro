@@ -142,9 +142,26 @@ async function main() {
         }
 
         // [LEGACY] Keep admin@example.com for dev, optionally upgrade to SUPER_ADMIN too
+        // [LEGACY/DEV] Keep admin@example.com for dev, allow forced access
         const adminEmail = 'admin@example.com';
         const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-        if (existingAdmin && existingAdmin.role !== 'SUPER_ADMIN') {
+
+        if (!existingAdmin) {
+            console.log('Creating fallback Admin user...');
+            const bcrypt = await import('bcryptjs');
+            const adminHash = await bcrypt.hash('admin123', 10);
+
+            await prisma.user.create({
+                data: {
+                    email: adminEmail,
+                    passwordHash: adminHash,
+                    username: 'System Admin',
+                    role: 'SUPER_ADMIN',
+                    tenantId: tenants[0].id
+                }
+            });
+            console.log('Created admin@example.com / admin123');
+        } else if (existingAdmin.role !== 'SUPER_ADMIN') {
             console.log('Upgrading Legacy Admin to SUPER_ADMIN...');
             await prisma.user.update({
                 where: { email: adminEmail },
