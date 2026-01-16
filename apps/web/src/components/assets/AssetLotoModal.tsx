@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Lock, AlertTriangle, Zap, Droplets, Wind } from "lucide-react";
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { FileUploader } from "@/components/common/FileUploader";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -18,6 +19,8 @@ interface AssetLotoModalProps {
 
 export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProps) {
     const [activeTab, setActiveTab] = useState<"electrical" | "pneumatic" | "hydraulic">("electrical");
+    const params = useParams();
+    const tenantSlug = params.tenantSlug as string || 'default';
     const queryClient = useQueryClient();
 
     // Helper to normalize data (legacy string -> array)
@@ -53,7 +56,7 @@ export function AssetLotoModal({ open, onOpenChange, asset }: AssetLotoModalProp
                 const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
                 // [FIX] Append Tenant Slug for Proxy Auth (since <img> tags don't send headers)
                 // In Phase 1 we default to 'default', in future use dynamic slug.
-                return `${apiBase}/api/v1/upload/proxy?key=${key}&tenant=default`;
+                return `${apiBase}/api/v1/upload/proxy?key=${key}&tenant=${tenantSlug}`;
             } catch (e) {
                 return url;
             }

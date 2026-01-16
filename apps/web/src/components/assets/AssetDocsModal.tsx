@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { FileText, Upload, Trash, Download } from "lucide-react";
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { FileUploader } from "@/components/common/FileUploader";
 import { api } from "@/lib/api"; // Assuming we have an update endpoint or generic Asset update
 import { toast } from "sonner";
@@ -18,6 +19,8 @@ interface AssetDocsModalProps {
 
 export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProps) {
     const [isUploading, setIsUploading] = useState(false);
+    const params = useParams();
+    const tenantSlug = params.tenantSlug as string || 'default';
     const queryClient = useQueryClient();
 
     const handleUploadComplete = async (attachment: any) => {
@@ -64,7 +67,7 @@ export function AssetDocsModal({ open, onOpenChange, asset }: AssetDocsModalProp
         if (doc.key) {
             // [FIX] Use Backend Proxy for private buckets with sanitized Base URL
             const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
-            return `${apiBase}/api/v1/upload/proxy?key=${doc.key}&tenant=default`;
+            return `${apiBase}/api/v1/upload/proxy?key=${doc.key}&tenant=${tenantSlug}`;
         }
         return doc.url;
     };

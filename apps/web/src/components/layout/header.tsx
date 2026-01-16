@@ -95,7 +95,7 @@ export function Header() {
                             {isSuperAdmin && (
                                 <>
                                     <Link
-                                        href={`/${tenantSlug}/dashboard/admin`}
+                                        href={`/${tenantSlug}/dashboard/admin/users`}
                                         onClick={() => setIsMenuOpen(false)}
                                         className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                                     >

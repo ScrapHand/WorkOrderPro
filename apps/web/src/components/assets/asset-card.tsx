@@ -8,6 +8,7 @@ import { FileText, Lock, History, MoreVertical, Trash2, ClipboardList } from "lu
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 interface AssetCardProps {
     asset: Asset;
@@ -19,6 +20,8 @@ interface AssetCardProps {
 }
 
 export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, onDelete }: AssetCardProps) {
+    const params = useParams();
+    const tenantSlug = params.tenantSlug as string || 'default';
     const isCritical = asset.criticality === "A";
 
     return (
@@ -28,7 +31,7 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, 
                     <img
                         src={(() => {
                             if (!asset.imageUrl) return "";
-                            if (asset.imageUrl.includes('/api/v1/upload/proxy')) return `${asset.imageUrl}&tenant=default`;
+                            if (asset.imageUrl.includes('/api/v1/upload/proxy')) return `${asset.imageUrl}&tenant=${tenantSlug}`;
                             if (asset.imageUrl.includes('amazonaws.com')) {
                                 try {
                                     const urlObj = new URL(asset.imageUrl);
@@ -39,7 +42,7 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, 
 
                                     const key = match[0];
                                     const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'https://work-order-pro-backend.onrender.com').replace(/\/api\/v1\/?$/, '');
-                                    return `${apiBase}/api/v1/upload/proxy?key=${key}&tenant=default`;
+                                    return `${apiBase}/api/v1/upload/proxy?key=${key}&tenant=${tenantSlug}`;
                                 } catch (e) { return asset.imageUrl; }
                             }
                             return asset.imageUrl;
@@ -117,7 +120,7 @@ export function AssetCard({ asset, onViewDocs, onViewLoto, onViewSpecs, onEdit, 
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <Link href={`/dashboard/work-orders?assetId=${asset.id}`}>
+                                <Link href={`/${tenantSlug}/dashboard/work-orders?assetId=${asset.id}`}>
                                     <DropdownMenuItem>
                                         <History className="mr-2 h-4 w-4" /> View History
                                     </DropdownMenuItem>
