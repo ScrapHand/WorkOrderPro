@@ -248,6 +248,7 @@ tenantAdminRouter.patch('/:id/entitlements', requireRole('SUPER_ADMIN'), adminCo
 tenantAdminRouter.get('/', requireRole('SUPER_ADMIN'), tenantController.getAll);
 tenantAdminRouter.post('/', requireRole('SUPER_ADMIN'), tenantController.create);
 tenantAdminRouter.post('/:id/seed', requireRole('SUPER_ADMIN'), tenantController.seedDemo);
+tenantAdminRouter.post('/:id/reseed-roles', requireRole(['SUPER_ADMIN', 'TENANT_ADMIN']), tenantController.reseedRoles);
 tenantAdminRouter.delete('/:id', requireRole('SUPER_ADMIN'), tenantController.delete);
 tenantAdminRouter.post('/:id/upgrade', requireAuth, tenantController.upgrade);
 tenantAdminRouter.get('/audit-logs', requireRole(UserRole.SUPER_ADMIN), platformAdminController.getAuditLogs);

@@ -71,22 +71,34 @@ export class TenantService {
         });
     }
 
+    // [PUBLIC] Allow reseeding roles for existing tenants
+    async reseedRoles(tenantId: string) {
+        return this.seedDefaultRoles(this.prisma, tenantId);
+    }
+
     private async seedDefaultRoles(tx: any, tenantId: string) {
         const defaultRoles = [
             {
-                name: 'ADMIN',
-                description: 'Full system access',
+                name: 'SUPER_ADMIN',
+                description: 'God Mode - All permissions',
                 permissions: ['*'],
                 isSystem: true
             },
             {
-                name: 'TECHNICIAN',
-                description: 'Assigned work orders and asset lockout',
+                name: 'TENANT_ADMIN',
+                description: 'Full access within tenant',
+                permissions: ['*'],
+                isSystem: true
+            },
+            {
+                name: 'ADMIN',
+                description: 'Full system access',
                 permissions: [
-                    'work_order:read',
-                    'work_order:write',
-                    'asset:read',
-                    'upload:write'
+                    'work_order:read', 'work_order:write', 'work_order:delete',
+                    'asset:read', 'asset:write', 'asset:delete',
+                    'inventory:read', 'inventory:write', 'inventory:delete',
+                    'user:read', 'user:write', 'user:delete',
+                    'tenant:write', 'report:read'
                 ],
                 isSystem: true
             },
@@ -94,13 +106,30 @@ export class TenantService {
                 name: 'MANAGER',
                 description: 'Planning and scheduling power user',
                 permissions: [
-                    'work_order:read',
-                    'work_order:write',
-                    'work_order:delete',
+                    'work_order:read', 'work_order:write',
+                    'asset:read', 'asset:write',
+                    'inventory:read', 'inventory:write',
+                    'user:read', 'report:read'
+                ],
+                isSystem: true
+            },
+            {
+                name: 'TECHNICIAN',
+                description: 'Assigned work orders and asset lockout',
+                permissions: [
+                    'work_order:read', 'work_order:write',
                     'asset:read',
-                    'asset:write',
-                    'part:read',
-                    'part:write'
+                    'inventory:read', 'inventory:write'
+                ],
+                isSystem: true
+            },
+            {
+                name: 'VIEWER',
+                description: 'Read-only access',
+                permissions: [
+                    'work_order:read', 'work_order:write', // Allow creating tickets
+                    'asset:read',
+                    'inventory:read'
                 ],
                 isSystem: true
             }
@@ -114,11 +143,16 @@ export class TenantService {
                         name: role.name
                     }
                 },
-                update: {},
+                update: {
+                    permissions: role.permissions,
+                    description: role.description
+                },
                 create: {
                     tenantId,
-                    ...role,
-                    permissions: JSON.stringify(role.permissions)
+                    name: role.name,
+                    description: role.description,
+                    permissions: role.permissions,
+                    isSystem: true
                 }
             });
         }

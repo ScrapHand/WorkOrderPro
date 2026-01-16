@@ -164,4 +164,26 @@ export class TenantController {
             res.status(500).json({ error: 'Failed to upgrade plan' });
         }
     }
+
+    reseedRoles = async (req: Request, res: Response) => {
+        const { id } = req.params;
+        try {
+            const sessionUser = (req.session as any)?.user;
+            const isMaster = ['SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(sessionUser?.role);
+
+            if (!isMaster && !hasPermission(req, 'tenant:write')) {
+                logger.warn({ userId: sessionUser?.id, tenantId: id }, 'Unauthorized attempt to reseed roles');
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+
+            logger.info({ tenantId: id }, 'Reseeding default roles for tenant');
+            await this.service.reseedRoles(id);
+
+            logger.info({ tenantId: id }, 'Roles reseeded successfully');
+            res.json({ message: 'Roles reseeded successfully' });
+        } catch (error) {
+            logger.error({ error, tenantId: id }, 'Failed to reseed roles');
+            res.status(500).json({ error: 'Failed to reseed roles' });
+        }
+    }
 }
