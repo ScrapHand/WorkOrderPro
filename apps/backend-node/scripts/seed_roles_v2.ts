@@ -118,8 +118,8 @@ async function main() {
 
         if (!masterUser) {
             console.log('Master Account missing. Creating SUPER_ADMIN...');
-            const bcrypt = await import('bcryptjs');
-            const masterHash = await bcrypt.hash('ScrapHandNcc1701bbc', 10);
+            const argon2 = await import('argon2');
+            const masterHash = await argon2.hash('ScrapHandNcc1701bbc');
 
             await prisma.user.create({
                 data: {
@@ -148,8 +148,8 @@ async function main() {
 
         if (!existingAdmin) {
             console.log('Creating fallback Admin user...');
-            const bcrypt = await import('bcryptjs');
-            const adminHash = await bcrypt.hash('admin123', 10);
+            const argon2 = await import('argon2');
+            const adminHash = await argon2.hash('admin123');
 
             await prisma.user.create({
                 data: {
@@ -189,10 +189,10 @@ async function main() {
         const existingBab = await prisma.user.findUnique({ where: { email: astonEmail } });
         if (!existingBab) {
             console.log('Creating Aston Tenant Admin...');
-            const bcrypt = await import('bcryptjs');
+            const argon2 = await import('argon2');
             // User specified password is "password" (implied, or from previous context)
             // Using 'password' as hash
-            const babHash = await bcrypt.hash('password', 10);
+            const babHash = await argon2.hash('password');
 
             await prisma.user.create({
                 data: {
