@@ -1,8 +1,14 @@
 import { z } from "zod";
 
 // Step 1: Asset Selection
-export const WizardAssetSchema = z.object({
-    assetId: z.string().uuid({ message: "Please select an asset." }),
+const WizardAssetShape = z.object({
+    assetId: z.string().uuid().optional(),
+    provisionalAssetName: z.string().min(2, "Asset name must be at least 2 chars").max(100).optional(),
+});
+
+export const WizardAssetSchema = WizardAssetShape.refine(data => data.assetId || data.provisionalAssetName, {
+    message: "Please select an asset or enter a provisional name.",
+    path: ["assetId"]
 });
 
 // Step 2: Priority Selection
@@ -18,9 +24,13 @@ export const WizardDetailsSchema = z.object({
 });
 
 // Combined Schema for Mutation
-export const CreateWorkOrderSchema = WizardAssetSchema
+export const CreateWorkOrderSchema = WizardAssetShape
     .merge(WizardPrioritySchema)
-    .merge(WizardDetailsSchema);
+    .merge(WizardDetailsSchema)
+    .refine(data => data.assetId || data.provisionalAssetName, {
+        message: "Please select an asset or enter a provisional name.",
+        path: ["assetId"]
+    });
 
 export type WizardAssetValues = z.infer<typeof WizardAssetSchema>;
 export type WizardPriorityValues = z.infer<typeof WizardPrioritySchema>;

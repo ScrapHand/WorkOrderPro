@@ -24,12 +24,16 @@ export const presignSchema = z.object({
 });
 
 export const createWorkOrderSchema = z.object({
-    assetId: z.string().uuid(),
+    assetId: z.string().uuid().optional(),
     title: z.string().min(3).max(200),
     description: z.string().optional(),
     priority: z.nativeEnum(WorkOrderPriority),
     assignedUserId: z.string().uuid().optional().nullable(),
-    assignedToMe: z.boolean().optional()
+    assignedToMe: z.boolean().optional(),
+    provisionalAssetName: z.string().min(2).max(100).optional()
+}).refine(data => data.assetId || data.provisionalAssetName, {
+    message: "Either assetId or provisionalAssetName must be provided",
+    path: ["assetId"]
 });
 
 export const updateWorkOrderSchema = z.object({

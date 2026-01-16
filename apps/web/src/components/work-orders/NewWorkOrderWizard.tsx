@@ -34,6 +34,7 @@ export function NewWorkOrderWizard() {
 
     // [NEW] Asset Search State
     const [assetSearch, setAssetSearch] = useState("");
+    const [isProvisional, setIsProvisional] = useState(false);
 
     const { data: assets, isLoading: isLoadingAssets } = useQuery({
         queryKey: ["assets", "list"],
@@ -188,29 +189,91 @@ export function NewWorkOrderWizard() {
                                     <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Which {t.asset.toLowerCase()} is targetted?</h2>
                                 </div>
 
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        placeholder={`Search ${t.assets.toLowerCase()} by name or location...`}
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                        value={assetSearch}
-                                        onChange={(e) => setAssetSearch(e.target.value)}
-                                    />
-                                </div>
+                                {!isProvisional ? (
+                                    <>
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                placeholder={`Search ${t.assets.toLowerCase()} by name or location...`}
+                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                                value={assetSearch}
+                                                onChange={(e) => setAssetSearch(e.target.value)}
+                                            />
+                                        </div>
 
-                                {isLoadingAssets ? (
-                                    <div className="text-center p-8 text-muted-foreground">Loading {t.assets.toLowerCase()}...</div>
+                                        {isLoadingAssets ? (
+                                            <div className="text-center p-8 text-muted-foreground">Loading {t.assets.toLowerCase()}...</div>
+                                        ) : (
+                                            <AssetGroupBoard
+                                                mode="select"
+                                                assets={assets || []}
+                                                searchQuery={assetSearch}
+                                                onSelect={(asset) => {
+                                                    setValue("assetId", asset.id);
+                                                    setValue("provisionalAssetName", undefined);
+                                                    nextStep();
+                                                }}
+                                            />
+                                        )}
+
+                                        <div className="pt-4 border-t text-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsProvisional(true);
+                                                    setValue("assetId", undefined as any);
+                                                }}
+                                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                            >
+                                                Can't find the {t.asset.toLowerCase()}? Request a new one.
+                                            </button>
+                                        </div>
+                                    </>
                                 ) : (
-                                    <AssetGroupBoard
-                                        mode="select"
-                                        assets={assets || []}
-                                        searchQuery={assetSearch}
-                                        onSelect={(asset) => {
-                                            setValue("assetId", asset.id);
-                                            nextStep();
-                                        }}
-                                    />
+                                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-start gap-3">
+                                            <AlertTriangle className="h-5 w-5 shrink-0" />
+                                            <div>
+                                                <div className="font-semibold">Provisional Asset Request</div>
+                                                <p>This will create a temporary {t.asset.toLowerCase()} that must be approved by a manager. Use this only if the {t.asset.toLowerCase()} is physically present but missing from the system.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-gray-700 capitalize">{t.asset} Name</label>
+                                            <input
+                                                {...register("provisionalAssetName")}
+                                                placeholder={`e.g. New Conveyor Motor #4`}
+                                                className="w-full p-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white text-lg"
+                                            />
+                                            {errors.provisionalAssetName && <p className="text-sm text-red-500">{errors.provisionalAssetName.message}</p>}
+                                        </div>
+
+                                        <div className="pt-4 space-y-3">
+                                            <Button
+                                                type="button"
+                                                className="w-full h-12 text-lg rounded-xl bg-amber-600 hover:bg-amber-700 text-white"
+                                                onClick={async () => {
+                                                    const isValid = await form.trigger("provisionalAssetName");
+                                                    if (isValid) nextStep();
+                                                }}
+                                            >
+                                                Continue with Provisional <span className="capitalize ml-1">{t.asset}</span> <ChevronRight className="ml-2 h-5 w-5" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="w-full"
+                                                onClick={() => {
+                                                    setIsProvisional(false);
+                                                    setValue("provisionalAssetName", undefined);
+                                                }}
+                                            >
+                                                Back to Search
+                                            </Button>
+                                        </div>
+                                    </div>
                                 )}
                             </motion.div>
                         )}
@@ -379,7 +442,12 @@ export function NewWorkOrderWizard() {
                                 <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
                                     <div>
                                         <div className="text-sm text-gray-500">{t.asset}</div>
-                                        <div className="font-medium text-lg">{assets?.find(a => a.id === formData.assetId)?.name}</div>
+                                        <div className="font-medium text-lg">
+                                            {formData.assetId
+                                                ? assets?.find(a => a.id === formData.assetId)?.name
+                                                : <span className="text-amber-600 flex items-center gap-1"><AlertTriangle className="h-4 w-4" /> {formData.provisionalAssetName} (Provisional)</span>
+                                            }
+                                        </div>
                                     </div>
                                     <div>
                                         <div className="text-sm text-gray-500">Problem</div>

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import { WorkOrderService } from '../../../application/services/work-order.service';
 import { getCurrentTenant } from '../../middleware/tenant.middleware';
 import { PrismaClient } from '@prisma/client';
@@ -24,8 +25,29 @@ export class WorkOrderController {
                 return res.status(400).json({ error: 'Invalid work order data', details: result.error.issues });
             }
 
-            const { assetId, title, priority, description, assignedUserId, assignedToMe } = result.data;
+            const { assetId, title, priority, description, assignedUserId, assignedToMe, provisionalAssetName } = result.data;
             const sessionUserId = (req.session as any)?.user?.id;
+
+            // [LOGIC] Handle Provisional Asset
+            let finalAssetId = assetId;
+            if (!finalAssetId && provisionalAssetName) {
+                logger.info({ provisionalAssetName, tenantId }, 'Creating Provisional Asset');
+                const newAssetId = uuidv4();
+                await this.prisma.asset.create({
+                    data: {
+                        id: newAssetId,
+                        tenantId,
+                        name: provisionalAssetName,
+                        status: 'PENDING',
+                        hierarchyPath: `/PENDING/${newAssetId}`,
+                        criticality: 'C'
+                    }
+                });
+                finalAssetId = newAssetId;
+                logger.info({ assetId: finalAssetId }, 'Provisional Asset created');
+            } else if (!finalAssetId) {
+                return res.status(400).json({ error: 'Asset ID required' });
+            }
 
             // [LOGIC] Handle Self-Assignment
             let targetUserId = assignedUserId;
@@ -33,11 +55,11 @@ export class WorkOrderController {
                 targetUserId = sessionUserId;
             }
 
-            logger.info({ assetId, title, priority, assignedUserId, assignedToMe, targetUserId }, 'WorkOrder creation requested');
+            logger.info({ assetId: finalAssetId, title, priority, assignedUserId, assignedToMe, targetUserId }, 'WorkOrder creation requested');
 
             const wo = await this.woService.createWorkOrder(
                 tenantId,
-                assetId,
+                finalAssetId!,
                 title,
                 priority,
                 description,
