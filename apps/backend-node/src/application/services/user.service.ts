@@ -137,12 +137,25 @@ export class UserService {
         }
 
         // 3. System Role (Lookup by Name)
-        const systemRole = await this.prisma.role.findFirst({
+        let systemRole = await this.prisma.role.findFirst({
             where: {
                 tenantId: user.tenantId,
                 name: user.role
             }
         });
+
+        // 3.5. [SELF-HEALING] Auto-seed roles if none exist for tenant
+        if (!systemRole) {
+            const rolesExist = await this.prisma.role.count({ where: { tenantId: user.tenantId } });
+            if (rolesExist === 0) {
+                console.log(`[RBAC] Auto-seeding roles for tenant ${user.tenantId}`);
+                await this.seedDefaultRolesForTenant(user.tenantId);
+                // Retry lookup
+                systemRole = await this.prisma.role.findFirst({
+                    where: { tenantId: user.tenantId, name: user.role }
+                });
+            }
+        }
 
         if (systemRole) {
             const perms = systemRole.permissions;
@@ -151,8 +164,28 @@ export class UserService {
         }
 
         // 4. Fallback (Legacy/Safety)
-        if (user.role === 'ADMIN') return ['*'];
+        if (user.role === 'ADMIN' || user.role === 'TENANT_ADMIN') return ['*'];
 
         return [];
+    }
+
+    // [PRIVATE] Seed default roles for a tenant (duplicated from TenantService for decoupling)
+    private async seedDefaultRolesForTenant(tenantId: string) {
+        const defaultRoles = [
+            { name: 'SUPER_ADMIN', permissions: ['*'] },
+            { name: 'TENANT_ADMIN', permissions: ['*'] },
+            { name: 'ADMIN', permissions: ['work_order:read', 'work_order:write', 'work_order:delete', 'asset:read', 'asset:write', 'asset:delete', 'inventory:read', 'inventory:write', 'inventory:delete', 'user:read', 'user:write', 'user:delete', 'tenant:write', 'report:read'] },
+            { name: 'MANAGER', permissions: ['work_order:read', 'work_order:write', 'asset:read', 'asset:write', 'inventory:read', 'inventory:write', 'user:read', 'report:read'] },
+            { name: 'TECHNICIAN', permissions: ['work_order:read', 'work_order:write', 'asset:read', 'inventory:read', 'inventory:write'] },
+            { name: 'VIEWER', permissions: ['work_order:read', 'work_order:write', 'asset:read', 'inventory:read'] }
+        ];
+
+        for (const role of defaultRoles) {
+            await this.prisma.role.upsert({
+                where: { tenantId_name: { tenantId, name: role.name } },
+                update: { permissions: role.permissions },
+                create: { tenantId, name: role.name, description: `Default ${role.name} role`, permissions: role.permissions, isSystem: true }
+            });
+        }
     }
 }
