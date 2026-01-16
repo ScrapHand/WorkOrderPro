@@ -346,8 +346,8 @@ model PMSchedule {
   checklistTemplateId String? @map("checklist_template_id")
   checklistTemplate   ChecklistTemplate? @relation(fields: [checklistTemplateId], references: [id])
 
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   tenant        Tenant    @relation(fields: [tenantId], references: [id])
   asset         Asset     @relation(fields: [assetId], references: [id])
@@ -488,8 +488,8 @@ model FactoryLayout {
   edges         FactoryLayoutEdge[]
   
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([tenantId])
 }
@@ -555,8 +555,8 @@ model ConveyorSystem {
   edges       FactoryLayoutEdge[]
   
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([tenantId])
 }
@@ -570,8 +570,8 @@ model Page {
   
   tenant           Tenant   @relation(fields: [tenantId], references: [id])
   
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@unique([tenantId, key])
   @@index([tenantId])
