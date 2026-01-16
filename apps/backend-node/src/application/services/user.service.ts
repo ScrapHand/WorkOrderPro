@@ -144,17 +144,14 @@ export class UserService {
             }
         });
 
-        // 3.5. [SELF-HEALING] Auto-seed roles if none exist for tenant
+        // 3.5. [SELF-HEALING] Auto-seed roles if user's role is missing
         if (!systemRole) {
-            const rolesExist = await this.prisma.role.count({ where: { tenantId: user.tenantId } });
-            if (rolesExist === 0) {
-                console.log(`[RBAC] Auto-seeding roles for tenant ${user.tenantId}`);
-                await this.seedDefaultRolesForTenant(user.tenantId);
-                // Retry lookup
-                systemRole = await this.prisma.role.findFirst({
-                    where: { tenantId: user.tenantId, name: user.role }
-                });
-            }
+            console.log(`[RBAC] Auto-seeding roles for tenant ${user.tenantId} (missing role: ${user.role})`);
+            await this.seedDefaultRolesForTenant(user.tenantId);
+            // Retry lookup
+            systemRole = await this.prisma.role.findFirst({
+                where: { tenantId: user.tenantId, name: user.role }
+            });
         }
 
         if (systemRole) {
