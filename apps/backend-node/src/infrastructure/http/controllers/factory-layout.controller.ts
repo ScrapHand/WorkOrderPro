@@ -251,4 +251,94 @@ export class FactoryLayoutController {
             res.status(500).json({ error: error.message });
         }
     };
+
+    /**
+     * PATCH /api/factory-layouts/:id/nodes/:nodeId
+     * Update node position (Optimistic UI endpoint)
+     */
+    updateNode = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = getCurrentTenant()?.id;
+        const { id, nodeId } = req.params;
+        try {
+            if (!tenantId) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
+
+            // RBAC: Only TENANT_ADMIN can update nodes
+            if (sessionUser.role !== 'TENANT_ADMIN') {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+
+            const { x, y } = req.body;
+
+            if (typeof x !== 'number' || typeof y !== 'number') {
+                return res.status(400).json({ error: 'Invalid x, y' });
+            }
+
+            try {
+                const node = await this.layoutService.updateNodePosition(id, nodeId, tenantId, x, y);
+                res.json(node);
+            } catch (error: any) {
+                if (error.message === 'Layout not found') return res.status(404).json({ error: 'Layout not found' });
+                if (error.message === 'Cannot modify locked layout') return res.status(403).json({ error: 'Layout is locked' });
+                throw error;
+            }
+        } catch (error: any) {
+            logger.error({ error, layoutId: id, nodeId, tenantId }, 'Failed to update node position');
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    /**
+     * POST /api/factory-layouts/:id/nodes
+     * Create a new node
+     */
+    createNode = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = getCurrentTenant()?.id;
+        const { id } = req.params;
+        try {
+            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+            if (sessionUser.role !== 'TENANT_ADMIN') return res.status(403).json({ error: 'Forbidden' });
+
+            const { assetId, x, y } = req.body;
+            if (!assetId || x === undefined || y === undefined) {
+                return res.status(400).json({ error: 'Missing required fields: assetId, x, y' });
+            }
+
+            const node = await this.layoutService.createNode(id, tenantId, { assetId, x, y });
+            res.status(201).json(node);
+        } catch (error: any) {
+            logger.error({ error, layoutId: id, tenantId }, 'Failed to create node');
+            if (error.message === 'Layout not found') return res.status(404).json({ error: error.message });
+            if (error.message === 'Asset not found') return res.status(404).json({ error: error.message });
+            if (error.message === 'Cannot modify locked layout') return res.status(403).json({ error: error.message });
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    /**
+     * DELETE /api/factory-layouts/:id/nodes/:nodeId
+     * Delete a node
+     */
+    deleteNode = async (req: Request, res: Response) => {
+        const sessionUser = (req.session as any)?.user;
+        const tenantId = getCurrentTenant()?.id;
+        const { id, nodeId } = req.params;
+        try {
+            if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+            if (sessionUser.role !== 'TENANT_ADMIN') return res.status(403).json({ error: 'Forbidden' });
+
+            await this.layoutService.deleteNode(id, nodeId, tenantId);
+            res.status(204).send();
+        } catch (error: any) {
+            logger.error({ error, layoutId: id, nodeId, tenantId }, 'Failed to delete node');
+            if (error.message === 'Layout not found' || error.message === 'Node not found') {
+                return res.status(404).json({ error: error.message });
+            }
+            if (error.message === 'Cannot modify locked layout') return res.status(403).json({ error: error.message });
+            res.status(500).json({ error: error.message });
+        }
+    };
 }

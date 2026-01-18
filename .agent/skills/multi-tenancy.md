@@ -24,6 +24,18 @@ WorkOrderPro is a strictly multi-tenant application. Data isolation is enforced 
 - **Missing Filter**: Forgetting `tenantId` in a `delete` or `update` operation is a CRITICAL security violation.
 - **Cross-Tenant Leaks**: Ensure that session data for one tenant cannot be used to access another (enforced in `tenant.middleware.ts`).
 
+## 🧱 Forensic Isolation Hardening
+Lessons from the "Cookie Apocalypse" and Authentication Crisis:
+
+### 1. Cross-Origin Identity
+- **The Problem**: Requesting `/api/v1/users` without a valid cookie fails silently in modern browsers.
+- **The Fix**: The frontend `api` client must use `withCredentials: true` AND the backend must return `Access-Control-Allow-Credentials: true`.
+- **Slugs**: The `X-Tenant-Slug` header is useful for routing, but **NEVER** trust it for authorization. Trust only the session cookie.
+
+### 2. Strict Context Verification
+- **Middleware Rule**: The `verifyTenant` middleware must run *immediately* after authentication.
+- **Circuit Breaker**: If `req.session.tenantId` matches the URL slug, proceed. If they mismatch (e.g., user is logged into Tenant A but requesting Tenant B's dashboard), **IMMEDIATELY** return 403. Do not attempt to "guess" or "redirect" to the other tenant. Fail fast.
+
 ## 🧩 Modular Feature Provisioning
 Multi-tenancy now supports per-tenant feature activation.
 - **Storage**: Features are stored in the `Tenant.features` JSON field.

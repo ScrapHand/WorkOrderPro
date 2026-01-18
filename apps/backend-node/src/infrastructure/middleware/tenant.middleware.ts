@@ -9,6 +9,16 @@ export interface TenantContext {
     id: string; // Now required and verified
 }
 
+// [TYPE SAFETY] Extend Express Request
+declare global {
+    namespace Express {
+        interface Request {
+            tenantId?: string;
+            tenantSlug?: string;
+        }
+    }
+}
+
 export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
 // [PHASE 7] Global routes that don't strictly require a tenant context
@@ -41,19 +51,26 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
     }
 
     try {
-        // [SECURITY] [PHASE 26] Session Lock Strategy
+        // [SECURITY] [PHASE 12-A] Forensic Isolation Circuit Breaker
+        // "Strict Context Verification" from Remediation Plan
         const sessionUser = (req.session as any)?.user;
         let tenantId: string | null = null;
         let finalSlug = slug;
 
+        // 2. Strict Session-URL Mismatch Check
         if (sessionUser && !req.path.includes('/auth/') && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN' && sessionUser.role !== 'SUPER_ADMIN') {
-            // [HARD LOCK] Enforce user's assigned tenant
-            // [HARD LOCK] Enforce user's assigned tenant
-            if (slug !== sessionUser.tenantSlug) {
-                logger.warn({ userId: sessionUser.id, userTenant: sessionUser.tenantSlug, requestedTenant: slug }, 'Cross-tenant access attempt blocked');
+
+            // If the user attempts to access a tenant slug different from their session
+            if (slug !== sessionUser.tenantSlug && slug !== 'default') {
+                logger.warn({
+                    userId: sessionUser.id,
+                    sessionTenant: sessionUser.tenantSlug,
+                    requestedTenant: slug
+                }, '⛔ FORENSIC CIRCUIT BREAKER: Cross-tenant access attempted');
+
                 return res.status(403).json({
-                    error: 'Access denied',
-                    message: 'You do not have permission to access this resource.'
+                    error: 'Access Denied',
+                    message: `You are logged into '${sessionUser.tenantSlug}' but requested '${slug}'. Please switch tenants explicitly.`
                 });
             }
 
@@ -150,6 +167,10 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
             slug: finalSlug,
             id: tenantId
         };
+
+        // Mutation: Extend Request Object
+        req.tenantId = tenantId;
+        req.tenantSlug = finalSlug;
 
         // 4. Set Tenant ID in Postgres session for RLS
         // We use $executeRawUnsafe because it's a SET LOCAL command

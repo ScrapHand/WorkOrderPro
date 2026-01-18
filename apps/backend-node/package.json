@@ -7,19 +7,19 @@
     },
     "main": "dist/server.js",
     "scripts": {
-        "build": "npx prisma generate && tsc",
-        "start": "npx prisma db push --accept-data-loss && npx prisma db seed && node dist/server.js",
+        "build": "tsc",
+        "start": "npx prisma migrate deploy --schema=../../packages/database/prisma/schema.prisma && npx ts-node --transpile-only scripts/seed_roles_v2.ts && node dist/server.js",
         "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
         "test": "jest"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.958.0",
         "@aws-sdk/s3-request-presigner": "^3.958.0",
-        "@prisma/client": "5.10.2",
+        "@workorderpro/database": "workspace:*",
+        "@workorderpro/shared": "workspace:*",
         "@types/bcrypt": "^6.0.0",
         "@types/express-rate-limit": "^5.1.3",
         "@types/uuid": "^10.0.0",
-        "@workorderpro/shared": "workspace:*",
         "argon2": "^0.44.0",
         "bcrypt": "^6.0.0",
         "bcryptjs": "^3.0.3",

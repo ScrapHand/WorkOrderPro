@@ -43,3 +43,21 @@ A major pitfall in multi-tenant architecture is over-constraining platform-level
 - **Bootstrap Protocol**: The only way to create the initial Super Admin account on a fresh production environment should be via a secure, script-based bootstrap process (e.g., `scripts/bootstrap-superadmin.ts`) that runs post-deployment.
 - **Global Lock**: The landing page (`/`) and all dashboard routes MUST be behind a global authentication lock (e.g., Next.js Middleware). No "guest" or "demo" access should be permitted on a production enterprise instance.
 - **Identity Blacklist**: Hard-code critical blocks for known test identities (e.g., `admin@example.com`) in the Auth Controller to prevent "ghost" account resurgence during migrations.
+
+## 🚀 Deployment Safety & Ops (CRITICAL)
+- **NO DESTRUCTIVE COMMANDS**: Never use `prisma db push --force-reset` or `accept-data-loss` in a production start/pre-deploy command. This will wipe the database on every deploy.
+  - **Correct**: `npx prisma migrate deploy`
+  - **Incorrect**: `npx prisma db push ...`
+- **Health Check Verification**: Ensure `/health` endpoint returns a version/timestamp object, not just "OK", to validate successful rollouts.
+
+## 🏚️ Forensic Monorepo Architecture (Build Stability)
+To prevent "Phantom Dependency" errors and version mismatches between Next.js (Web) and Node.js (Backend):
+
+### 1. The Shared Database Layer
+- **Mandate**: `schema.prisma` and the generated client **MUST** live in a dedicated workspace package (e.g., `packages/database`).
+- **Export Strategy**: The package should export the instantiated PrismaClient and types: `export * from '@prisma/client'`.
+- **Peer Dependency**: Both `apps/web` and `apps/backend-node` must depend on `@workorderpro/database`, **NOT** `@prisma/client` directly.
+
+### 2. Next.js Transpilation
+- **The Barrier**: Next.js App Router treats workspace packages as external modules.
+- **The Fix**: Add `transpilePackages: ['@workorderpro/database']` to `next.config.js` to ensure TypeScript sources are correctly compiled for the frontend build.

@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
   experimental: {
     // serverActions: true, // Default in 14+
   },
+  transpilePackages: ['@workorderpro/database'],
 };
 
 export default nextConfig;

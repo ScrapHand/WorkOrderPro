@@ -79,6 +79,27 @@ const PORT = process.env.PORT || 8080;
 
 app.set('trust proxy', 1);
 
+// Vulnerability Fix: Dynamic CORS Whitelist + Credentials
+// "Wildcards (*) cannot be used with credentials" - Fetch Spec
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || [];
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow mobile apps or non-browser tools (no origin)
+        if (!origin) return callback(null, true);
+
+        // Strict Whitelist Check
+        if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.onrender.com') || origin.includes('localhost') || origin.includes('vercel.app')) {
+            callback(null, true);
+        } else {
+            console.warn(`[CORS] Blocked request from: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true, // Required for Cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Slug', 'X-Requested-With']
+}));
+
 // Security Middleware
 app.use(helmet({
     contentSecurityPolicy: {
@@ -133,13 +154,13 @@ app.use(session({
     saveUninitialized: false,
     name: 'wop_sid',
     rolling: true,
-    proxy: true,
+    proxy: true, // Essential for Render/Vercel
     cookie: {
         path: '/',
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        partitioned: process.env.NODE_ENV === 'production',
+        secure: true, // MUST be true for SameSite: None 
+        sameSite: 'none', // Required for Cross-Site (Vercel -> Render)
+        partitioned: true, // CRITICAL: CHIPS support for Chrome/Safari
         maxAge: 7 * 24 * 60 * 60 * 1000
     } as any
 }));
@@ -374,6 +395,9 @@ factoryLayoutRouter.get('/', requireAuth, factoryLayoutController.listLayouts);
 factoryLayoutRouter.post('/', requireAuth, factoryLayoutController.createLayout);
 factoryLayoutRouter.get('/:id', requireAuth, factoryLayoutController.getLayout);
 factoryLayoutRouter.patch('/:id', requireAuth, factoryLayoutController.updateMetadata);
+factoryLayoutRouter.patch('/:id/nodes/:nodeId', requireAuth, factoryLayoutController.updateNode);
+factoryLayoutRouter.post('/:id/nodes', requireAuth, factoryLayoutController.createNode);
+factoryLayoutRouter.delete('/:id/nodes/:nodeId', requireAuth, factoryLayoutController.deleteNode);
 factoryLayoutRouter.put('/:id/graph', requireAuth, factoryLayoutController.bulkSaveGraph);
 factoryLayoutRouter.post('/:id/lock', requireAuth, factoryLayoutController.toggleLock);
 factoryLayoutRouter.delete('/:id', requireAuth, factoryLayoutController.deleteLayout);

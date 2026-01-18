@@ -289,4 +289,135 @@ export class FactoryLayoutService {
             where: { id: layoutId, tenantId }
         });
     }
+
+    /**
+     * Update a single node's position (Optimistic UI support)
+     * @param layoutId 
+     * @param nodeId 
+     * @param tenantId 
+     * @param x 
+     * @param y 
+     */
+    async updateNodePosition(layoutId: string, nodeId: string, tenantId: string, x: number, y: number) {
+        // 1. Verify Layout Ownership & Lock Status
+        const layout = await this.prisma.factoryLayout.findUnique({
+            where: { id: layoutId, tenantId },
+            select: { isLocked: true }
+        });
+
+        if (!layout) throw new Error('Layout not found');
+        if (layout.isLocked) throw new Error('Cannot modify locked layout');
+
+        // 2. Update Node
+        // We do NOT increment version here to avoid race conditions on high-frequency drag events
+        // The version is primarily for "Save Checkpoints"
+        return this.prisma.factoryLayoutNode.update({
+            where: { id: nodeId, layoutId }, // layoutId ensures it belongs to the layout
+            data: { x, y }
+        });
+    }
+
+    /**
+     * Create a new node in the layout
+     * @param layoutId 
+     * @param tenantId 
+     * @param data 
+     */
+    async createNode(layoutId: string, tenantId: string, data: { assetId: string, x: number, y: number }) {
+        // 1. Verify Layout
+        const layout = await this.prisma.factoryLayout.findUnique({
+            where: { id: layoutId, tenantId },
+            select: { isLocked: true }
+        });
+
+        if (!layout) throw new Error('Layout not found');
+        if (layout.isLocked) throw new Error('Cannot modify locked layout');
+
+        // 2. Verify Asset
+        const asset = await this.prisma.asset.findUnique({
+            where: { id: data.assetId, tenantId }
+        });
+
+        if (!asset) throw new Error('Asset not found');
+
+        // 3. Create Node & Increment Version
+        return this.prisma.$transaction(async (tx) => {
+            const node = await tx.factoryLayoutNode.create({
+                data: {
+                    layoutId,
+                    tenantId,
+                    assetId: data.assetId,
+                    x: data.x,
+                    y: data.y,
+                    width: 150, // Default width
+                    height: 100 // Default height
+                },
+                include: {
+                    asset: {
+                        select: {
+                            id: true,
+                            name: true,
+                            status: true,
+                            imageUrl: true,
+                            code: true
+                        }
+                    }
+                }
+            });
+
+            await tx.factoryLayout.update({
+                where: { id: layoutId },
+                data: { version: { increment: 1 } }
+            });
+
+            return node;
+        });
+    }
+
+    /**
+     * Delete a node from the layout
+     * @param layoutId 
+     * @param nodeId 
+     * @param tenantId 
+     */
+    async deleteNode(layoutId: string, nodeId: string, tenantId: string) {
+        // 1. Verify Layout
+        const layout = await this.prisma.factoryLayout.findUnique({
+            where: { id: layoutId, tenantId },
+            select: { isLocked: true }
+        });
+
+        if (!layout) throw new Error('Layout not found');
+        if (layout.isLocked) throw new Error('Cannot modify locked layout');
+
+        // 2. Delete Node (Edges cascade automatically via DB constraints usually, strictly we should ensure)
+        return this.prisma.$transaction(async (tx) => {
+            // Check existence
+            const node = await tx.factoryLayoutNode.findFirst({
+                where: { id: nodeId, layoutId, tenantId }
+            });
+
+            if (!node) throw new Error('Node not found');
+
+            // Delete connected edges manually if schema doesn't CASCADE
+            await tx.factoryLayoutEdge.deleteMany({
+                where: {
+                    OR: [
+                        { sourceNodeId: nodeId },
+                        { targetNodeId: nodeId }
+                    ],
+                    layoutId
+                }
+            });
+
+            await tx.factoryLayoutNode.delete({
+                where: { id: nodeId }
+            });
+
+            await tx.factoryLayout.update({
+                where: { id: layoutId },
+                data: { version: { increment: 1 } }
+            });
+        });
+    }
 }

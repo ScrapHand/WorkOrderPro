@@ -1,0 +1,677 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  plan      String   @default("free")
+  
+  // Subscription Limits
+  maxUsers  Int      @default(5)  @map("max_users")
+  maxAdmins Int      @default(1)  @map("max_admins")
+  
+  // Branding & Configuration
+  logoUrl        String?  @map("logo_url")
+  brandColor     String   @default("#2563eb") @map("brand_color")
+  brandingConfig Json?    @map("branding_config") // { primary, secondary, font, logo }
+  rbacConfig     Json?    @map("rbac_config")     // { "ROLE": { "feature": boolean } }
+  secretsConfig  Json?    @map("secrets_config")  // { "STRIPE_KEY": "...", "OPENAI_KEY": "..." }
+  notificationConfig Json? @map("notification_config")
+  features         Json?    @default("{}") @map("features") // { "factoryLayout": true, "inventoryAlerts": true }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  assets    Asset[]
+  workOrders WorkOrder[]
+  attachments Attachment[]
+  users     User[]
+  parts     Part[]
+  roles     Role[]
+  workOrderSessions WorkOrderSession[]
+  workOrderParts    WorkOrderPart[]
+  inventoryTransactions InventoryTransaction[]
+  pmSchedules       PMSchedule[]
+  checklistTemplates ChecklistTemplate[]
+  productionLines   ProductionLine[]
+  assetConnections  AssetConnection[]
+  factoryLayouts    FactoryLayout[]
+  conveyorSystems   ConveyorSystem[]
+  pages             Page[]
+  pmLogs            PMLog[]
+  shiftHandovers    ShiftHandover[]
+  inventoryAlerts   InventoryAlert[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  email        String   @unique
+  username     String?  @map("user_name")
+  avatarUrl    String?  @map("avatar_url")
+  passwordHash String   @map("password_hash")
+  role         String   @default("VIEWER") // ADMIN, TECHNICIAN, VIEWER
+  emailVerified DateTime? @map("email_verified")
+  verificationCode String? @map("verification_code")
+  lastSessionId    String? @map("last_session_id") // [PHASE 10] Single Session Enforcement
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime? @map("deleted_at")
+  preferences  Json?    @map("preferences") // { assetLayout: { [assetId]: {x,y} } }
+  
+  // RBAC Relations
+  customRoleId String?  @map("custom_role_id")
+  customRole   Role?    @relation(fields: [customRoleId], references: [id])
+  
+  sessions     WorkOrderSession[] // Relation to time logs
+  assignedWorkOrders WorkOrder[] @relation("AssignedWorkOrders")
+  assignedSchedules  PMSchedule[] @relation("PMScheduleAssignment")
+  createdSchedules   PMSchedule[] @relation("PMScheduleCreation")
+  completedPMLogs    PMLog[]
+  checklistTemplates ChecklistTemplate[]
+  auditLogs         AuditLog[]
+
+  outgoingHandovers ShiftHandover[] @relation("OutgoingShift")
+  incomingHandovers ShiftHandover[] @relation("IncomingShift")
+  workOrderComments WorkOrderComment[]
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  description String?
+  permissions Json     @default("[]") // ["work_order:read", "asset:write", ...]
+  isSystem    Boolean  @default(false) @map("is_system") // System roles (ADMIN, MANAGER) cannot be deleted coverage
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  users       User[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Asset {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  parentId      String?  @map("parent_id")
+  name          String
+  code          String?  // [NEW] Canonical Asset Identifier (e.g. AMC-OBY)
+  description   String?
+  imageUrl      String?  @map("image_url")
+  manufacturer  String?                     // [NEW] Asset manufacturer
+  model         String?                     // [NEW] Asset model
+  serialNumber  String?  @map("serial_number") // [NEW] Serial number
+  status        String @default("OPERATIONAL")
+  criticality   String?  @map("criticality") // Nullable for Recursive Inheritance
+  rimeRisk      Int?     @map("rime_risk")
+  rimeImpact    Int?     @map("rime_impact")
+  rimeMaintenance Int?   @map("rime_maintenance")
+  rimeEffort    Int?     @map("rime_effort")
+  hierarchyPath String   @default("/") @map("hierarchy_path") // optimization for search
+  lotoConfig    Json?    @map("loto_config") // { electrical: url, pneumatic: url, hydraulic: url }
+  documents     Json?    @map("documents")   // [{ name: "Manual", url: "..." }]
+  specs         Json?    @map("specs")       // { "Height": "10m", "Power": "220V" }
+  metadata      Json?    @map("metadata")    // { position: { x: 0, y: 0 } }
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime? // Soft Delete cursor
+
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  parent      Asset?   @relation("AssetHierarchy", fields: [parentId], references: [id])
+  children    Asset[]  @relation("AssetHierarchy")
+  workOrders  WorkOrder[]
+  attachments Attachment[]
+  pmSchedules PMSchedule[]
+  
+  // Production Line Integration
+  maxSpeed      Float?    @map("max_speed")
+  designOEE     Float?    @map("design_oee")
+  productionLineId String? @map("production_line_id")
+  productionLine   ProductionLine? @relation(fields: [productionLineId], references: [id])
+  
+  sourceConnections AssetConnection[] @relation("SourceConnections")
+  targetConnections AssetConnection[] @relation("TargetConnections")
+  factoryLayoutNodes FactoryLayoutNode[]
+
+  // Indexes for Performance
+  @@index([tenantId])
+  @@index([parentId])
+  @@index([deletedAt])
+  @@index([hierarchyPath]) // Optimize path searches
+  @@unique([tenantId, code]) // [NEW] Ensure codes are unique per tenant
+}
+
+model WorkOrder {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  assetId     String   @map("asset_id")
+  title       String
+  description String?
+  priority    String
+  status      String @default("OPEN")
+  type        String   @default("REACTIVE")
+  rimeScore   Int      @map("rime_score") // Calculated: Asset Criticality * Priority
+  
+  completedAt     DateTime? @map("completed_at")
+  completionNotes String?   @map("completion_notes")
+  
+  assignedUserId String?  @map("assigned_user_id")
+  assignedUser   User?    @relation("AssignedWorkOrders", fields: [assignedUserId], references: [id])
+
+  // SLA Tracking [PHASE 7]
+  slaDeadline    DateTime? @map("sla_deadline")
+  slaStatus      String    @default("IN_TARGET") @map("sla_status") // IN_TARGET, AT_RISK, BREACHED
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // Soft Delete
+
+  pmScheduleId String? @map("pm_schedule_id")
+  pmSchedule   PMSchedule? @relation(fields: [pmScheduleId], references: [id])
+  
+  // Safety & Compliance
+  lotoVerified   Boolean   @default(false) @map("loto_verified")
+  lotoVerifiedAt DateTime? @map("loto_verified_at")
+  
+  checklist    WorkOrderChecklist?
+
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  asset       Asset    @relation(fields: [assetId], references: [id])
+  sessions    WorkOrderSession[]
+  attachments Attachment[]
+  parts       WorkOrderPart[]
+  comments    WorkOrderComment[]
+
+  @@index([tenantId])
+  @@index([assetId])
+  @@index([rimeScore])
+  @@index([assignedUserId])
+}
+
+// Replaces InventoryItem
+model Part {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  name         String
+  sku          String?
+  description  String?
+  cost         Float    @default(0.0)
+  currency     String   @default("GBP") // [NEW] ISO 4217 Currency Code
+  quantity     Int      @default(0)
+  unit         String   @default("pcs")     // [NEW] Unit of measure
+  category     String?                      // [NEW] Part category
+  minQuantity  Int      @default(5) @map("min_quantity")
+  binLocation  String?  @map("bin_location")
+  imageUrl     String?  @map("image_url")
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  transactions InventoryTransaction[]
+  workOrderParts WorkOrderPart[]
+  inventoryAlerts InventoryAlert[]
+
+  @@index([tenantId])
+}
+
+model WorkOrderPart {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  workOrderId  String   @map("work_order_id")
+  partId       String   @map("part_id")
+  quantityUsed Int      @map("quantity_used")
+  costAtTime   Float    @map("cost_at_time") // Snapshot of cost when used
+  currency     String   @default("GBP")      // [NEW] Snapshot of currency at usage time
+
+  usedAt       DateTime @default(now())
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id])
+  part         Part      @relation(fields: [partId], references: [id])
+
+  @@index([tenantId])
+  @@index([workOrderId])
+  @@index([partId])
+}
+
+model InventoryTransaction {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  partId        String   @map("part_id")
+  changeQuantity Int      @map("change_quantity") // +10, -5, etc.
+  type          String
+  reason        String?
+  
+  performedAt   DateTime @default(now())
+  performedBy   String?  @map("performed_by") // User ID if available
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  part          Part     @relation(fields: [partId], references: [id])
+
+  @@index([tenantId])
+  @@index([partId])
+}
+
+model Attachment {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  assetId     String?  @map("asset_id")
+  workOrderId String?  @map("work_order_id")
+  
+  fileName    String   @map("file_name")
+  mimeType    String   @map("mime_type")
+  size        Int
+  key         String   // S3 Key: tenants/{tid}/assets/{aid}/{uuid}-{name}
+  url         String   // Public URL (or base for presigning)
+  
+  uploadedAt  DateTime @default(now())
+
+  // Relations
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  asset       Asset?     @relation(fields: [assetId], references: [id])
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([tenantId])
+  @@index([assetId])
+  @@index([workOrderId])
+}
+
+// Session table for connect-pg-simple
+model Session {
+  sid    String   @id @map("sid")
+  sess   Json     @map("sess")
+  expire DateTime @map("expire")
+
+  @@map("session")
+  @@index([expire], name: "IDX_session_expire")
+}
+
+model WorkOrderSession {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  workOrderId String    @map("work_order_id")
+  userId      String    @map("user_id")
+  
+  startTime   DateTime  @default(now())
+  endTime     DateTime? // Null equals Active
+  duration    Int?      // Computed in minutes when closed
+
+  // Relations
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([workOrderId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  tenantId    String?  @map("tenant_id")
+  userId      String?  @map("user_id")
+  event       String   // e.g., "LOGIN_SUCCESS", "TENANT_CREATED", "PERMISSIONS_UPDATED"
+  resource    String?  // e.g., "User", "Asset", "WorkOrder"
+  resourceId  String?  @map("resource_id")
+  metadata    Json?    // e.g., { ip: "...", oldRole: "...", newRole: "..." }
+  timestamp   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([event])
+}
+
+model PMSchedule {
+  id            String    @id @default(uuid())
+  tenantId      String    @map("tenant_id")
+  assetId       String    @map("asset_id")
+  title         String
+  description   String?
+  frequency     String?   // [LEGACY COMPAT] display string
+  frequencyType String    @default("days") @map("frequency_type")     // days, weeks, months, years
+  frequencyInterval Int   @default(1) @map("frequency_interval")
+  
+  startDate     DateTime  @default(now()) @map("start_date")
+  nextDueDate   DateTime  @map("next_due_date")
+  lastPerformedAt DateTime? @map("last_performed_at")
+  
+  active        Boolean   @default(true)
+  
+  assignedToUserId String? @map("assigned_to_user_id")
+  assignedTo       User?   @relation("PMScheduleAssignment", fields: [assignedToUserId], references: [id])
+  
+  checklistTemplateId String? @map("checklist_template_id")
+  checklistTemplate   ChecklistTemplate? @relation(fields: [checklistTemplateId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  asset         Asset     @relation(fields: [assetId], references: [id])
+  workOrders    WorkOrder[]
+  createdById   String?   @map("created_by_id")
+  createdBy     User?     @relation("PMScheduleCreation", fields: [createdById], references: [id])
+  
+  logs          PMLog[]
+
+  @@index([tenantId])
+  @@index([assetId])
+  @@index([nextDueDate])
+}
+
+model PMLog {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("tenant_id")
+  pmScheduleId     String   @map("pm_schedule_id")
+  
+  completedAt      DateTime @default(now()) @map("completed_at")
+  completedByUserId String? @map("completed_by_user_id")
+  notes            String?
+  
+  // Relations
+  tenant           Tenant     @relation(fields: [tenantId], references: [id])
+  pmSchedule       PMSchedule @relation(fields: [pmScheduleId], references: [id], onDelete: Cascade)
+  completedBy      User?      @relation(fields: [completedByUserId], references: [id])
+
+  @@index([tenantId])
+  @@index([pmScheduleId])
+}
+
+model ChecklistTemplate {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  description String?
+  
+  items       ChecklistTemplateItem[]
+  schedules   PMSchedule[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdById String?  @map("created_by_id")
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId])
+}
+
+model ChecklistTemplateItem {
+  id                 String   @id @default(uuid())
+  templateId         String   @map("template_id")
+  task               String
+  isRequired         Boolean  @default(true) @map("is_required")
+  order              Int      @default(0)
+
+  template           ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model WorkOrderChecklist {
+  id          String   @id @default(uuid())
+  workOrderId String   @unique @map("work_order_id")
+  
+  items       WorkOrderChecklistItem[]
+
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+model WorkOrderChecklistItem {
+  id                 String   @id @default(uuid())
+  checklistId        String   @map("checklist_id")
+  task               String
+  isCompleted        Boolean  @default(false) @map("is_completed")
+  completedAt        DateTime? @map("completed_at")
+  completedBy        String?  @map("completed_by") // User ID
+  order              Int      @default(0)
+
+  checklist          WorkOrderChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+}
+
+model ProductionLine {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  description String?
+  
+  assets      Asset[]
+  connections AssetConnection[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model AssetConnection {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("tenant_id")
+  productionLineId String   @map("production_line_id")
+  
+  sourceAssetId    String   @map("source_asset_id")
+  targetAssetId    String   @map("target_asset_id")
+  
+  connectionType   String   @default("CONVEYOR") // CONVEYOR, SORTER, DIRECT
+  speedLimit       Float?   @map("speed_limit")  // e.g. units per minute
+  throughput       Float?                        // average measured throughput
+  
+  metadata         Json?                         // for react flow (edge labels, etc.)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant           Tenant         @relation(fields: [tenantId], references: [id])
+  productionLine   ProductionLine @relation(fields: [productionLineId], references: [id], onDelete: Cascade)
+  sourceAsset      Asset          @relation("SourceConnections", fields: [sourceAssetId], references: [id])
+  targetAsset      Asset          @relation("TargetConnections", fields: [targetAssetId], references: [id])
+
+  @@index([tenantId])
+  @@index([productionLineId])
+}
+
+// ===== FACTORY LAYOUT DESIGNER MODELS =====
+
+model FactoryLayout {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  name          String
+  description   String?
+  isLocked      Boolean  @default(false) @map("is_locked")
+  version       Int      @default(1) // Optimistic concurrency control
+  viewportJson  Json?    @map("viewport_json") // { x, y, zoom }
+  
+  nodes         FactoryLayoutNode[]
+  edges         FactoryLayoutEdge[]
+  
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model FactoryLayoutNode {
+  id        String   @id @default(uuid())
+  layoutId  String   @map("layout_id")
+  tenantId  String   @map("tenant_id")
+  assetId   String   @map("asset_id")
+  x         Float
+  y         Float
+  width     Int?
+  height    Int?
+  rotation  Int?     @default(0)
+  metaJson  Json?    @map("meta_json") // Visual overrides
+
+  layout    FactoryLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  asset     Asset         @relation(fields: [assetId], references: [id])
+  
+  // Relations for edges
+  outgoingEdges FactoryLayoutEdge[] @relation("SourceNode")
+  incomingEdges FactoryLayoutEdge[] @relation("TargetNode")
+
+  @@index([layoutId])
+  @@index([tenantId])
+  @@index([assetId])
+}
+
+enum EdgeType {
+  CONVEYOR
+  MODULE
+}
+
+model FactoryLayoutEdge {
+  id               String   @id @default(uuid())
+  layoutId         String   @map("layout_id")
+  tenantId         String   @map("tenant_id")
+  sourceNodeId     String   @map("source_node_id")
+  targetNodeId     String   @map("target_node_id")
+  type             EdgeType @default(CONVEYOR)
+  conveyorSystemId String?  @map("conveyor_system_id")
+  label            String?
+  metaJson         Json?    @map("meta_json") // Path points for custom routing
+
+  layout           FactoryLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  sourceNode       FactoryLayoutNode @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode       FactoryLayoutNode @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  conveyorSystem   ConveyorSystem?   @relation(fields: [conveyorSystemId], references: [id])
+
+  @@index([layoutId])
+  @@index([tenantId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+model ConveyorSystem {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  color       String   @default("#808080")
+  description String?
+  
+  edges       FactoryLayoutEdge[]
+  
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model Page {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("tenant_id")
+  key              String   // e.g. "DASHBOARD_LAYOUT", "ASSET_VIEW_CONFIG"
+  layoutJson       Json     @map("layout_json")
+  isSystemDefault  Boolean  @default(false) @map("is_system_default")
+  
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
+model ShiftHandover {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  outgoingUserId  String   @map("outgoing_user_id")
+  incomingUserId  String?  @map("incoming_user_id") // Null if not yet signed by incoming
+  
+  shiftType       String   @map("shift_type") // e.g., "DAY", "NIGHT"
+  status          String   @default("PENDING") // PENDING, SIGNED
+  
+  content         Json     // { safetyNotes: "...", activeWOs: [...], operationalNotes: "..." }
+  
+  signedAt        DateTime? @map("signed_at")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  outgoingUser    User     @relation("OutgoingShift", fields: [outgoingUserId], references: [id])
+  incomingUser    User?    @relation("IncomingShift", fields: [incomingUserId], references: [id])
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model InventoryAlert {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  partId      String   @map("part_id")
+  
+  type        String   // WARNING, CRITICAL
+  message     String
+  status      String   @default("ACTIVE") // ACTIVE, RESOLVED
+  
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime? @map("resolved_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  part        Part     @relation(fields: [partId], references: [id])
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model WorkOrderComment {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  workOrderId String   @map("work_order_id")
+  userId      String   @map("user_id")
+  
+  content     String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([workOrderId])
+}
+
+// ENUMS REMOVED - Converted to Strings for Robustness
+
+// enum AssetStatus {
+//   OPERATIONAL
+//   DOWN
+//   MAINTENANCE
+//   DEGRADED
+// }
+// ... (other enums removed)
+
+model PlatformLog {
+  id        String   @id @default(uuid())
+  adminId   String   @map("admin_id")
+  action    String   // PROVISION_TENANT, UPDATE_PLAN, DELETE_TENANT
+  targetId  String?  @map("target_id") // The tenantId or userId affected
+  metadata  Json?
+  timestamp DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+}

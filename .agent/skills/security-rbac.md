@@ -51,3 +51,20 @@ The Super Admin tier introduces platform-level security concepts.
 ## Common Pitfalls
 - **Implicit Trust**: Never trust `userId` or `tenantId` from the request body. Always resolve from the session/context.
 - **Permission Overlap**: Ensure permissions are orthogonal and don't grant unintended access.
+
+## 🔬 Infrastructure Security (Forensic Remediation)
+To survive the "Cookie Apocalypse" and strictly enforced sandboxing in modern browsers (Chrome/Safari):
+
+### 🍪 CHIPS (Partitioned Cookies)
+- **Mandatory Configuration**: The session cookie **MUST** set `partitioned: true`.
+- **Cross-Site Context**: Since Frontend (Vercel) and Backend (Render) are on different domains, cookies are considered "Third-Party". Without `partitioned`, browsers will block them.
+- **Secure Flag**: Must be `true` in production to allow `SameSite: None`.
+
+### 🔗 Proxy Trust Chain
+- **The Protocol Gap**: Render/Vercel load balancers verify SSL, but forward traffic as HTTP. Express sees `req.secure = false` by default.
+- **Remediation**: Explicitly configure `app.set('trust proxy', 1)` (or specific IP ranges) so Express respects the `X-Forwarded-Proto` header. without this, `secure: true` cookies will **NEVER** be sent.
+
+### 🌐 CORS & Credential Deadlock
+- **No Wildcards**: Never use `Access-Control-Allow-Origin: *` with credentials.
+- **Dynamic Whitelist**: Implementing a function to check `origin` against allowed domains and echo it back.
+- **Credentials**: Must be explicitly set to `true`.
