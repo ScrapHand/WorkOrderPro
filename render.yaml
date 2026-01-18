@@ -3,7 +3,7 @@ services:
     name: workorderpro-api
     region: ohio
     env: node
-    buildCommand: npm install -g pnpm && pnpm install && pnpm --filter @workorderpro/shared build && pnpm --filter @workorderpro/database generate && pnpm --filter @workorderpro/database build && cd apps/backend-node && pnpm run build
+    buildCommand: npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm --filter @workorderpro/shared build && pnpm --filter @workorderpro/database generate && pnpm --filter @workorderpro/database build && cd apps/backend-node && pnpm run build
     startCommand: cd apps/backend-node && pnpm start
     preDeployCommand: cd apps/backend-node && npx prisma migrate deploy --schema=../../packages/database/prisma/schema.prisma
     envVars:
