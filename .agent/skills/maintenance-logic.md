@@ -22,6 +22,15 @@ WorkOrderPro uses the RIME (Ranking Index for Maintenance Expenditures) system t
 - **Generation**: A background job or trigger should generate work orders from active PM schedules when the threshold is met.
 - **Completion**: Closing a PM work order MUST update the `lastPerformed` date on the schedule.
 
+## ⏱️ Work Order SLAs
+Corporate tier provides automated Service Level Agreements (SLAs).
+- **Deadlines**: Injected during creation based on priority:
+  - `CRITICAL`: 2 hours
+  - `HIGH`: 4 hours
+  - `MEDIUM`: 12 hours
+  - `LOW`: 24 hours
+- **Tracking**: Monitored via `slaDeadline` and `slaStatus` (`IN_TARGET`, `AT_RISK`, `BREACHED`).
+
 ## Work Order Lifecycle
 1. **States**: `OPEN` -> `IN_PROGRESS` -> `ON_HOLD` -> `COMPLETED` -> `CLOSED`.
 2. **Assignments**: Work orders can be assigned to individual users or teams.
