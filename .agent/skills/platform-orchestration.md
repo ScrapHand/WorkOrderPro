@@ -36,4 +36,5 @@ if (isEnabled('shiftAnalytics')) {
 ## ⚡ Platform Resilience (Crucial Learning)
 A major pitfall in multi-tenant architecture is over-constraining platform-level tools to tenant contexts.
 - **Lesson**: The Super Admin Nexus must stay operational even if the `default` tenant is missing or the database is in a raw state.
-- **Implementation**: Always use the `SYSTEM` context fallback for global routes in the middleware layer. This prevents `404 Tenant not found` errors from blocking the bootstrap of the platform admin.
+- **Robust Path Resolution**: Avoid `startsWith` checks for global routes as environment prefixes (e.g. `/api/v1/`) can vary. Use keyword inclusion (`req.path.includes('/super-admin')`) to ensure the `SYSTEM` context fallback is triggered reliably.
+- **Diagnostic Logging**: Always log the incoming `req.path` and resolution outcome (`isGlobal`) when a tenant lookup fails. This prevents "silent" routing mismatches from blocking production access.

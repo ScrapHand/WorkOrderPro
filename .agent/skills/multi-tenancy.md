@@ -34,6 +34,7 @@ Multi-tenancy now supports per-tenant feature activation.
 
 ## 🌐 Global Context vs Tenant Context (Resilience)
 A common mistake in multi-tenant systems is over-binding global tools to tenant contexts.
-- **Problem**: Requiring a tenant header for `/auth/me` or `/super-admin` will block the platform if the registry is missing or a user is not yet bound.
-- **Rule**: Global routes MUST permit a `SYSTEM` context fallback in the `tenantMiddleware`.
-- **Enforcement**: Routes in `GLOBAL_ROUTES` whitelist are processed with system privileges if no specific tenant is identified.
+- **Problem**: Requiring a strict tenant header for `/auth/me` or `/super-admin` will block the platform if the registry is missing or a user is not yet bound.
+- **Rule 1 (Keywords over Prefixes)**: Use keyword-based matching (`includes`) for global routes instead of `startsWith`. Production middleware often sees absolute paths that include environment-specific prefixes (e.g., `/api/v1/` vs `/`).
+- **Rule 2 (System Context)**: Global routes MUST permit a `SYSTEM` context fallback in the `tenantMiddleware` to ensure the platform remains manageable.
+- **Rule 3 (Diagnostics)**: Tenant resolution failures MUST log full path details and resolution state to allow immediate debugging of environment-specific routing issues.
