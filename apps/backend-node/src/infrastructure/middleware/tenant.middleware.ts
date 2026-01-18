@@ -48,12 +48,12 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
 
         if (sessionUser && !req.path.includes('/auth/') && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN' && sessionUser.role !== 'SUPER_ADMIN') {
             // [HARD LOCK] Enforce user's assigned tenant
+            // [HARD LOCK] Enforce user's assigned tenant
             if (slug !== sessionUser.tenantSlug) {
-                // [DRILL-DOWN] Allow if Super Admin (already handled by role check above, but for clarity)
                 logger.warn({ userId: sessionUser.id, userTenant: sessionUser.tenantSlug, requestedTenant: slug }, 'Cross-tenant access attempt blocked');
                 return res.status(403).json({
-                    error: 'Cross-tenant access forbidden',
-                    message: `You belong to '${sessionUser.tenantSlug}' and cannot access '${slug}'.`
+                    error: 'Access denied',
+                    message: 'You do not have permission to access this resource.'
                 });
             }
 
@@ -114,9 +114,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
                                 role: sessionUser?.role
                             }, 'Tenant not found during resolution');
                             return res.status(404).json({
-                                error: 'Tenant not found',
-                                slug: finalSlug,
-                                _debug: process.env.NODE_ENV !== 'production' ? { path: req.path, isGlobal: isGlobalRoute } : undefined
+                                error: 'Resource not found'
                             });
                         }
                     }

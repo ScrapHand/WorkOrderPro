@@ -62,16 +62,19 @@ export function Header() {
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         className="flex items-center gap-2 focus:outline-none"
                     >
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20 overflow-hidden">
+                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-primary shadow-lg flex items-center justify-center text-white font-bold border-2 border-white/20 overflow-hidden group-hover:scale-105 transition-transform">
                             {user?.avatarUrl ? (
                                 <img src={user.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                             ) : (
                                 <span>{user?.full_name?.charAt(0) || user?.username?.charAt(0) || "U"}</span>
                             )}
                         </div>
-                        <div className="hidden md:block text-sm text-left">
-                            <div className="font-medium">{user?.full_name || user?.username || "User"}</div>
-                            <div className="text-xs text-muted-foreground capitalize">{user?.role || "Guest"}</div>
+                        <div className="hidden md:block text-sm text-left leading-tight">
+                            <div className="font-bold text-gray-900">{user?.full_name || user?.username || "Account"}</div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-black opacity-70 flex items-center gap-1">
+                                {user?.role || "Guest"}
+                                <div className="h-1 w-1 rounded-full bg-green-500 animate-pulse" />
+                            </div>
                         </div>
                     </button>
 

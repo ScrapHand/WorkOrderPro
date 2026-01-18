@@ -17,9 +17,14 @@ Security is managed via session-based authentication and role/permission-based a
 ## 🛡️ Platform Security (Nexus Tier)
 The Super Admin tier introduces platform-level security concepts.
 - **Global Context**: Super Admin routes (/api/super-admin) and system endpoints (/auth/me) bypass standard tenant context for platform-level operations.
-- **SYSTEM Context Fallback**: If a global keyword is matched and no tenant is resolved, the middleware MUST fallback to the `SYSTEM` context (reserved UUID) to ensure admin tool availability.
+- **SYSTEM Context**: Fallback for platform-level management paths. Use `00000000-0000-0000-0000-000000000000`.
 - **Auditing**: All platform configuration changes (features, tenant settings) MUST be logged in the `PlatformLog` model.
 - **Entitlements**: Features are guarded both by Role (who you are) and Entitlement (what the tenant has paid for).
+
+## Enterprise Hardening (UK/GDPR Standards)
+- **Single Session Enforcement**: Map `lastSessionId` in the `User` model. On login, delete the previous session from the store to prevent multi-device data exposure.
+- **URL Guess-Proofing**: Middleware must return generic 403/404 errors for cross-tenant attempts. Never leak slug existence or account associations in error messages.
+- **Session Rotation**: Regenerate sessions on login to prevent fixation attacks.
 
 ## Backend Security Checklist
 - [ ] Endpoint is wrapped in `requireAuth`.

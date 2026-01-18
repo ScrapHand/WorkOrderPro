@@ -26,32 +26,10 @@ export class AuthController {
             logger.info({ email }, 'Login attempt');
 
             // 1. Find user by email (Global lookup temporarily to identify tenant)
-            let user = await this.userService.findByEmail(email);
+            const user = await this.userService.findByEmail(email);
 
             if (!user) {
                 logger.warn({ email }, 'Login failed: User not found');
-                return res.status(401).json({ error: 'Invalid credentials' });
-            }
-
-            // 2. [JIT Seeding/Self-Healing] Ensure Demo User has correct credentials
-            if (email === 'demo@demo.com') {
-                const freshHash = await argon2.hash(password);
-
-                if (!user) {
-                    logger.info('Creating Demo User');
-                    user = await this.userService.createUser(
-                        'default',
-                        email,
-                        'SYSTEM_ADMIN',
-                        password
-                    );
-                } else {
-                    logger.info('Healing Demo User Credentials');
-                    user = await this.userService.updateUserPassword(user.id, freshHash);
-                }
-            }
-
-            if (!user) {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
@@ -94,14 +72,34 @@ export class AuthController {
                         return res.status(500).json({ error: 'Session save failed' });
                     }
 
+                    // [PHASE 10] Single Session Enforcement
+                    // 1. Invalidate previous session if exists
+                    const oldSessionId = user?.lastSessionId;
+                    if (oldSessionId && oldSessionId !== req.sessionID) {
+                        try {
+                            const { prisma } = require('../../database/prisma');
+                            await prisma.session.deleteMany({
+                                where: { sid: oldSessionId }
+                            });
+                            logger.info({ userId: user?.id, oldSessionId }, 'Previous session invalidated');
+                        } catch (err) {
+                            logger.warn({ err, userId: user?.id }, 'Failed to delete old session (likely already expired)');
+                        }
+                    }
+
+                    // 2. Map current session to user
+                    await this.userService.updateUser(user!.id, {
+                        lastSessionId: req.sessionID
+                    } as any);
+
                     await this.auditService.log({
                         tenantId: user!.tenantId,
                         userId: user!.id,
                         event: 'LOGIN_SUCCESS',
-                        metadata: { email }
+                        metadata: { email, sessionId: req.sessionID }
                     });
 
-                    logger.info({ email, tenantId: user!.tenantId }, 'Login successful');
+                    logger.info({ email, tenantId: user!.tenantId, sessionId: req.sessionID }, 'Login successful');
 
                     res.json({
                         success: true,

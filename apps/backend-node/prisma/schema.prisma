@@ -60,6 +60,7 @@ model User {
   role         String   @default("VIEWER") // ADMIN, TECHNICIAN, VIEWER
   emailVerified DateTime? @map("email_verified")
   verificationCode String? @map("verification_code")
+  lastSessionId    String? @map("last_session_id") // [PHASE 10] Single Session Enforcement
   
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

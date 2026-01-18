@@ -127,14 +127,19 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     {links.map((link) => (
                         <Link key={link.href} href={link.href} onClick={handleLinkClick}>
                             <Button
-                                variant={pathname === link.href ? "default" : "ghost"}
+                                variant={pathname === link.href ? "outline" : "ghost"}
                                 className={cn(
-                                    "w-full justify-start gap-3",
-                                    pathname === link.href ? "" : "text-muted-foreground hover:text-foreground"
+                                    "w-full justify-start gap-3.5 transition-all duration-200 px-4",
+                                    pathname === link.href
+                                        ? "bg-primary/5 text-primary font-bold shadow-sm border border-primary/10"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                                 )}
                             >
-                                <link.icon className="h-4 w-4" />
-                                {link.name}
+                                <link.icon className={cn(
+                                    "h-[18px] w-[18px]",
+                                    pathname === link.href ? "text-primary" : "text-muted-foreground/70"
+                                )} />
+                                <span className="text-[14px] tracking-tight">{link.name}</span>
                             </Button>
                         </Link>
                     ))}
@@ -148,14 +153,19 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                             {adminLinks.map((link) => (
                                 <Link key={link.href} href={link.href} onClick={handleLinkClick}>
                                     <Button
-                                        variant={pathname === link.href ? "default" : "ghost"}
+                                        variant={pathname === link.href ? "outline" : "ghost"}
                                         className={cn(
-                                            "w-full justify-start gap-3",
-                                            pathname === link.href ? "" : "text-muted-foreground hover:text-foreground"
+                                            "w-full justify-start gap-3.5 transition-all duration-200 px-4",
+                                            pathname === link.href
+                                                ? "bg-indigo-50/50 text-indigo-700 font-bold shadow-sm border border-indigo-100"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                                         )}
                                     >
-                                        <link.icon className="h-4 w-4" />
-                                        {link.name}
+                                        <link.icon className={cn(
+                                            "h-[18px] w-[18px]",
+                                            pathname === link.href ? "text-indigo-600" : "text-muted-foreground/70"
+                                        )} />
+                                        <span className="text-[14px] tracking-tight">{link.name}</span>
                                     </Button>
                                 </Link>
                             ))}
