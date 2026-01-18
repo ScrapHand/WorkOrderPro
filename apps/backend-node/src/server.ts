@@ -73,8 +73,8 @@ import { CommentController } from './infrastructure/http/controllers/comment.con
 
 const app = express();
 
-// [DEPLOYMENT MARKER] Force Rebuild - Timestamp: 14:06
-console.log('🚀 STARTING SERVER - VERSION: FIX_DEFAULT_TENANT_V2');
+// [DEPLOYMENT MARKER] Force Rebuild - Timestamp: 16:15
+console.log('🚀 STARTING SERVER - VERSION: FACTORY_LAYOUT_DESIGNER_V1');
 const PORT = process.env.PORT || 8080;
 
 app.set('trust proxy', 1);
@@ -424,7 +424,7 @@ apiRouter.use('/shifts', shiftRouter);
 app.use('/api/v1', apiRouter);
 app.use('/api', apiRouter);
 
-app.get('/health', (req, res) => res.json({ status: 'OK', version: 'FIX_DEFAULT_TENANT_V3', timestamp: new Date().toISOString() }));
+app.get('/health', (req, res) => res.json({ status: 'OK', version: 'FACTORY_LAYOUT_DESIGNER_V1', timestamp: new Date().toISOString() }));
 
 // Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
