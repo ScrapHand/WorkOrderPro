@@ -31,3 +31,9 @@ Multi-tenancy now supports per-tenant feature activation.
 - **Enforcement**:
   - **Frontend**: Use the `useFeatures` hook to guard UI components.
   - **Backend**: Service layers should check `tenant.features` before executing modular logic.
+
+## 🌐 Global Context vs Tenant Context (Resilience)
+A common mistake in multi-tenant systems is over-binding global tools to tenant contexts.
+- **Problem**: Requiring a tenant header for `/auth/me` or `/super-admin` will block the platform if the registry is missing or a user is not yet bound.
+- **Rule**: Global routes MUST permit a `SYSTEM` context fallback in the `tenantMiddleware`.
+- **Enforcement**: Routes in `GLOBAL_ROUTES` whitelist are processed with system privileges if no specific tenant is identified.
