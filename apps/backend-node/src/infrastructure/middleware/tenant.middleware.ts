@@ -12,11 +12,12 @@ export interface TenantContext {
 export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
 // [PHASE 7] Global routes that don't strictly require a tenant context
-const GLOBAL_ROUTES = [
-    '/api/v1/auth/me',
-    '/api/v1/super-admin',
-    '/api/v1/auth/logout',
-    '/api/v1/tenant' // For global tenant discovery
+const GLOBAL_KEYWORDS = [
+    '/auth/me',
+    '/super-admin',
+    '/auth/logout',
+    '/api/v1/tenant',
+    '/api/tenant'
 ];
 
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
@@ -88,14 +89,26 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
                     }
 
                     if (!tenantId) {
-                        const isGlobalRoute = GLOBAL_ROUTES.some(p => req.path.startsWith(p));
+                        const isGlobalRoute = GLOBAL_KEYWORDS.some(k => req.path.includes(k));
+
                         if (isGlobalRoute || sessionUser?.role === 'SUPER_ADMIN') {
-                            logger.info({ path: req.path, role: sessionUser?.role }, 'Using system context for global/admin route');
+                            logger.info({ path: req.path, role: sessionUser?.role, isGlobal: isGlobalRoute }, 'Using system context for global/admin route');
                             tenantId = '00000000-0000-0000-0000-000000000000'; // SYSTEM UUID
                             finalSlug = 'system';
                         } else {
-                            logger.warn({ slug: finalSlug }, 'Tenant not found during resolution');
-                            return res.status(404).json({ error: 'Tenant not found', slug: finalSlug });
+                            // [DIAGNOSTICS] Log failed resolution details for production debugging
+                            logger.warn({
+                                path: req.path,
+                                slug: finalSlug,
+                                isGlobal: isGlobalRoute,
+                                hasSession: !!sessionUser,
+                                role: sessionUser?.role
+                            }, 'Tenant not found during resolution');
+                            return res.status(404).json({
+                                error: 'Tenant not found',
+                                slug: finalSlug,
+                                _debug: process.env.NODE_ENV !== 'production' ? { path: req.path, isGlobal: isGlobalRoute } : undefined
+                            });
                         }
                     }
                 } else {
