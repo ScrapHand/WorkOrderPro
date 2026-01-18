@@ -85,7 +85,11 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
             }
 
             if (!tenantId) {
+                // [DIAGNOSTICS] Log before DB lookup
+                logger.debug({ finalSlug, path: req.path }, ' attempting tenant lookup');
+
                 const tenant = await prisma.tenant.findUnique({ where: { slug: finalSlug } });
+
                 if (!tenant) {
                     // [RESILIENCY] If Super Admin or Auth route, and slug resolution fails, fallback to 'default'
                     if (finalSlug !== 'default') {
@@ -111,10 +115,14 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
                                 slug: finalSlug,
                                 isGlobal: isGlobalRoute,
                                 hasSession: !!sessionUser,
-                                role: sessionUser?.role
-                            }, 'Tenant not found during resolution');
+                                role: sessionUser?.role,
+                                headers: req.headers // Log headers to see what's coming in
+                            }, 'Tenant resolution failed - [DEPLOYMENT VERIFIED]');
+
                             return res.status(404).json({
-                                error: 'Resource not found'
+                                // Unique error signature to verify deployment
+                                error: `Tenant resolution failed for slug: '${finalSlug}'`,
+                                context: 'Middleware Block'
                             });
                         }
                     }
@@ -125,8 +133,17 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
         }
 
         if (!tenantId) {
-            logger.error({ slug: finalSlug }, 'Tenant ID could not be identified');
-            return res.status(401).json({ error: 'Unauthorized: Tenant could not be identified' });
+            // Check global route logic one last time if we somehow got here
+            const isGlobalRoute = GLOBAL_KEYWORDS.some(k => req.path.includes(k));
+            if (isGlobalRoute) {
+                logger.info({ path: req.path }, 'Emergency system context fallback');
+                tenantId = '00000000-0000-0000-0000-000000000000';
+                finalSlug = 'system';
+                // Don't return, let it proceed
+            } else {
+                logger.error({ slug: finalSlug }, 'Tenant ID could not be identified');
+                return res.status(401).json({ error: 'Unauthorized: Tenant could not be identified (Fatal)' });
+            }
         }
 
         const context: TenantContext = {
