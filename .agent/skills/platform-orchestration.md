@@ -32,3 +32,8 @@ if (isEnabled('shiftAnalytics')) {
 - **SUPER_ADMIN Role**: Only users with this role can access `/api/super-admin` routes.
 - **Tenant Bypass**: Super Admin routes typically bypass standard `tenantMiddleware` or act upon a specific `tenantSlug` provided in the request.
 - **Audit Trails**: Every platform-level change (like a feature toggle) **MUST** be logged in the `PlatformLog` table for accountability.
+
+## ⚡ Platform Resilience (Crucial Learning)
+A major pitfall in multi-tenant architecture is over-constraining platform-level tools to tenant contexts.
+- **Lesson**: The Super Admin Nexus must stay operational even if the `default` tenant is missing or the database is in a raw state.
+- **Implementation**: Always use the `SYSTEM` context fallback for global routes in the middleware layer. This prevents `404 Tenant not found` errors from blocking the bootstrap of the platform admin.
