@@ -11,6 +11,14 @@ export interface TenantContext {
 
 export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
+// [PHASE 7] Global routes that don't strictly require a tenant context
+const GLOBAL_ROUTES = [
+    '/api/v1/auth/me',
+    '/api/v1/super-admin',
+    '/api/v1/auth/logout',
+    '/api/v1/tenant' // For global tenant discovery
+];
+
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     // 1. Extract Slug - PRIORITIZE Query Params for linked assets/proxies
     let slugParam = req.query.tenant || req.query.slug;
@@ -80,8 +88,15 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
                     }
 
                     if (!tenantId) {
-                        logger.warn({ slug: finalSlug }, 'Tenant not found during resolution');
-                        return res.status(404).json({ error: 'Tenant not found', slug: finalSlug });
+                        const isGlobalRoute = GLOBAL_ROUTES.some(p => req.path.startsWith(p));
+                        if (isGlobalRoute || sessionUser?.role === 'SUPER_ADMIN') {
+                            logger.info({ path: req.path, role: sessionUser?.role }, 'Using system context for global/admin route');
+                            tenantId = '00000000-0000-0000-0000-000000000000'; // SYSTEM UUID
+                            finalSlug = 'system';
+                        } else {
+                            logger.warn({ slug: finalSlug }, 'Tenant not found during resolution');
+                            return res.status(404).json({ error: 'Tenant not found', slug: finalSlug });
+                        }
                     }
                 } else {
                     tenantId = tenant.id;
