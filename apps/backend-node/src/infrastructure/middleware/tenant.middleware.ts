@@ -27,7 +27,9 @@ const GLOBAL_KEYWORDS = [
     '/super-admin',
     '/auth/logout',
     '/api/v1/tenant',
-    '/api/tenant'
+    '/api/tenant',
+    '/health',
+    '/debug'
 ];
 
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
