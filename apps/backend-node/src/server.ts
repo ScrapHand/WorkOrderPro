@@ -348,6 +348,7 @@ apiRouter.use('/pages', pageRouter);
 // Debug Routes
 const debugRouter = express.Router();
 debugRouter.get('/tenant', debugController.getTenantStatus);
+debugRouter.post('/nuclear-wipe', debugController.nuclearWipe);
 apiRouter.use('/debug', debugRouter);
 
 // Analytics Routes

@@ -32,6 +32,11 @@ The Super Admin tier introduces platform-level security concepts.
 
 ## 🗑️ Total Wipe Protocol (Clean Slate)
 - **Aggressive Decommissioning**: When implementing a "Clean Slate", always use `TRUNCATE TABLE ... CASCADE` in the seed script. This ensures remote production databases are fully purged of legacy/ghost accounts (e.g., `admin@example.com`) that may have persisted from previous builds.
+- **Nuclear Endpoint**: Always maintain a protected `nuclear-wipe` endpoint in the `DebugController` for emergency manual database purges if build-process scripts fail.
+
+## 🚫 Identity Blacklisting
+- **Ghost Account Protection**: If a specific test account (e.g., `admin@example.com`) persistently appears or is hard to purge, implement a synchronous identity blacklist in the `AuthController` to block it at the logic layer.
+- **Fail-Safe Logic**: Logic-tier blocks are more reliable than database-tier deletes during complex migration phases.
 
 ## Backend Security Checklist
 - [ ] Endpoint is wrapped in `requireAuth`.

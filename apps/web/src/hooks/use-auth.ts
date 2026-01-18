@@ -93,7 +93,7 @@ export function useLogout() {
         },
         onSuccess: () => {
             queryClient.setQueryData(["user"], null);
-            router.push("/auth/login"); // Correct path
+            router.replace("/auth/login"); // Correct path
         }
     });
 }

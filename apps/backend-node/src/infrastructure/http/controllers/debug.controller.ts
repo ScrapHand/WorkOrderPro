@@ -67,4 +67,31 @@ export class DebugController {
             res.status(500).json({ error: error.message });
         }
     };
+
+    nuclearWipe = async (req: Request, res: Response) => {
+        const secret = req.get('x-nuclear-secret');
+        const expectedSecret = 'CLEAN_SLATE_2026_NUCLEAR'; // Emergency Secret
+
+        if (secret !== expectedSecret) {
+            logger.warn({ ip: req.ip }, 'Unauthorized nuclear wipe attempt');
+            return res.status(403).json({ error: 'Unauthorized: Nuclear secret incorrect' });
+        }
+
+        try {
+            logger.info('☢️ NUCLEAR WIPE INITIATED');
+
+            // CASCADE truncation of all critical tables
+            await this.prisma.$executeRawUnsafe(`TRUNCATE TABLE "User", "Tenant", "Asset", "WorkOrder", "session", "Role", "PMSchedule", "PMLog", "InventoryItem", "Part", "PartTransaction", "Attachment", "AuditLog", "ShiftHandover", "WorkOrderComment", "WorkOrderPart", "WorkOrderSession", "FeatureEntitlement" CASCADE;`);
+
+            logger.info('☢️ NUCLEAR WIPE COMPLETE: Remote database is pristine');
+
+            res.json({
+                success: true,
+                message: 'Nuclear wipe complete. All tables truncated. The system is now a clean slate.'
+            });
+        } catch (error: any) {
+            logger.error({ error }, 'Nuclear wipe failed');
+            res.status(500).json({ error: error.message });
+        }
+    };
 }

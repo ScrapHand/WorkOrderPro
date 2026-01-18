@@ -25,6 +25,12 @@ export class AuthController {
             const { email, password } = result.data;
             logger.info({ email }, 'Login attempt');
 
+            // [IDENTITY BLACKLIST] Explicitly prohibit legacy/test accounts from entering the system
+            if (email.toLowerCase() === 'admin@example.com') {
+                logger.warn({ email }, 'Blacklisted identity attempted login - Blocked');
+                return res.status(403).json({ error: 'This account has been decommissioned as part of the Clean Slate Protocol.' });
+            }
+
             // 1. Find user by email (Global lookup temporarily to identify tenant)
             const user = await this.userService.findByEmail(email);
 
