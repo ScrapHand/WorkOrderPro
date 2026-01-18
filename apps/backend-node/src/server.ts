@@ -72,6 +72,9 @@ import { ShiftController } from './infrastructure/http/controllers/shift.control
 import { CommentController } from './infrastructure/http/controllers/comment.controller';
 
 const app = express();
+
+// [DEPLOYMENT MARKER] Force Rebuild - Timestamp: 14:06
+console.log('🚀 STARTING SERVER - VERSION: FIX_DEFAULT_TENANT_V2');
 const PORT = process.env.PORT || 8080;
 
 app.set('trust proxy', 1);
