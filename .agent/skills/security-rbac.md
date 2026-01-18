@@ -26,6 +26,13 @@ The Super Admin tier introduces platform-level security concepts.
 - **URL Guess-Proofing**: Middleware must return generic 403/404 errors for cross-tenant attempts. Never leak slug existence or account associations in error messages.
 - **Session Rotation**: Regenerate sessions on login to prevent fixation attacks.
 
+## 🛡️ Edge-Tier Protection (Next.js)
+- **Middleware is Mandatory**: Every frontend project MUST have a `middleware.ts` at the root/src level to protect internal routes (`/super-admin`, `/[tenantSlug]/dashboard`) at the edge.
+- **Fail-Safe Redirects**: Unauthenticated requests to protected paths MUST be redirected to `/auth/login` before reaching the page components.
+
+## 🗑️ Total Wipe Protocol (Clean Slate)
+- **Aggressive Decommissioning**: When implementing a "Clean Slate", always use `TRUNCATE TABLE ... CASCADE` in the seed script. This ensures remote production databases are fully purged of legacy/ghost accounts (e.g., `admin@example.com`) that may have persisted from previous builds.
+
 ## Backend Security Checklist
 - [ ] Endpoint is wrapped in `requireAuth`.
 - [ ] Endpoint is wrapped in `requireTenantContext`.
