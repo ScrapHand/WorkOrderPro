@@ -400,7 +400,7 @@ apiRouter.use('/shifts', shiftRouter);
 app.use('/api/v1', apiRouter);
 app.use('/api', apiRouter);
 
-app.get('/health', (req, res) => res.send('OK'));
+app.get('/health', (req, res) => res.json({ status: 'OK', version: 'FIX_DEFAULT_TENANT_V3', timestamp: new Date().toISOString() }));
 
 // Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
