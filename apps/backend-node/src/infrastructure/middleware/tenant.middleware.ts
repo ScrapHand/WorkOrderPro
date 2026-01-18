@@ -22,7 +22,7 @@ const GLOBAL_KEYWORDS = [
 
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     // 1. Extract Slug - PRIORITIZE Query Params for linked assets/proxies
-    let slugParam = req.query.tenant || req.query.slug;
+    let slugParam = req.query.tenant || req.query.slug || req.get('x-tenant-override');
     let slug = 'default';
 
     if (Array.isArray(slugParam)) {
@@ -49,6 +49,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
         if (sessionUser && !req.path.includes('/auth/') && sessionUser.role !== 'SYSTEM_ADMIN' && sessionUser.role !== 'GLOBAL_ADMIN' && sessionUser.role !== 'SUPER_ADMIN') {
             // [HARD LOCK] Enforce user's assigned tenant
             if (slug !== sessionUser.tenantSlug) {
+                // [DRILL-DOWN] Allow if Super Admin (already handled by role check above, but for clarity)
                 logger.warn({ userId: sessionUser.id, userTenant: sessionUser.tenantSlug, requestedTenant: slug }, 'Cross-tenant access attempt blocked');
                 return res.status(403).json({
                     error: 'Cross-tenant access forbidden',
@@ -58,6 +59,14 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
 
             tenantId = sessionUser.tenantId;
             finalSlug = sessionUser.tenantSlug;
+        } else if (sessionUser?.role === 'SUPER_ADMIN' && slug !== 'default' && slug !== 'system') {
+            // [ORCHESTRATION] Super Admin Drill-down Resolution
+            const overrideTenant = await prisma.tenant.findUnique({ where: { slug: slug } });
+            if (overrideTenant) {
+                tenantId = overrideTenant.id;
+                finalSlug = overrideTenant.slug;
+                logger.info({ superAdmin: sessionUser.id, drillDownTenant: finalSlug }, 'Super Admin drill-down context established');
+            }
         } else {
             // [RESOLUTION] Resolve from slug (Login, Global Admins, or Guests)
 

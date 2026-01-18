@@ -11,8 +11,10 @@ import {
     ShieldCheck,
     ChevronRight,
     ToggleLeft,
-    ToggleRight
+    ToggleRight,
+    ExternalLink
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import {
     Table,
     TableBody,
@@ -36,6 +38,7 @@ import { toast } from 'sonner';
 
 export default function TenantExplorer() {
     const queryClient = useQueryClient();
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = React.useState('');
 
     const { data: tenants, isLoading } = useQuery<TenantSummary[]>({
@@ -173,8 +176,11 @@ export default function TenantExplorer() {
                                             <DropdownMenuItem className="gap-2">
                                                 <ShieldCheck size={16} /> Update Plan
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem className="gap-2">
-                                                <ChevronRight size={16} /> View Dashboard
+                                            <DropdownMenuItem
+                                                className="gap-2 cursor-pointer font-bold text-indigo-600"
+                                                onClick={() => router.push(`/${tenant.slug}/dashboard`)}
+                                            >
+                                                <ExternalLink size={16} /> Enter Organization
                                             </DropdownMenuItem>
                                             <DropdownMenuItem className="gap-2 text-destructive">
                                                 Suspend Organization

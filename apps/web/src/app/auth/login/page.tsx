@@ -66,13 +66,14 @@ export default function LoginPage() {
 
             toast.success("Login successful");
 
-            // Prefer server-provided slug, fallback to storage, then default
-            const slug = data.tenant?.slug || localStorage.getItem("tenant_slug") || "default";
-
-            // Update storage for next time
-            localStorage.setItem("tenant_slug", slug);
-
-            router.push(`/${slug}/dashboard`);
+            // [PHASE 9] Role-aware redirection
+            if (data.user?.role === 'SUPER_ADMIN') {
+                router.push('/super-admin');
+            } else {
+                const slug = data.tenant?.slug || localStorage.getItem("tenant_slug") || "default";
+                localStorage.setItem("tenant_slug", slug);
+                router.push(`/${slug}/dashboard`);
+            }
 
         } catch (error: any) {
             console.error("Login Error:", error);
