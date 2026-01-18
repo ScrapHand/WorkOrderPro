@@ -222,4 +222,47 @@ export class ReportService {
             totalWorkOrders: results.length
         };
     }
+
+    async getAvailabilityMetrics(tenantId: string) {
+        /**
+         * Blueprint: Availability = (Potential Time - Downtime) / Potential Time
+         * Measured over the last 30 days.
+         */
+        const days = 30;
+        const totalHours = days * 24;
+
+        const reactiveWOs = await this.prisma.workOrder.findMany({
+            where: {
+                tenantId,
+                type: 'REACTIVE',
+                status: 'DONE',
+                completedAt: {
+                    gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+                }
+            },
+            select: {
+                createdAt: true,
+                completedAt: true
+            }
+        });
+
+        const totalDowntimeMinutes = reactiveWOs.reduce((acc, wo) => {
+            const start = new Date(wo.createdAt).getTime();
+            const end = new Date(wo.completedAt!).getTime();
+            return acc + (end - start) / (1000 * 60);
+        }, 0);
+
+        const downtimeHours = totalDowntimeMinutes / 60;
+        const potentialHours = totalHours;
+        const availability = potentialHours > 0
+            ? Math.max(0, (potentialHours - downtimeHours) / potentialHours)
+            : 1;
+
+        return {
+            availability: Math.round(availability * 100),
+            totalDowntimeHours: Math.round(downtimeHours),
+            potentialHours,
+            periodDays: days
+        };
+    }
 }

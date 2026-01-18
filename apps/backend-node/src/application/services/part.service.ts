@@ -1,5 +1,6 @@
 
 import { PrismaClient, Part } from '@prisma/client';
+import { logger } from '../../infrastructure/logging/logger';
 
 export class PartService {
     constructor(private prisma: PrismaClient) { }
@@ -83,6 +84,44 @@ export class PartService {
                     performedBy
                 }
             });
+
+            // 3. Automated Inventory Alerts [PHASE 4]
+            if (part.quantity <= part.minQuantity) {
+                const type = part.quantity <= (part.minQuantity / 2) ? 'CRITICAL' : 'WARNING';
+
+                // Create Alert if not already active
+                const existing = await tx.inventoryAlert.findFirst({
+                    where: { tenantId, partId, status: 'ACTIVE' }
+                });
+
+                if (!existing) {
+                    await tx.inventoryAlert.create({
+                        data: {
+                            tenantId,
+                            partId,
+                            type,
+                            message: `${part.name} is low on stock (${part.quantity} remaining). Minimum is ${part.minQuantity}.`,
+                            status: 'ACTIVE'
+                        }
+                    });
+                    logger.warn({ partId, tenantId, quantity: part.quantity }, 'Inventory Alert Created');
+                } else if (existing.type !== type) {
+                    // Update severity if it escalated
+                    await tx.inventoryAlert.update({
+                        where: { id: existing.id },
+                        data: { type }
+                    });
+                }
+            } else {
+                // Resolve Alert if stock is now healthy
+                await tx.inventoryAlert.updateMany({
+                    where: { tenantId, partId, status: 'ACTIVE' },
+                    data: {
+                        status: 'RESOLVED',
+                        resolvedAt: new Date()
+                    }
+                });
+            }
 
             return part;
         });

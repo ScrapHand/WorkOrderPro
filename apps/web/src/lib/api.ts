@@ -9,7 +9,7 @@ const getTenantSlug = () => {
     if (typeof window !== 'undefined') {
         const pathParts = window.location.pathname.split('/').filter(Boolean);
 
-        // Priority 1: URL path part (e.g., /acme/dashboard -> acme)
+        // Priority 1: URL path part (e.g., /retail-corp/dashboard -> retail-corp)
         if (pathParts.length > 0 && pathParts[0] !== 'auth' && pathParts[0] !== 'dashboard' && pathParts[0] !== 'api') {
             return pathParts[0];
         }

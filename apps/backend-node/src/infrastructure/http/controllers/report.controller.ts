@@ -65,18 +65,20 @@ export class ReportController {
             if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
 
             logger.info({ tenantId }, 'Generating advanced metrics report');
-            const [pmCompliance, costByManufacturer, mtbf, mttr] = await Promise.all([
+            const [pmCompliance, costByManufacturer, mtbf, mttr, availability] = await Promise.all([
                 this.reportService.getPMCompliance(tenantId),
                 this.reportService.getCostByManufacturer(tenantId),
                 this.reportService.getMTBFMetrics(tenantId),
-                this.reportService.getMTTRMetrics(tenantId)
+                this.reportService.getMTTRMetrics(tenantId),
+                this.reportService.getAvailabilityMetrics(tenantId)
             ]);
 
             res.json({
                 pmCompliance,
                 costByManufacturer,
                 mtbf,
-                mttr
+                mttr,
+                availability
             });
         } catch (error: any) {
             logger.error({ error, tenantId }, 'Failed to generate advanced metrics report');

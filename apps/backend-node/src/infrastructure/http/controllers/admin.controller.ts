@@ -33,15 +33,22 @@ export class AdminController {
                 const existingConfig = (tenant?.brandingConfig as any) || {};
 
                 // [NORMALIZE] Ensure all incoming keys are mapped correctly (handle snake_case vs camelCase)
-                const normalizedBranding = {
+                const normalizedBranding: any = {
                     primaryColor: branding.primaryColor || branding.primary_color || branding.brandColor || branding.brand_color,
                     secondaryColor: branding.secondaryColor || branding.secondary_color,
                     backgroundColor: branding.backgroundColor || branding.background_color,
                     textColor: branding.textColor || branding.text_color,
                     mutedColor: branding.mutedColor || branding.muted_color,
                     logoUrl: branding.logoUrl || branding.logo_url,
-                    appName: branding.appName || branding.app_name || branding.name || existingConfig.appName
+                    appName: branding.appName || branding.app_name || branding.name
                 };
+
+                // [FIX] Filter out undefined/null to prevent overwriting existing config with nothing
+                Object.keys(normalizedBranding).forEach(key => {
+                    if (normalizedBranding[key] === undefined || normalizedBranding[key] === null) {
+                        delete normalizedBranding[key];
+                    }
+                });
 
                 const newConfig = {
                     ...existingConfig,
@@ -52,7 +59,7 @@ export class AdminController {
                     }
                 };
 
-                // Remove undefined fields
+                // Remove undefined fields from final object
                 Object.keys(newConfig).forEach(key => (newConfig as any)[key] === undefined && delete (newConfig as any)[key]);
 
                 data.brandingConfig = newConfig;

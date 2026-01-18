@@ -15,6 +15,9 @@ export class WorkOrderService {
         // [CORE LOGIC] RIME Calculation
         const rimeScore = await this.rimeService.calculateScore(assetId, tenantId, priority);
 
+        // [PHASE 7] Calculate SLA Deadline
+        const slaDeadline = this.calculateSlaDeadline(priority);
+
         const workOrder = {
             id: uuidv4(),
             tenantId,
@@ -24,7 +27,9 @@ export class WorkOrderService {
             priority,
             status: 'OPEN',
             rimeScore,
-            assignedUserId
+            assignedUserId,
+            slaDeadline,
+            slaStatus: 'IN_TARGET'
         };
 
         const saved = await this.woRepo.create(workOrder);
@@ -35,6 +40,20 @@ export class WorkOrderService {
         return saved;
     }
 
+    private calculateSlaDeadline(priority: string): Date {
+        const now = new Date();
+        const upperPriority = priority.toUpperCase();
+
+        let hours = 48; // Default
+        if (upperPriority === 'CRITICAL') hours = 2;
+        else if (upperPriority === 'HIGH') hours = 4;
+        else if (upperPriority === 'MEDIUM') hours = 12;
+        else if (upperPriority === 'LOW') hours = 24;
+
+        now.setHours(now.getHours() + hours);
+        return now;
+    }
+
     async getWorkOrders(tenantId: string, filters: any = {}) {
         return this.woRepo.findAll(tenantId, filters);
     }
@@ -43,16 +62,42 @@ export class WorkOrderService {
     }
 
     async updateWorkOrder(id: string, tenantId: string, data: any) {
+        // [SAFETY GUARD] Block IN_PROGRESS if LOTO required but not verified
+        if (data.status === 'IN_PROGRESS') {
+            const wo = await this.woRepo.findById(id, tenantId);
+            const asset = await this.prisma.asset.findUnique({
+                where: { id: wo.assetId },
+                select: { lotoConfig: true }
+            });
+
+            const hasLoto = asset?.lotoConfig && Object.keys(asset.lotoConfig as any).length > 0;
+            if (hasLoto && !wo.lotoVerified) {
+                logger.warn({ id, tenantId }, 'Attempted to start work order without LOTO verification');
+                throw new Error('Lockout/Tagout (LOTO) verification is required before starting this work order.');
+            }
+        }
+
         const updated = await this.woRepo.update(id, tenantId, data);
 
         // If status or priority changed, or assetId changed, sync status
-        // Since we don't know exactly what changed easily with the generic 'data', we'll just check if we have the assetId
         const wo = await this.woRepo.findById(id, tenantId);
         if (wo?.assetId) {
             await this.syncAssetStatus(tenantId, wo.assetId);
         }
 
         return updated;
+    }
+
+    async verifySafety(id: string, tenantId: string) {
+        const wo = await this.woRepo.findById(id, tenantId);
+        if (!wo) throw new Error('Work order not found');
+
+        logger.info({ id, tenantId }, 'LOTO Safety verified for work order');
+
+        return this.woRepo.update(id, tenantId, {
+            lotoVerified: true,
+            lotoVerifiedAt: new Date()
+        });
     }
 
     async deleteWorkOrder(id: string, tenantId: string) {

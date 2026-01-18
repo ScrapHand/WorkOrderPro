@@ -61,6 +61,11 @@ export const AssetService = {
         await api.delete(`/work-orders/${id}`);
     },
 
+    verifySafety: async (id: string): Promise<WorkOrder> => {
+        const res = await api.post(`/work-orders/${id}/verify-safety`);
+        return res.data;
+    },
+
     importTemplate: async (template: any): Promise<void> => {
         await api.post("/assets/import-template", { template });
     },

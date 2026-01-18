@@ -13,6 +13,11 @@ import { UserRole } from "@/lib/auth/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkOrderTable } from "@/components/work-orders/WorkOrderTable";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InventoryAlertsBanner } from "@/components/inventory/InventoryAlertsBanner";
+import { ShiftHandoverBoard } from "@/components/operations/ShiftHandoverBoard";
+import { useFeatures } from "@/hooks/useFeatures";
+import { CostAnalyticsWidget } from "@/components/enterprise/CostAnalyticsWidget";
+import { SLABadge } from "@/components/enterprise/SLABadge";
 
 // Placeholder type
 type WorkOrder = {
@@ -21,6 +26,8 @@ type WorkOrder = {
     status: string;
     priority: string;
     work_order_number?: string;
+    slaDeadline?: string | Date | null;
+    slaStatus?: string;
 };
 
 export default function DashboardPage() {
@@ -60,9 +67,11 @@ export default function DashboardPage() {
         refetchInterval: 30000 // Check every 30s
     });
 
+    const { isEnabled } = useFeatures();
 
     return (
         <div className="container mx-auto p-6 space-y-8">
+            {isEnabled('inventoryIntelligence') && <InventoryAlertsBanner />}
             {/* Critical Line Down Alert */}
             {criticalJobs && criticalJobs.length > 0 && (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm animate-in slide-in-from-top-2">
@@ -124,6 +133,12 @@ export default function DashboardPage() {
                         <p className="text-xs text-muted-foreground">Tasks currently assigned to you</p>
                     </CardContent>
                 </Card>
+
+                {isEnabled('costAnalytics') && (
+                    <div className="md:col-span-1 border-none">
+                        <CostAnalyticsWidget />
+                    </div>
+                )}
             </div>
 
             {/* Big Action Buttons */}
@@ -157,9 +172,11 @@ export default function DashboardPage() {
 
             {/* Dashboard Tabs */}
             <Tabs defaultValue="my-tasks" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+                <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
                     <TabsTrigger value="my-tasks">My Active Tasks</TabsTrigger>
                     <TabsTrigger value="active-wo">Active Work Orders</TabsTrigger>
+                    {isEnabled('shiftAnalytics') && <TabsTrigger value="shifts">Shift Transitions</TabsTrigger>}
+                    {isEnabled('autoDispatch') && <TabsTrigger value="dispatch">Auto Dispatch</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="my-tasks" className="space-y-4 mt-6">
@@ -182,6 +199,9 @@ export default function DashboardPage() {
                                                         'bg-green-100 text-green-700 hover:bg-green-200'}`}>
                                                 {task.priority || 'NORMAL'}
                                             </Badge>
+                                            {isEnabled('workOrderSLA') && task.slaDeadline && (
+                                                <SLABadge deadline={task.slaDeadline} status={task.slaStatus || 'IN_TARGET'} />
+                                            )}
                                             {task.status === 'completed'
                                                 ? <CheckCircle2 className="text-green-500 h-4 w-4" />
                                                 : <Clock className="text-muted-foreground h-4 w-4" />
@@ -232,6 +252,18 @@ export default function DashboardPage() {
                 <TabsContent value="active-wo" className="mt-6">
                     <WorkOrderTable statusFilter="OPEN" enableFilters={true} />
                 </TabsContent>
+
+                <TabsContent value="shifts" className="mt-6">
+                    <ShiftHandoverBoard />
+                </TabsContent>
+
+                {isEnabled('autoDispatch') && (
+                    <TabsContent value="dispatch" className="mt-6">
+                        <Card className="border-dashed h-64 flex items-center justify-center text-gray-400">
+                            Automated Work Order Dispatch Console (Feature Provisioned)
+                        </Card>
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
     );

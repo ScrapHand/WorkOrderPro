@@ -74,7 +74,7 @@ export function NewWorkOrderWizard() {
             if (selectedFiles.length > 0 && data?.id) {
                 setIsUploading(true);
                 try {
-                    toast.loading("Uploading photos...");
+                    toast.loading("Uploading photos...", { id: "upload-toast" });
                     for (const file of selectedFiles) {
                         try {
                             const { url, key } = await UploadService.getPresignedUrl('work-orders', data.id, file);
@@ -91,11 +91,10 @@ export function NewWorkOrderWizard() {
                             console.error(`Failed to upload file ${file.name}:`, itemErr);
                         }
                     }
-                    toast.dismiss();
-                    toast.success("Work Order created and photos uploaded!");
+                    toast.success("Work Order created and photos uploaded!", { id: "upload-toast" });
                 } catch (err) {
                     console.error("Critical Upload Error:", err);
-                    toast.error("Work Order created, but photo upload system failed.");
+                    toast.error("Work Order created, but photo upload system failed.", { id: "upload-toast" });
                 } finally {
                     setIsUploading(false);
                 }
@@ -103,33 +102,36 @@ export function NewWorkOrderWizard() {
                 toast.success("Work Order created successfully");
             }
 
-            // [CRITICAL] Ensure state is cleared
+            // [CRITICAL] Ensure state is cleared immediately to stop spinners if any
+            setIsUploading(false);
             reset();
             setStep(1);
             setShowDescription(false);
             setSelectedFiles([]);
 
             // [NAVIGATION] Redirect to the new WO or the list
+            const targetPath = data?.id
+                ? `/${tenantSlug}/dashboard/work-orders/${data.id}`
+                : `/${tenantSlug}/dashboard/work-orders`;
+
+            console.log("[NewWorkOrderWizard] Final Redirect to:", targetPath);
+
             setTimeout(() => {
-                const targetPath = data?.id
-                    ? `/${tenantSlug}/dashboard/work-orders/${data.id}`
-                    : `/${tenantSlug}/dashboard/work-orders`;
-
-                console.log("[NewWorkOrderWizard] Final Redirect to:", targetPath);
-
-                // Safety: Only redirect if router is ready
                 try {
                     router.push(targetPath);
                 } catch (navErr) {
                     console.error("[NewWorkOrderWizard] Navigation Error:", navErr);
+                    // Fallback to window.location if router fails
+                    window.location.href = targetPath;
                 }
-            }, 150); // Increased delay slightly for hydration safety
+            }, 100);
         },
         onError: (err: any) => {
             console.error("Submission Error Details:", err.response?.data || err.message);
-            setIsUploading(false); // Safety
-            setSubmitError(err.response?.data?.error || "Failed to create work order. Please try again.");
-            toast.error("Failed to create work order.");
+            setIsUploading(false);
+            const errorMsg = err.response?.data?.error || err.message || "Failed to create work order.";
+            setSubmitError(errorMsg);
+            toast.error(errorMsg);
         }
     });
 

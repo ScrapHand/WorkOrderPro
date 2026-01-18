@@ -17,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { JobSessionManager } from "@/components/work-orders/JobSessionManager";
 import { ChecklistSignOff } from "@/components/work-orders/ChecklistSignOff";
+import { SafetyVerification } from "@/components/work-orders/SafetyVerification";
+import { CommentsPanel } from "@/components/work-orders/CommentsPanel";
 
 const RimeBadge = ({ score }: { score: number }) => {
     let color = "bg-green-100 text-green-800 border-green-200";
@@ -145,6 +147,7 @@ export default function WorkOrderDetailsPage() {
 
             <div className="grid grid-cols-3 gap-6">
                 <div className="col-span-2 space-y-6">
+                    <SafetyVerification workOrder={wo} />
                     <DescriptionSection wo={wo} onUpdate={handleStatusChange} />
 
                     {/* Maintenance Checklist Logic */}
@@ -258,6 +261,8 @@ export default function WorkOrderDetailsPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    <CommentsPanel workOrderId={wo.id} />
                 </div>
             </div>
         </div>

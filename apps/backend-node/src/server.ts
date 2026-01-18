@@ -43,6 +43,9 @@ import { AnalyticsService } from './application/services/analytics.service';
 import { ProductionLineService } from './application/services/production-line.service';
 import { FactoryLayoutService } from './application/services/factory-layout.service';
 import { ConveyorSystemService } from './application/services/conveyor-system.service';
+import { ShiftService } from './application/services/shift.service';
+import { CommentService } from './application/services/comment.service';
+import { SuperAdminService } from './application/services/super-admin.service';
 
 // Controllers
 import { AssetController } from './infrastructure/http/controllers/asset.controller';
@@ -55,6 +58,7 @@ import { AdminController } from './infrastructure/http/controllers/admin.control
 import { DebugController } from './infrastructure/http/controllers/debug.controller';
 import { ReportController } from './infrastructure/http/controllers/report.controller';
 import { RoleController } from './infrastructure/http/controllers/role.controller';
+import { SuperAdminController } from './infrastructure/http/controllers/super-admin.controller';
 import { WorkOrderSessionController } from './infrastructure/http/controllers/work-order-session.controller';
 import { AuthController } from './infrastructure/http/controllers/auth.controller';
 import { PlatformAdminController } from './infrastructure/http/controllers/platform-admin.controller';
@@ -64,6 +68,8 @@ import { ProductionLineController } from './infrastructure/http/controllers/prod
 import { FactoryLayoutController } from './infrastructure/http/controllers/factory-layout.controller';
 import { ConveyorSystemController } from './infrastructure/http/controllers/conveyor-system.controller';
 import { PageController } from './infrastructure/http/controllers/page.controller';
+import { ShiftController } from './infrastructure/http/controllers/shift.controller';
+import { CommentController } from './infrastructure/http/controllers/comment.controller';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -196,6 +202,15 @@ const factoryLayoutController = new FactoryLayoutController(factoryLayoutService
 const conveyorSystemService = new ConveyorSystemService(prisma);
 const conveyorSystemController = new ConveyorSystemController(conveyorSystemService);
 
+const shiftService = new ShiftService(prisma);
+const shiftController = new ShiftController(shiftService);
+
+const commentService = new CommentService(prisma);
+const commentController = new CommentController(commentService);
+
+const saService = new SuperAdminService(prisma);
+const saController = new SuperAdminController(saService);
+
 const pageController = new PageController(prisma);
 
 // Define Routers
@@ -267,8 +282,22 @@ woRouter.post('/', requirePermission('work_order:write'), woController.create);
 woRouter.get('/', requirePermission('work_order:read'), woController.getAll);
 woRouter.get('/:id', requirePermission('work_order:read'), woController.getById);
 woRouter.patch('/:id', requirePermission('work_order:write'), woController.patch);
+woRouter.post('/:id/verify-safety', requireAuth, woController.verifySafety);
+woRouter.get('/:workOrderId/comments', requireAuth, commentController.getAll);
+woRouter.post('/:workOrderId/comments', requireAuth, commentController.add);
 woRouter.delete('/:id', requirePermission('work_order:delete'), woController.delete);
 apiRouter.use('/work-orders', woRouter);
+
+// Super Admin Nexus Routes [PHASE 5]
+const saRouter = express.Router();
+const saAuth = [requireAuth, requireRole(UserRole.SUPER_ADMIN)];
+saRouter.get('/stats', saAuth, saController.getStats);
+saRouter.get('/tenants', saAuth, saController.getTenants);
+saRouter.post('/tenants/:id/provision', saAuth, saController.provision);
+saRouter.get('/logs', saAuth, saController.getLogs);
+saRouter.get('/users', saAuth, saController.getUsers);
+saRouter.delete('/users/:id', saAuth, saController.deleteUser);
+apiRouter.use('/super-admin', saRouter);
 
 // Upload Routes
 const uploadRouter = express.Router();
@@ -354,6 +383,14 @@ conveyorSystemRouter.get('/:id', requireAuth, conveyorSystemController.getSystem
 conveyorSystemRouter.patch('/:id', requireAuth, conveyorSystemController.updateSystem);
 conveyorSystemRouter.delete('/:id', requireAuth, conveyorSystemController.deleteSystem);
 apiRouter.use('/conveyor-systems', conveyorSystemRouter);
+
+// Shift Handover Routes
+const shiftRouter = express.Router();
+shiftRouter.get('/', requireAuth, shiftController.getAll);
+shiftRouter.post('/', requireAuth, shiftController.create);
+shiftRouter.get('/snapshot', requireAuth, shiftController.getSnapshot);
+shiftRouter.post('/:id/sign', requireAuth, shiftController.sign);
+apiRouter.use('/shifts', shiftRouter);
 
 // Mount API
 app.use('/api/v1', apiRouter);

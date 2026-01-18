@@ -16,12 +16,17 @@ export class WorkOrderController {
     create = async (req: Request, res: Response) => {
         const tenantCtx = getCurrentTenant();
         const tenantId = tenantCtx?.id;
+        const body = req.body;
+
+        logger.info({ tenantId, body }, 'WorkOrder creation request received');
+
         try {
             if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
 
             // [VALIDATION] Zod Check
             const result = createWorkOrderSchema.safeParse(req.body);
             if (!result.success) {
+                logger.warn({ issues: result.error.issues, tenantId }, 'WorkOrder validation failed');
                 return res.status(400).json({ error: 'Invalid work order data', details: result.error.issues });
             }
 
@@ -55,7 +60,7 @@ export class WorkOrderController {
                 targetUserId = sessionUserId;
             }
 
-            logger.info({ assetId: finalAssetId, title, priority, assignedUserId, assignedToMe, targetUserId }, 'WorkOrder creation requested');
+            logger.info({ assetId: finalAssetId, title, priority, targetUserId }, 'Calling WorkOrderService.createWorkOrder');
 
             const wo = await this.woService.createWorkOrder(
                 tenantId,
@@ -66,11 +71,21 @@ export class WorkOrderController {
                 targetUserId || undefined
             );
 
-            logger.info({ workOrderId: wo.id }, 'WorkOrder created successfully');
-            res.status(201).json(wo);
+            logger.info({ workOrderId: wo.id, tenantId }, 'WorkOrder created successfully');
+
+            // Explicitly return a clean object to avoid Prisma cycle issues if any
+            res.status(201).json({
+                id: wo.id,
+                tenantId: wo.tenantId,
+                assetId: wo.assetId,
+                title: wo.title,
+                status: wo.status,
+                priority: wo.priority,
+                rimeScore: wo.rimeScore
+            });
         } catch (error: any) {
-            logger.error({ error, tenantId }, 'WorkOrder creation failed');
-            res.status(500).json({ error: error.message });
+            logger.error({ error: error.message, stack: error.stack, tenantId }, 'WorkOrder creation failed with exception');
+            res.status(500).json({ error: error.message || 'Internal Server Error' });
         }
     };
 
@@ -151,6 +166,21 @@ export class WorkOrderController {
             res.status(204).send();
         } catch (error: any) {
             logger.error({ error, id, tenantId }, 'WorkOrder deletion failed');
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    verifySafety = async (req: Request, res: Response) => {
+        const tenantCtx = getCurrentTenant();
+        const tenantId = tenantCtx?.id;
+        const { id } = req.params;
+        try {
+            if (!tenantCtx || !tenantId) return res.status(400).json({ error: 'Tenant context missing' });
+
+            const wo = await this.woService.verifySafety(id, tenantId);
+            res.json(wo);
+        } catch (error: any) {
+            logger.error({ error: error.message, id, tenantId }, 'Safety verification failed');
             res.status(500).json({ error: error.message });
         }
     };

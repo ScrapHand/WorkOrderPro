@@ -39,5 +39,10 @@ export const InventoryService = {
 
     delete: async (id: string): Promise<void> => {
         await api.delete(`/parts/${id}`);
+    },
+
+    getAlerts: async (): Promise<any[]> => {
+        const { data } = await api.get<any[]>("/inventory/alerts");
+        return data;
     }
 };

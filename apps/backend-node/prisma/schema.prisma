@@ -24,6 +24,7 @@ model Tenant {
   rbacConfig     Json?    @map("rbac_config")     // { "ROLE": { "feature": boolean } }
   secretsConfig  Json?    @map("secrets_config")  // { "STRIPE_KEY": "...", "OPENAI_KEY": "..." }
   notificationConfig Json? @map("notification_config")
+  features         Json?    @default("{}") @map("features") // { "factoryLayout": true, "inventoryAlerts": true }
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -45,6 +46,8 @@ model Tenant {
   conveyorSystems   ConveyorSystem[]
   pages             Page[]
   pmLogs            PMLog[]
+  shiftHandovers    ShiftHandover[]
+  inventoryAlerts   InventoryAlert[]
 }
 
 model User {
@@ -74,6 +77,10 @@ model User {
   completedPMLogs    PMLog[]
   checklistTemplates ChecklistTemplate[]
   auditLogs         AuditLog[]
+
+  outgoingHandovers ShiftHandover[] @relation("OutgoingShift")
+  incomingHandovers ShiftHandover[] @relation("IncomingShift")
+  workOrderComments WorkOrderComment[]
 
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
 
@@ -168,12 +175,20 @@ model WorkOrder {
   assignedUserId String?  @map("assigned_user_id")
   assignedUser   User?    @relation("AssignedWorkOrders", fields: [assignedUserId], references: [id])
 
+  // SLA Tracking [PHASE 7]
+  slaDeadline    DateTime? @map("sla_deadline")
+  slaStatus      String    @default("IN_TARGET") @map("sla_status") // IN_TARGET, AT_RISK, BREACHED
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime? // Soft Delete
 
   pmScheduleId String? @map("pm_schedule_id")
   pmSchedule   PMSchedule? @relation(fields: [pmScheduleId], references: [id])
+  
+  // Safety & Compliance
+  lotoVerified   Boolean   @default(false) @map("loto_verified")
+  lotoVerifiedAt DateTime? @map("loto_verified_at")
   
   checklist    WorkOrderChecklist?
 
@@ -183,6 +198,7 @@ model WorkOrder {
   sessions    WorkOrderSession[]
   attachments Attachment[]
   parts       WorkOrderPart[]
+  comments    WorkOrderComment[]
 
   @@index([tenantId])
   @@index([assetId])
@@ -212,6 +228,7 @@ model Part {
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   transactions InventoryTransaction[]
   workOrderParts WorkOrderPart[]
+  inventoryAlerts InventoryAlert[]
 
   @@index([tenantId])
 }
@@ -577,6 +594,65 @@ model Page {
   @@index([tenantId])
 }
 
+model ShiftHandover {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  outgoingUserId  String   @map("outgoing_user_id")
+  incomingUserId  String?  @map("incoming_user_id") // Null if not yet signed by incoming
+  
+  shiftType       String   @map("shift_type") // e.g., "DAY", "NIGHT"
+  status          String   @default("PENDING") // PENDING, SIGNED
+  
+  content         Json     // { safetyNotes: "...", activeWOs: [...], operationalNotes: "..." }
+  
+  signedAt        DateTime? @map("signed_at")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  outgoingUser    User     @relation("OutgoingShift", fields: [outgoingUserId], references: [id])
+  incomingUser    User?    @relation("IncomingShift", fields: [incomingUserId], references: [id])
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model InventoryAlert {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  partId      String   @map("part_id")
+  
+  type        String   // WARNING, CRITICAL
+  message     String
+  status      String   @default("ACTIVE") // ACTIVE, RESOLVED
+  
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime? @map("resolved_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  part        Part     @relation(fields: [partId], references: [id])
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model WorkOrderComment {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  workOrderId String   @map("work_order_id")
+  userId      String   @map("user_id")
+  
+  content     String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([workOrderId])
+}
+
 // ENUMS REMOVED - Converted to Strings for Robustness
 
 // enum AssetStatus {
@@ -586,3 +662,15 @@ model Page {
 //   DEGRADED
 // }
 // ... (other enums removed)
+
+model PlatformLog {
+  id        String   @id @default(uuid())
+  adminId   String   @map("admin_id")
+  action    String   // PROVISION_TENANT, UPDATE_PLAN, DELETE_TENANT
+  targetId  String?  @map("target_id") // The tenantId or userId affected
+  metadata  Json?
+  timestamp DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+}
