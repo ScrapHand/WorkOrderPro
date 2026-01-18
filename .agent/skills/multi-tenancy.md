@@ -38,3 +38,9 @@ A common mistake in multi-tenant systems is over-binding global tools to tenant 
 - **Rule 1 (Keywords over Prefixes)**: Use keyword-based matching (`includes`) for global routes instead of `startsWith`. Production middleware often sees absolute paths that include environment-specific prefixes (e.g., `/api/v1/` vs `/`).
 - **Rule 2 (System Context)**: Global routes MUST permit a `SYSTEM` context fallback in the `tenantMiddleware` to ensure the platform remains manageable.
 - **Rule 3 (Diagnostics)**: Tenant resolution failures MUST log full path details and resolution state to allow immediate debugging of environment-specific routing issues.
+
+## ☢️ Nuclear Option (Tenant Cleanup)
+When a complete platform reset is required (e.g., removing all legacy demo tenants and users):
+1.  **Do Not relying on `deleteMany`**: Cascading deletes in ORMs can be slow or incomplete.
+2.  **Use `TRUNCATE`**: For a true clean slate, use `TRUNCATE TABLE [TableList] CASCADE` raw queries.
+3.  **Emergency Endpoint**: Maintain a secured `nuclear-wipe` endpoint (protected by a static secret) to allow cleanup even if scripts fail to connect to the remote database.
