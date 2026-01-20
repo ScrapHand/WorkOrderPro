@@ -149,7 +149,7 @@ app.use(session({
         createTableIfMissing: true,
         errorLog: console.error
     }),
-    secret: process.env.SESSION_SECRET || 'dev_secret_key_change_in_prod',
+    secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     name: 'wop_sid',
@@ -158,11 +158,11 @@ app.use(session({
     cookie: {
         path: '/',
         httpOnly: true,
-        secure: true, // MUST be true for SameSite: None 
-        sameSite: 'none', // Required for Cross-Site (Vercel -> Render)
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for Cross-Site (Vercel -> Render)
         partitioned: true, // CRITICAL: CHIPS support for Chrome/Safari
-        maxAge: 7 * 24 * 60 * 60 * 1000
-    } as any
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
 }));
 
 app.use(tenantMiddleware);

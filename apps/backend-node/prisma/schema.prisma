@@ -43,7 +43,6 @@ model Tenant {
   productionLines   ProductionLine[]
   assetConnections  AssetConnection[]
   factoryLayouts    FactoryLayout[]
-  conveyorSystems   ConveyorSystem[]
   pages             Page[]
   pmLogs            PMLog[]
   shiftHandovers    ShiftHandover[]
@@ -149,7 +148,7 @@ model Asset {
   
   sourceConnections AssetConnection[] @relation("SourceConnections")
   targetConnections AssetConnection[] @relation("TargetConnections")
-  factoryLayoutNodes FactoryLayoutNode[]
+  factoryNodes   FactoryNode[]
 
   // Indexes for Performance
   @@index([tenantId])
@@ -494,90 +493,47 @@ model AssetConnection {
 // ===== FACTORY LAYOUT DESIGNER MODELS =====
 
 model FactoryLayout {
-  id            String   @id @default(uuid())
-  tenantId      String   @map("tenant_id")
-  name          String
-  description   String?
-  isLocked      Boolean  @default(false) @map("is_locked")
-  version       Int      @default(1) // Optimistic concurrency control
-  viewportJson  Json?    @map("viewport_json") // { x, y, zoom }
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  nodes     FactoryNode[]
+  edges     FactoryEdge[]
   
-  nodes         FactoryLayoutNode[]
-  edges         FactoryLayoutEdge[]
-  
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId])
 }
 
-model FactoryLayoutNode {
+model FactoryNode {
   id        String   @id @default(uuid())
   layoutId  String   @map("layout_id")
   tenantId  String   @map("tenant_id")
-  assetId   String   @map("asset_id")
-  x         Float
-  y         Float
-  width     Int?
-  height    Int?
-  rotation  Int?     @default(0)
-  metaJson  Json?    @map("meta_json") // Visual overrides
+  assetId   String?  @map("asset_id")
+  visuals   Json     // { x: 100, y: 100, color: '#fff' }
+  
+  layout    FactoryLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  asset     Asset?        @relation(fields: [assetId], references: [id])
+
+  @@index([layoutId])
+  @@index([tenantId])
+}
+
+model FactoryEdge {
+  id        String   @id @default(uuid())
+  layoutId  String   @map("layout_id")
+  tenantId  String   @map("tenant_id")
+  sourceId  String   @map("source_id")
+  targetId  String   @map("target_id")
+  type      String   // 'CONVEYOR', 'MODULE'
 
   layout    FactoryLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
-  asset     Asset         @relation(fields: [assetId], references: [id])
-  
-  // Relations for edges
-  outgoingEdges FactoryLayoutEdge[] @relation("SourceNode")
-  incomingEdges FactoryLayoutEdge[] @relation("TargetNode")
 
   @@index([layoutId])
   @@index([tenantId])
-  @@index([assetId])
 }
 
-enum EdgeType {
-  CONVEYOR
-  MODULE
-}
-
-model FactoryLayoutEdge {
-  id               String   @id @default(uuid())
-  layoutId         String   @map("layout_id")
-  tenantId         String   @map("tenant_id")
-  sourceNodeId     String   @map("source_node_id")
-  targetNodeId     String   @map("target_node_id")
-  type             EdgeType @default(CONVEYOR)
-  conveyorSystemId String?  @map("conveyor_system_id")
-  label            String?
-  metaJson         Json?    @map("meta_json") // Path points for custom routing
-
-  layout           FactoryLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
-  sourceNode       FactoryLayoutNode @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
-  targetNode       FactoryLayoutNode @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
-  conveyorSystem   ConveyorSystem?   @relation(fields: [conveyorSystemId], references: [id])
-
-  @@index([layoutId])
-  @@index([tenantId])
-  @@index([sourceNodeId])
-  @@index([targetNodeId])
-}
-
-model ConveyorSystem {
-  id          String   @id @default(uuid())
-  tenantId    String   @map("tenant_id")
-  name        String
-  color       String   @default("#808080")
-  description String?
-  
-  edges       FactoryLayoutEdge[]
-  
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([tenantId])
-}
 
 model Page {
   id               String   @id @default(uuid())
