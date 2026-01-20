@@ -20,6 +20,8 @@
         "verify_tree.ts",
         "prisma",
         "dist",
-        "node_modules"
+        "node_modules",
+        "**/*.test.ts",
+        "**/__tests__"
     ]
 }

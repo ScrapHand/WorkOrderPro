@@ -1,4 +1,4 @@
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Handle, Position, NodeProps } from 'reactflow';
 
 interface AssetNodeData {
     asset: {
