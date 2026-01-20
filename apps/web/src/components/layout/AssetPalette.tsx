@@ -4,7 +4,6 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { GripVertical } from 'lucide-react';
 import { Asset } from '@/types/prisma-types'; // Assuming this exists or we use a local type
 
@@ -46,7 +45,7 @@ export function AssetPalette({ tenantSlug }: AssetPaletteProps) {
                 <p className="text-xs text-muted-foreground">Drag to canvas</p>
             </div>
 
-            <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-3">
                     {assets?.map((asset) => (
                         <div
@@ -71,7 +70,7 @@ export function AssetPalette({ tenantSlug }: AssetPaletteProps) {
                         </div>
                     )}
                 </div>
-            </ScrollArea>
+            </div>
         </Card>
     );
 }
