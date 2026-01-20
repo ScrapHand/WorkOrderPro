@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Card } from '@/components/ui/card';
 import { GripVertical } from 'lucide-react';
-import { Asset } from '@/types/prisma-types'; // Assuming this exists or we use a local type
+import { Asset } from '@/types/asset'; // Corrected import path
 
 // Temporary type until we have the full shared types
 interface AssetType {
